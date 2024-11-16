@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "../io.h"
 
 #ifdef SPLATFORM_LINUX
 
@@ -6,7 +6,7 @@
     #include <unistd.h>
 
 /**
- * @brief Platform dependent logging helper.
+ * @brief Logging helper for Linux.
  *
  * This function uses ANSI escape sequences to provide colored output.
  * If level was fatal or error, flush and write message immediatly to stderr

@@ -1,6 +1,7 @@
 #include "engine.h"
 
 #include "logger.h"
+#include "memory.h"
 
 typedef struct EngineState {
         b8 is_running;
@@ -31,9 +32,22 @@ b8 initializeEngine(Application *app_inst) {
 
     // TODO: specify the log file (platform specific)
     if (!initializeLogger("log.txt")) {
-        // Even if initialize is failed, messages will be logged to the stdout
+        // Even if initialize is failed, messages should be logged to the stdout
         // or stderr
+        // TODO: Make sure above one is true
         SERROR("Failed to initialize logger");
+    }
+
+    // TODO: Write tests and move this to there
+    SFATAL("Test log message: %d", 42);
+    SERROR("Test log message: %d", 42);
+    SWARN("Test log message: %d", 42);
+    SINFO("Test log message: %d", 42);
+    SDEBUG("Test log message: %d", 42);
+    STRACE("Test log message: %d", 42);
+
+    if (!initializeMemory()) {
+        SERROR("Failed to initialize memory subsystem");
     }
 
     engine_state.is_running = true;
@@ -55,6 +69,7 @@ void shutdownEngine() {
     // Should be called first, i.e., before terminating subsystems
     engine_state.app_inst->terminate(engine_state.app_inst);
 
+    shutdownMemory();
     shutdownLogger();
 }
 
@@ -64,14 +79,22 @@ void shutdownEngine() {
  * @return true if terminated normally, false if terminated abnormally.
  */
 b8 engineRun() {
-    b8 ret_val = true;
+    // if engine was not initialized then is_running is false => engineRun
+    // failed since not initialized.
+    b8 ret_val = engine_state.is_running;
+    // TODO: Replace with an assertion
+    if (!ret_val) {
+        SERROR("engineRun was called without initializing engine "
+               "(engine_state.is_running = false)");
+        return false;
+    }
+
     while (engine_state.is_running) {
         if (!engine_state.app_inst->update(engine_state.app_inst, (f32)0)) {
             SFATAL("Application update failed!");
             ret_val = false;
             // TODO: Yet to decide how to terminate main loop
-            // NOTE: For now using break
-            // engine_state.is_running = false;
+            engine_state.is_running = false;
             break;
         }
         engine_state.is_running = false;

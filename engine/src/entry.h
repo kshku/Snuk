@@ -10,12 +10,6 @@ extern b8 createApplication(Application *app_inst);
 int main(int argc, char *argv[]) {
     UNUSED(argc);
     UNUSED(argv);
-    SFATAL("Test log message: %d", 42);
-    SERROR("Test log message: %d", 42);
-    SWARN("Test log message: %d", 42);
-    SINFO("Test log message: %d", 42);
-    SDEBUG("Test log message: %d", 42);
-    STRACE("Test log message: %d", 42);
 
     Application app_inst = {0};
 
