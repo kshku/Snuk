@@ -7,7 +7,7 @@ DEFINES := -DS_DEBUG
 LDFLAGS := -g
 BUILD_DIR := build
 
-SUBDIRS := engine testbed
+SUBDIRS := engine testapp tests
 CLEAN_TARGETS := $(SUBDIRS:%=clean-%)
 
 export BUILD_DIR := $(CURDIR)/$(BUILD_DIR)

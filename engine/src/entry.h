@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
 
     if (!initializeEngine(&app_inst)) {
         SFATAL("Failed to initialize engine!");
+        shutdownEngine();
         return -1;
     }
 

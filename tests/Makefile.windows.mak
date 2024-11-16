@@ -3,31 +3,31 @@ SHELL := powershell.exe
 
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
-TARGET := snuk.dll
+TARGET := tests.exe
 SRCDIR := src
 SRCS := $(call rwildcard,$(SRCDIR)/,*.c)
 CFLAGS += -fdeclspec
-INCLUDES := -I $(SRCDIR)
-LDFLAGS += -shared
-DEFINES += -DS_EXPORTS
+INCLUDES := -I ../engine/src
+LDFLAGS += -L $(BUILD_DIR)/engine -lsnuk
+DEFINES +=
 
-OBJS := $(SRCS:%.c=$(BUILD_DIR)/engine/%.o)
+OBJS := $(SRCS:%.c=$(BUILD_DIR)/tests/%.o)
 DEPS := $(OBJS:.o=.d)
 CFLAGS += -MMD -MP $(INCLUDES) $(DEFINES)
-TARGET := $(BUILD_DIR)/engine/$(TARGET)
+TARGET := $(BUILD_DIR)/tests/$(TARGET)
 DIRS := $(sort $(dir $(OBJS)))
 
 all: $(DIRS) $(TARGET)
 
 clean:
-	@Write-Output "Cleaning engine..."
-	@if (Test-Path $(BUILD_DIR)/engine) { Remove-Item -Recurse -Force $(BUILD_DIR)/engine }
+	@Write-Output "Cleaning tests..."
+	@if (Test-Path $(BUILD_DIR)/tests) { Remove-Item -Recurse -Force $(BUILD_DIR)/tests }
 
 $(TARGET): $(OBJS)
 	@Write-Output "Linking $@..."
-	@$(CC) $(LDFLAGS) $^ -o $@
+	@$(CC) $^ -o $@ $(LDFLAGS)
 
-$(BUILD_DIR)/engine/%.o: %.c
+$(BUILD_DIR)/tests/%.o: %.c
 	@Write-Output "Compiling $<..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 

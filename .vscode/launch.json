@@ -1,24 +1,52 @@
 {
     "version": "0.2.0",
     "configurations": [
+        // Engine
         {
-            "name": "(Linux) Launch",
+            "name": "(Linux) Engine",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/testbed/testbed",
+            "program": "${workspaceFolder}/build/testapp/testapp",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/testbed",
+            "cwd": "${workspaceFolder}/build/testapp",
             "environment": []
         },
         {
-            "name": "(Windows) Launch",
+            "name": "(Windows) Engine",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\build\\testbed\\testbed.exe",
+            "program": "${workspaceFolder}\\build\\testapp\\testapp.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}\\build\\testbed",
+            "cwd": "${workspaceFolder}\\build\\testapp",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "..\\engine;${env:PATH}"
+                }
+            ],
+            "console": "integratedTerminal"
+        },
+        // Tests
+        {
+            "name": "(Linux) Tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/tests/tests",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/tests",
+            "environment": []
+        },
+        {
+            "name": "(Windows) Engine",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\tests\\tests.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build\\tests",
             "environment": [
                 {
                     "name": "PATH",

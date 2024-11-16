@@ -38,14 +38,6 @@ b8 initializeEngine(Application *app_inst) {
         SERROR("Failed to initialize logger");
     }
 
-    // TODO: Write tests and move this to there
-    SFATAL("Test log message: %d", 42);
-    SERROR("Test log message: %d", 42);
-    SWARN("Test log message: %d", 42);
-    SINFO("Test log message: %d", 42);
-    SDEBUG("Test log message: %d", 42);
-    STRACE("Test log message: %d", 42);
-
     if (!initializeMemory()) {
         SERROR("Failed to initialize memory subsystem");
     }

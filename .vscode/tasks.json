@@ -124,14 +124,14 @@
             "problemMatcher": []
         },
         {
-            "label": "Build Testbed",
+            "label": "Build testapp",
             "type": "shell",
             "linux": {
                 "command": "make",
                 "args": [
                     "-f",
                     "Makefile.linux.mak",
-                    "testbed"
+                    "testapp"
                 ]
             },
             "windows": {
@@ -139,7 +139,7 @@
                 "args": [
                     "-f",
                     "Makefile.windows.mak",
-                    "testbed"
+                    "testapp"
                 ]
             },
             "options": {
@@ -152,17 +152,17 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Task to build testbed"
+            "detail": "Task to build testapp"
         },
         {
-            "label": "Clean Testbed",
+            "label": "Clean testapp",
             "type": "shell",
             "linux": {
                 "command": "make",
                 "args": [
                     "-f",
                     "Makefile.linux.mak",
-                    "clean-testbed"
+                    "clean-testapp"
                 ]
             },
             "windows": {
@@ -170,7 +170,7 @@
                 "args": [
                     "-f",
                     "Makefile.windows.mak",
-                    "clean-testbed"
+                    "clean-testapp"
                 ]
             },
             "options": {
@@ -180,7 +180,67 @@
                 "kind": "none",
                 "isDefault": false
             },
-            "detail": "Task to clean testbed",
+            "detail": "Task to clean testapp",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build tests",
+            "type": "shell",
+            "linux": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.linux.mak",
+                    "tests"
+                ]
+            },
+            "windows": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.windows.mak",
+                    "tests"
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Task to build tests"
+        },
+        {
+            "label": "Clean tests",
+            "type": "shell",
+            "linux": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.linux.mak",
+                    "clean-tests"
+                ]
+            },
+            "windows": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.windows.mak",
+                    "clean-tests"
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "none",
+                "isDefault": false
+            },
+            "detail": "Task to clean tests",
             "problemMatcher": []
         }
     ]

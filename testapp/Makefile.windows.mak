@@ -3,31 +3,31 @@ SHELL := powershell.exe
 
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
-TARGET := testbed.exe
+TARGET := testapp.exe
 SRCDIR := src
 SRCS := $(call rwildcard,$(SRCDIR)/,*.c)
 CFLAGS += -fdeclspec
 INCLUDES := -I ../engine/src
-LDFLAGS += -L $(BUILD_DIR)/engine -lksge
+LDFLAGS += -L $(BUILD_DIR)/engine -lsnuk
 DEFINES +=
 
-OBJS := $(SRCS:%.c=$(BUILD_DIR)/testbed/%.o)
+OBJS := $(SRCS:%.c=$(BUILD_DIR)/testapp/%.o)
 DEPS := $(OBJS:.o=.d)
 CFLAGS += -MMD -MP $(INCLUDES) $(DEFINES)
-TARGET := $(BUILD_DIR)/testbed/$(TARGET)
+TARGET := $(BUILD_DIR)/testapp/$(TARGET)
 DIRS := $(sort $(dir $(OBJS)))
 
 all: $(DIRS) $(TARGET)
 
 clean:
-	@Write-Output "Cleaning testbed..."
-	@if (Test-Path $(BUILD_DIR)/testbed) { Remove-Item -Recurse -Force $(BUILD_DIR)/testbed }
+	@Write-Output "Cleaning testapp..."
+	@if (Test-Path $(BUILD_DIR)/testapp) { Remove-Item -Recurse -Force $(BUILD_DIR)/testapp }
 
 $(TARGET): $(OBJS)
 	@Write-Output "Linking $@..."
 	@$(CC) $^ -o $@ $(LDFLAGS)
 
-$(BUILD_DIR)/testbed/%.o: %.c
+$(BUILD_DIR)/testapp/%.o: %.c
 	@Write-Output "Compiling $<..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 

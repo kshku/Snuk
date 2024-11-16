@@ -37,8 +37,9 @@ b8 initializeMemory() {
 
     mem_state.total_allocated = 0;
     mem_state.index = 0;
-    mem_state.size = 0;
-    mem_state.allocated_ptrs = NULL;
+    mem_state.size = 1;
+    mem_state.allocated_ptrs =
+        platformAllocateMemory(mem_state.size * sizeof(PtrSizePair));
     mem_state.initialized = true;
 
     return true;
@@ -48,6 +49,11 @@ b8 initializeMemory() {
  * @brief Shutdown the memory subsystem.
  */
 void shutdownMemory() {
+    if (!mem_state.initialized) {
+        STRACE("shutdownMemory called without initializing Memory");
+        return;
+    }
+
     if (mem_state.allocated_ptrs) {
         for (u32 i = 0; i < mem_state.index; ++i) {
             SWARN("Allocated %ld bytes of memory was not deallocated, "
@@ -85,6 +91,7 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
                 (mem_state.size * sizeof(PtrSizePair)));
             if (!ptr) {
                 SERROR("updateAllocatedPtrs reallocation failed");
+                mem_state.size -= 2;
                 return false;
             }
             mem_state.allocated_ptrs = (PtrSizePair *)ptr;
