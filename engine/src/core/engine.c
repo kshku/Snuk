@@ -74,7 +74,6 @@ b8 engineRun() {
     // if engine was not initialized then is_running is false => engineRun
     // failed since not initialized.
     b8 ret_val = engine_state.is_running;
-    // TODO: Replace with an assertion
     if (!ret_val) {
         SERROR("engineRun was called without initializing engine "
                "(engine_state.is_running = false)");

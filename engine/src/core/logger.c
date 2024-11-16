@@ -2,6 +2,8 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+
+#include "assertions.h"
 // TODO: Remove this
 #include <stdlib.h>
 
@@ -86,4 +88,18 @@ void logMessage(LogLevel level, const char *msg, ...) {
     printf("%s\n", buf);
     free(buf);
 #endif
+}
+
+/**
+ * @brief Report the assertion failure.
+ *
+ * @param expr The expression that failed
+ * @param msg The message to be printed
+ * @param file The file in which assertion failed
+ * @param line Line number where the assertion failed
+ */
+void reportAssertionFailure(const char *expr, const char *msg, const char *file,
+                            const i32 line) {
+    SFATAL("Assertion failure: '%s', message '%s' in %s:%d", expr, msg, file,
+           line);
 }

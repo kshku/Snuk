@@ -45,10 +45,13 @@ void *platformReallocateMemory(void *ptr, u64 size) {
  *
  * @param ptr Pointer to the memory to zero out
  * @param size Size of the memory to be zeroed out
+ *
+ * @return Returns the passed ptr after setting it to zero.
  */
-void platformZeroOutMemory(void *ptr, u64 size) {
+void *platformZeroOutMemory(void *ptr, u64 size) {
     // TODO: Don't use library call
     memset(ptr, 0, size);
+    return ptr;
 }
 
 #endif
