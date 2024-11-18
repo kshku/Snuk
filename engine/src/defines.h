@@ -75,6 +75,12 @@ STATIC_ASSERT(sizeof(f64) == 8, "Expected f64 to be 8 bytes");
 
 STATIC_ASSERT(sizeof(b8) == 1, "Expected b8 to be 1 byte");
 
-// Ignore unused warnings for things (variables, return values, parameters,
-// etc.) that are intentionally unused
+/**
+ * @brief Mark variables, return values as unused
+ *
+ * Marking variables, return values as unused says that the variable is
+ * intentionally unused.
+ *
+ * @param x Variable of function call
+ */
 #define UNUSED(x) (void)(x)

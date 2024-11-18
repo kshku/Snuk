@@ -14,24 +14,24 @@ int main(int argc, char *argv[]) {
     Application app_inst = {0};
 
     if (!createApplication(&app_inst)) {
-        SFATAL("Could not create game!");
+        sFatal("Could not create game!");
         return -1;
     }
 
     if (!app_inst.initialize || !app_inst.update || !app_inst.render
         || !app_inst.terminate) {
-        SFATAL("App's function pointer must be assigned!");
+        sFatal("App's function pointer must be assigned!");
         return -1;
     }
 
     if (!initializeEngine(&app_inst)) {
-        SFATAL("Failed to initialize engine!");
+        sFatal("Failed to initialize engine!");
         shutdownEngine();
         return -1;
     }
 
     if (!engineRun()) {
-        SERROR("engineRun returned false");
+        sError("engineRun returned false");
     }
 
     shutdownEngine();

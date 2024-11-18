@@ -8,10 +8,15 @@
 
 typedef u8 (*pfn_test)(void);
 
-void initializeTestManager();
+typedef struct Test {
+        pfn_test f;
+        const char *desc;
+} Test;
 
-void shutdownTestManager();
+Test *initializeTestManager();
 
-void testManagerRegister(pfn_test f, const char *desc);
+void shutdownTestManager(Test *tests);
 
-void testManagerRun();
+Test *testManagerRegister(Test *tests, pfn_test f, const char *desc);
+
+void testManagerRun(Test *test);

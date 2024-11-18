@@ -4,11 +4,6 @@
 #include "core/logger.h"
 #include "platform/memory.h"
 
-// TODO: Might want to change how things work here.
-// TODO: If called before initialising then print a warning(or may be an info)
-// TODO: and call allocation or deallocation functions instead of just returning
-// TODO: NULL.
-
 typedef struct PtrSizePair {
         u64 size;
         void *ptr;
@@ -31,7 +26,7 @@ static MemState mem_state;
  */
 b8 initializeMemory() {
     if (mem_state.initialized) {
-        SERROR("Memory system is already initialized, but initializeMemory was "
+        sError("Memory system is already initialized, but initializeMemory was "
                "called again");
         return false;
     }
@@ -51,13 +46,13 @@ b8 initializeMemory() {
  */
 void shutdownMemory() {
     if (!mem_state.initialized) {
-        SERROR("shutdownMemory called without initializing Memory");
+        sError("shutdownMemory called without initializing Memory");
         return;
     }
 
     if (mem_state.allocated_ptrs) {
         for (u32 i = 0; i < mem_state.index; ++i) {
-            SWARN("Allocated %ld bytes of memory was not deallocated, "
+            sWarn("Allocated %ld bytes of memory was not deallocated, "
                   "Deallocating...",
                   mem_state.allocated_ptrs[i].size);
             platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
@@ -78,7 +73,7 @@ void shutdownMemory() {
  * @return true on success else false.
  */
 b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
-    SASSERT_MSG(mem_state.initialized,
+    sassert_msg(mem_state.initialized,
                 "updateAllocatedPtrs called without initializing memory");
 
     if (is_allocation) {
@@ -88,7 +83,7 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
                 mem_state.allocated_ptrs,
                 (mem_state.size * sizeof(PtrSizePair)));
             if (!ptr) {
-                SERROR("updateAllocatedPtrs reallocation failed");
+                sError("updateAllocatedPtrs reallocation failed");
                 mem_state.size -= 2;
                 return false;
             }
@@ -124,10 +119,10 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
  * @return true on success, else fasle.
  */
 b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
-    SASSERT_MSG(mem_state.initialized,
+    sassert_msg(mem_state.initialized,
                 "updateMemoryState called without initializing the memory")
 
-    if (!updateAllocatedPtrs(ptr, &size, is_allocation)) {
+        if (!updateAllocatedPtrs(ptr, &size, is_allocation)) {
         return false;
     }
 
@@ -144,17 +139,17 @@ b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
  *
  * @return Pointer to allocated memory on success else NULL.
  */
-void *smalloc(u64 size) {
+void *sMalloc(u64 size) {
     void *ptr = platformAllocateMemory(size);
 
     if (!mem_state.initialized) {
-        SWARN("smalloc called without initializing the memory, allocation will "
+        sWarn("sMalloc called without initializing the memory, allocation will "
               "not be tracked.");
         return ptr;
     }
 
     if (ptr && !updatedMemoryState(size, ptr, true))
-        SERROR("Memory allocation is not being tracked");
+        sError("Memory allocation is not being tracked");
 
     return ptr;
 }
@@ -167,20 +162,20 @@ void *smalloc(u64 size) {
  *
  * @return Pointer to allocated memory on success else NULL.
  */
-void *scalloc(u64 nmemb, u64 size) {
+void *sCalloc(u64 nmemb, u64 size) {
     u64 total_size = size * nmemb;
 
     void *ptr = platformAllocateMemory(total_size);
     if (ptr) platformZeroOutMemory(ptr, total_size);
 
     if (!mem_state.initialized) {
-        SWARN("scalloc called without initializing the memory, allocation will "
+        sWarn("sCalloc called without initializing the memory, allocation will "
               "not be tracked.");
         return ptr;
     }
 
     if (ptr && !updatedMemoryState(total_size, ptr, true))
-        SERROR("Failed to track the Memory allocation");
+        sError("Failed to track the Memory allocation");
 
     return ptr;
 }
@@ -188,7 +183,7 @@ void *scalloc(u64 nmemb, u64 size) {
 /**
  * @brief Similar to realloc.
  *
- * If size is zero calls sfree(returns null) and if ptr is NULL calls smalloc.
+ * If size is zero calls sFree(returns null) and if ptr is NULL calls sMalloc.
  * If ptr is NULL as well as size is zero throws error If ptr is NULL as well as
  * size is zero shows warning and returns NULL.
  *
@@ -197,34 +192,34 @@ void *scalloc(u64 nmemb, u64 size) {
  *
  * @return NULL if failed else pointer to the Memory allocated with new size.
  */
-void *srealloc(void *ptr, u64 size) {
+void *sRealloc(void *ptr, u64 size) {
     if (!ptr && !size) {
-        SERROR("srealloc called with NULL pointer and 0 size");
+        sError("sRealloc called with NULL pointer and 0 size");
         return ptr;
     }
 
     if (!size) {
-        sfree(ptr);
+        sFree(ptr);
         return ptr;
     }
 
-    if (!ptr) return smalloc(size);
+    if (!ptr) return sMalloc(size);
 
     void *p = platformReallocateMemory(ptr, size);
 
     if (!mem_state.initialized) {
-        SWARN("srealloc called without initializing the memory, allocation "
+        sWarn("sRealloc called without initializing the memory, allocation "
               "will not be tracked.");
         return p;
     }
 
     if (p) {
         if (!updatedMemoryState(0, ptr, false))
-            SINFO("Untracked Memory allocation is being reallocated, trying to "
-                  "retrack...");
+            sInfo("Untracked Memory allocation is being reallocated, "
+                  "retracking the memory.");
 
         if (!updatedMemoryState(size, p, true))
-            SERROR("Failed to track the Memory allocation");
+            sError("Failed to track the Memory allocation");
     }
 
     return p;
@@ -235,17 +230,65 @@ void *srealloc(void *ptr, u64 size) {
  *
  * @param ptr Pointer to the memory to be deallocated
  */
-void sfree(void *ptr) {
+void sFree(void *ptr) {
     if (!mem_state.initialized) {
-        SERROR("sfree called without initializing the memory, allocation will "
+        sError("sFree called without initializing the memory, allocation will "
                "not be tracked.");
         platformDeallocateMemory(ptr);
         return;
     }
 
     if (!updatedMemoryState(0, ptr, false))
-        SINFO("Untracked memory allocation is being deallocated");
+        sInfo("Untracked memory allocation is being deallocated");
 
     // NOTE: ptr may point to somewhere else so that it can be passed to free
     platformDeallocateMemory(ptr);
+}
+
+/**
+ * @brief Log how much memory is allocated.
+ */
+void sLogMemState() {
+}
+
+/**
+ * @brief Zero out the memory.
+ *
+ * @param ptr Pointer to the memory
+ * @param size Size of memory to be zeroed out
+ *
+ * @return Returns the given pointer.
+ */
+void *sZeroOutMem(void *ptr, u64 size) {
+    return platformZeroOutMemory(ptr, size);
+}
+
+/**
+ * @brief Copy memory from source to destination.
+ *
+ * @param dest Pointer to destination
+ * @param src Pointer to source
+ * @param size Number of bytes to copy
+ *
+ * @return Returns the destination pointer.
+ *
+ * @note Source and destination should not overlap.
+ */
+void *sMemCopy(void *dest, void *src, u64 size) {
+    return platformMemCopy(dest, src, size);
+}
+
+/**
+ * @brief Copy memory from source to destination.
+ *
+ * @param dest Destination pointer
+ * @param src Source pointer
+ * @param size Number of bytes to copy
+ *
+ * @return Returns the destination pointer.
+
+ * @note Source and destination may overlap.
+ */
+void *sMemMove(void *dest, void *src, u64 size) {
+    return platformMemMove(dest, src, size);
 }

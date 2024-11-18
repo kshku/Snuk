@@ -2,24 +2,24 @@
 
 #include <core/memory.h>
 
-#include "../test_manager.h"
-
 u8 auto_deallocation() {
-    u64 *ptr = (u64 *)smalloc(10 * sizeof(u64));
-    ptr = (u64 *)scalloc(10, sizeof(u64));
+    u64 *ptr = (u64 *)sMalloc(10 * sizeof(u64));
+    ptr = (u64 *)sCalloc(10, sizeof(u64));
+    UNUSED(ptr);
     return PASS;
 }
 
 u8 realloc_test() {
-    u64 *ptr = (u64 *)srealloc(NULL, 0);
+    u64 *ptr = (u64 *)sRealloc(NULL, 0);
     if (ptr) return FAIL;
-    ptr = (u64 *)srealloc(NULL, 8);
+    ptr = (u64 *)sRealloc(NULL, 8);
     if (!ptr) return FAIL;
-    ptr = (u64 *)srealloc(ptr, 0);
+    ptr = (u64 *)sRealloc(ptr, 0);
     return PASS;
 }
 
-void core_memory_register_tests() {
-    testManagerRegister(auto_deallocation, "auto deallocation");
-    testManagerRegister(realloc_test, "realloc test");
+Test *core_memory_register_tests(Test *tests) {
+    tests = testManagerRegister(tests, auto_deallocation, "auto deallocation");
+    tests = testManagerRegister(tests, realloc_test, "realloc test");
+    return tests;
 }

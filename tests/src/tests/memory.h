@@ -1,3 +1,5 @@
 #pragma once
 
-void core_memory_register_tests();
+#include "../test_manager.h"
+
+Test *core_memory_register_tests(Test *tests);

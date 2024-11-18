@@ -6,27 +6,27 @@ typedef struct AppState {
 
 b8 appInitialize(Application *app_inst) {
     UNUSED(app_inst);
-    SINFO("appInitialize is called");
+    sInfo("appInitialize is called");
     return true;
 }
 
 b8 appUpdate(Application *app_inst, f32 delta_time) {
     UNUSED(app_inst);
     UNUSED(delta_time);
-    SINFO("appUpdate is called");
+    sInfo("appUpdate is called");
     return true;
 }
 
 b8 appRender(Application *app_inst, f32 delta_time) {
     UNUSED(app_inst);
     UNUSED(delta_time);
-    SINFO("appRender is called");
+    sInfo("appRender is called");
     return true;
 }
 
 void appTerminate(Application *app_inst) {
     UNUSED(app_inst);
-    SINFO("appTerminate is called");
+    sInfo("appTerminate is called");
 }
 
 b8 createApplication(Application *app_inst) {

@@ -6,7 +6,7 @@
     #include <unistd.h>
 
 /**
- * @brief Logging helper for Linux.
+ * @brief Logging helper implementation of Linux.
  *
  * This function uses ANSI escape sequences to provide colored output.
  * If level was fatal or error, flush and write message immediatly to stderr

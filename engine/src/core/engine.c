@@ -26,7 +26,7 @@ static EngineState engine_state;
 b8 initializeEngine(Application *app_inst) {
     if (engine_state.is_running) {
         // Engine is already running, so we had initialized logger.
-        SERROR("Engine is already running, but initializeEngine called again.");
+        sError("Engine is already running, but initializeEngine called again.");
         return false;
     }
 
@@ -35,11 +35,11 @@ b8 initializeEngine(Application *app_inst) {
         // Even if initialize is failed, messages should be logged to the stdout
         // or stderr
         // TODO: Make sure above one is true
-        SERROR("Failed to initialize logger");
+        sError("Failed to initialize logger");
     }
 
     if (!initializeMemory()) {
-        SERROR("Failed to initialize memory subsystem");
+        sError("Failed to initialize memory subsystem");
     }
 
     engine_state.is_running = true;
@@ -47,7 +47,7 @@ b8 initializeEngine(Application *app_inst) {
 
     // Should be called at last, i.e., after initializing subsystems
     if (!engine_state.app_inst->initialize(engine_state.app_inst)) {
-        SFATAL("Application initialization failed!");
+        sFatal("Application initialization failed!");
         return false;
     }
 
@@ -75,14 +75,14 @@ b8 engineRun() {
     // failed since not initialized.
     b8 ret_val = engine_state.is_running;
     if (!ret_val) {
-        SERROR("engineRun was called without initializing engine "
+        sError("engineRun was called without initializing engine "
                "(engine_state.is_running = false)");
         return false;
     }
 
     while (engine_state.is_running) {
         if (!engine_state.app_inst->update(engine_state.app_inst, (f32)0)) {
-            SFATAL("Application update failed!");
+            sFatal("Application update failed!");
             ret_val = false;
             // TODO: Yet to decide how to terminate main loop
             engine_state.is_running = false;

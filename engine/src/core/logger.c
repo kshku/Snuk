@@ -36,7 +36,7 @@ void shutdownLogger() {
  * @param msg Format string message
  * @param ... Arguments for the format string
  */
-void logMessage(LogLevel level, const char *msg, ...) {
+void _logMessage(LogLevel level, const char *msg, ...) {
     static const char *log_level_strings[] = {
         "[FATAL]: ", "[ERROR]: ", "[WARN]: ",
         "[INFO]: ",  "[DEBUG]: ", "[TRACE]: "};
@@ -98,8 +98,8 @@ void logMessage(LogLevel level, const char *msg, ...) {
  * @param file The file in which assertion failed
  * @param line Line number where the assertion failed
  */
-void reportAssertionFailure(const char *expr, const char *msg, const char *file,
-                            const i32 line) {
-    SFATAL("Assertion failure: '%s', message '%s' in %s:%d", expr, msg, file,
+void _reportAssertionFailure(const char *expr, const char *msg,
+                             const char *file, const i32 line) {
+    sFatal("Assertion failure: '%s', message '%s' in %s:%d", expr, msg, file,
            line);
 }

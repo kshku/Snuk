@@ -6,7 +6,7 @@
     #include <string.h>
 
 /**
- * @brief Memory allocater for Linux.
+ * @brief Memory allocater implementation for Linux.
  *
  * @param size Size in bytes to be allocated
  *
@@ -18,7 +18,7 @@ void *platformAllocateMemory(u64 size) {
 }
 
 /**
- * @brief Memory deallocater for Linux.
+ * @brief Memory deallocater implementation for Linux.
  *
  * @param ptr Pointer to the allocated memory
  */
@@ -28,7 +28,7 @@ void platformDeallocateMemory(void *ptr) {
 }
 
 /**
- * @brief Memory reallocater for Linux.
+ * @brief Memory reallocater implementation for Linux.
  *
  * @param ptr Pointer to the allocated memory
  * @param size New size
@@ -41,17 +41,48 @@ void *platformReallocateMemory(void *ptr, u64 size) {
 }
 
 /**
- * @brief Zero out memory for Linux.
+ * @brief Zero out memory implementation for Linux.
  *
  * @param ptr Pointer to the memory to zero out
  * @param size Size of the memory to be zeroed out
  *
- * @return Returns the passed ptr after setting it to zero.
+ * @return Returns the given pointer.
  */
 void *platformZeroOutMemory(void *ptr, u64 size) {
     // TODO: Don't use library call
-    memset(ptr, 0, size);
-    return ptr;
+    return memset(ptr, 0, size);
+}
+
+/**
+ * @brief Copy memory from source to destination.
+ *
+ * @param dest Destination pointer
+ * @param src Source pointer
+ * @param size Number of bytes to copy
+ *
+ * @return Returns the destination pointer.
+
+ * @note Source and destination should not overlap.
+ */
+void *platformMemCopy(void *dest, void *src, u64 size) {
+    // TODO: Don't use library call
+    return memcpy(dest, src, size);
+}
+
+/**
+ * @brief Copy memory from source to destination.
+ *
+ * @param dest Destination pointer
+ * @param src Source pointer
+ * @param size Number of bytes to copy
+ *
+ * @return Returns the destination pointer.
+
+ * @note Source and destination may overlap.
+ */
+void *platformMemMove(void *dest, void *src, u64 size) {
+    // TODO: Don't use library call
+    return memmove(dest, src, size);
 }
 
 #endif

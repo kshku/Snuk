@@ -39,33 +39,68 @@ b8 initializeLogger(const char *file);
 
 void shutdownLogger();
 
-SAPI void logMessage(LogLevel level, const char *msg, ...);
+SAPI void _logMessage(LogLevel level, const char *msg, ...);
 
-// Logging macros
-#define SFATAL(msg, ...) logMessage(LOG_LEVEL_FATAL, msg, ##__VA_ARGS__)
+/**
+ * @brief Log a Fatal message
+ *
+ * @param msg The format string message
+ * @param ... Argument for the format string
+ */
+#define sFatal(msg, ...) _logMessage(LOG_LEVEL_FATAL, msg, ##__VA_ARGS__)
 
-#define SERROR(msg, ...) logMessage(LOG_LEVEL_ERROR, msg, ##__VA_ARGS__)
+/**
+ * @brief Log a Error message
+ *
+ * @param msg The format string message
+ * @param ... Argument for the format string
+ */
+#define sError(msg, ...) _logMessage(LOG_LEVEL_ERROR, msg, ##__VA_ARGS__)
 
-#define SWARN(msg, ...) logMessage(LOG_LEVEL_WARN, msg, ##__VA_ARGS__)
+/**
+ * @brief Log a Warning message
+ *
+ * @param msg The format string message
+ * @param ... Argument for the format string
+ */
+#define sWarn(msg, ...) _logMessage(LOG_LEVEL_WARN, msg, ##__VA_ARGS__)
 
-#define SINFO(msg, ...) logMessage(LOG_LEVEL_INFO, msg, ##__VA_ARGS__)
+/**
+ * @brief Log a Information message
+ *
+ * @param msg The format string message
+ * @param ... Argument for the format string
+ */
+#define sInfo(msg, ...) _logMessage(LOG_LEVEL_INFO, msg, ##__VA_ARGS__)
 
-#define SDEBUG(msg, ...) logMessage(LOG_LEVEL_DEBUG, msg, ##__VA_ARGS__)
+/**
+ * @brief Log a Debug message
+ *
+ * @param msg The format string message
+ * @param ... Argument for the format string
+ */
+#define sDebug(msg, ...) _logMessage(LOG_LEVEL_DEBUG, msg, ##__VA_ARGS__)
 
-#define STRACE(msg, ...) logMessage(LOG_LEVEL_TRACE, msg, ##__VA_ARGS__)
+/**
+ * @brief Log a Trace message
+ *
+ * @param msg The format string message
+ * @param ... Argument for the format string
+ */
+#define sTrace(msg, ...) _logMessage(LOG_LEVEL_TRACE, msg, ##__VA_ARGS__)
 
 #if LOG_WARN_ENABLED == 0
-    #define SWARN(msg, ...)
+    #define sWarn(msg, ...)
 #endif
 
 #if LOG_INFO_ENABLED == 0
-    #define SINFO(msg, ...)
+    #define sInfo(msg, ...)
 #endif
 
 #if !defined(S_DEBUG) || LOG_DEBUG_ENABLED == 0
-    #define SDEBUG(msg, ...)
+    #define sDebug(msg, ...)
 #endif
 
 #if LOG_TRACE_ENABLED == 0
-    #define STRACE(msg, ...)
+    #define sTrace(msg, ...)
 #endif
