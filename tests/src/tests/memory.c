@@ -2,14 +2,14 @@
 
 #include <core/memory.h>
 
-u8 auto_deallocation() {
+u8 auto_deallocation(void) {
     u64 *ptr = (u64 *)sMalloc(10 * sizeof(u64));
     ptr = (u64 *)sCalloc(10, sizeof(u64));
     UNUSED(ptr);
     return PASS;
 }
 
-u8 realloc_test() {
+u8 realloc_test(void) {
     u64 *ptr = (u64 *)sRealloc(NULL, 0);
     if (ptr) return FAIL;
     ptr = (u64 *)sRealloc(NULL, 8);

@@ -1,5 +1,6 @@
 #include "engine.h"
 
+#include "event.h"
 #include "logger.h"
 #include "memory.h"
 
@@ -42,6 +43,11 @@ b8 initializeEngine(Application *app_inst) {
         sError("Failed to initialize memory subsystem");
     }
 
+    if (!initializeEvent()) {
+        sFatal("Failed to initialize event system");
+        return false;
+    }
+
     engine_state.is_running = true;
     engine_state.app_inst = app_inst;
 
@@ -57,10 +63,11 @@ b8 initializeEngine(Application *app_inst) {
 /**
  * @brief Shutdown the engine.
  */
-void shutdownEngine() {
+void shutdownEngine(void) {
     // Should be called first, i.e., before terminating subsystems
     engine_state.app_inst->terminate(engine_state.app_inst);
 
+    shutdownEvent();
     shutdownMemory();
     shutdownLogger();
 }
@@ -70,7 +77,7 @@ void shutdownEngine() {
  *
  * @return true if terminated normally, false if terminated abnormally.
  */
-b8 engineRun() {
+b8 engineRun(void) {
     // if engine was not initialized then is_running is false => engineRun
     // failed since not initialized.
     b8 ret_val = engine_state.is_running;
@@ -88,6 +95,7 @@ b8 engineRun() {
             engine_state.is_running = false;
             break;
         }
+
         engine_state.is_running = false;
     }
 

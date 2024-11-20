@@ -37,7 +37,7 @@ typedef enum LogLevel {
 
 b8 initializeLogger(const char *file);
 
-void shutdownLogger();
+void shutdownLogger(void);
 
 SAPI void _logMessage(LogLevel level, const char *msg, ...);
 

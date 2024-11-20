@@ -119,10 +119,10 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  * @param element The element to be pushed
  */
 #define darrayPush(arr, element)             \
-    {                                        \
+    do {                                     \
         typeof(element) temp = element;      \
         _darrayPush((void **)(&arr), &temp); \
-    }
+    } while (0)
 
 /**
  * @brief Pop the element from the end of the array.
@@ -140,10 +140,10 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  * @param element The element to be pushed
  */
 #define darrayPushAt(arr, index, element)             \
-    {                                                 \
+    do {                                              \
         typeof(element) temp = element;               \
         _darrayPushAt((void **)(&arr), index, &temp); \
-    }
+    } while (0)
 
 /**
  * @brief Pop the element at the given index of array.

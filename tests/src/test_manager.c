@@ -3,7 +3,7 @@
 #include <core/logger.h>
 #include <ds/darray.h>
 
-Test *initializeTestManager() {
+Test *initializeTestManager(void) {
     Test *tests = darrayCreateWithSize(Test, 1);
     return tests;
 }

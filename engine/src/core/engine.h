@@ -8,6 +8,6 @@
 
 SAPI b8 initializeEngine(Application *app_inst);
 
-SAPI void shutdownEngine();
+SAPI void shutdownEngine(void);
 
-SAPI b8 engineRun();
+SAPI b8 engineRun(void);

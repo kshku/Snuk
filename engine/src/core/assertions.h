@@ -45,13 +45,13 @@ SAPI void _reportAssertionFailure(const char *expr, const char *msg,
      * @param msg Message to be printed when assertion fails
      */
     #define sassert_msg(expr, msg)                                       \
-        {                                                                \
+        do {                                                             \
             if (expr) {                                                  \
             } else {                                                     \
                 _reportAssertionFailure(#expr, msg, __FILE__, __LINE__); \
                 DEBUG_BREAK;                                             \
             }                                                            \
-        }
+        } while (0)
 
     /**
      * @brief Assert expression is true.

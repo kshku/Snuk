@@ -2,9 +2,9 @@
 
 #include "defines.h"
 
-b8 initializeMemory();
+b8 initializeMemory(void);
 
-void shutdownMemory();
+void shutdownMemory(void);
 
 SAPI void *sMalloc(u64 size);
 
@@ -14,7 +14,7 @@ SAPI void *sRealloc(void *ptr, u64 size);
 
 SAPI void sFree(void *ptr);
 
-SAPI void sLogMemState();
+SAPI void sLogMemState(void);
 
 SAPI void *sZeroOutMem(void *ptr, u64 size);
 

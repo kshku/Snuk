@@ -13,7 +13,7 @@ typedef struct Test {
         const char *desc;
 } Test;
 
-Test *initializeTestManager();
+Test *initializeTestManager(void);
 
 void shutdownTestManager(Test *tests);
 

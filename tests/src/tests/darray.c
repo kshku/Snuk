@@ -2,7 +2,7 @@
 
 #include "ds/darray.h"
 
-u8 darray_create() {
+u8 darray_create(void) {
     int *arr = darrayCreate(int);
     float *arr2 = darrayCreateWithSize(float, 20);
     if (darrayCapacity(arr) != 1) return FAIL;

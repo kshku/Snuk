@@ -98,18 +98,19 @@ void _darraySetHeaderField(void *arr, const DarrayHeaderField field,
  */
 void _darrayPush(void **arr, void *element) {
     // TODO: How to handle resize error?
-    u64 *ptr = (u64 *)(*arr) - DARRAY_HEADER_FIELDS_MAX;
+    u64 *ptr = ((u64 *)(*arr)) - DARRAY_HEADER_FIELDS_MAX;
 
     if (ptr[DARRAY_LENGTH] >= ptr[DARRAY_CAPACITY]) {
         sassert_msg(
             _darrayResize(arr, (ptr[DARRAY_CAPACITY] * DARRAY_RESIZE_FACTOR)),
             "Haven't handled _darrayResize error yet");
         // Ptr shold be updated too since the arr have been realloced
-        ptr = (u64 *)(*arr) - DARRAY_HEADER_FIELDS_MAX;
+        ptr = ((u64 *)(*arr)) - DARRAY_HEADER_FIELDS_MAX;
     }
 
-    sMemCopy(((*arr) + (ptr[DARRAY_STRIDE] * ptr[DARRAY_LENGTH])), element,
-             ptr[DARRAY_STRIDE]);
+    sMemCopy(
+        ((void *)(((u64)(*arr)) + (ptr[DARRAY_STRIDE] * ptr[DARRAY_LENGTH]))),
+        element, ptr[DARRAY_STRIDE]);
 
     ++ptr[DARRAY_LENGTH];
 }
@@ -121,13 +122,15 @@ void _darrayPush(void **arr, void *element) {
  * @param element If not null poped element will be stored in this
  */
 void _darrayPop(void *arr, void *element) {
-    u64 *ptr = (u64 *)arr - DARRAY_HEADER_FIELDS_MAX;
+    u64 *ptr = ((u64 *)arr) - DARRAY_HEADER_FIELDS_MAX;
 
     --ptr[DARRAY_LENGTH];
 
     if (element)
-        sMemCopy(element, (arr + (ptr[DARRAY_LENGTH] * ptr[DARRAY_STRIDE])),
-                 ptr[DARRAY_STRIDE]);
+        sMemCopy(
+            element,
+            ((void *)(((u64)arr) + (ptr[DARRAY_LENGTH] * ptr[DARRAY_STRIDE]))),
+            ptr[DARRAY_STRIDE]);
 }
 
 /**
@@ -139,7 +142,7 @@ void _darrayPop(void *arr, void *element) {
  */
 void _darrayPushAt(void **arr, const u32 index, void *element) {
     // TODO: How to handle resize error?
-    u64 *ptr = (u64 *)(*arr) - DARRAY_HEADER_FIELDS_MAX;
+    u64 *ptr = ((u64 *)(*arr)) - DARRAY_HEADER_FIELDS_MAX;
 
     if (index > ptr[DARRAY_LENGTH]) {
         sError("Darray index out of bound. Tried to access index %u but the "
@@ -153,14 +156,14 @@ void _darrayPushAt(void **arr, const u32 index, void *element) {
             _darrayResize(arr, (ptr[DARRAY_CAPACITY] * DARRAY_RESIZE_FACTOR)),
             "Haven't handled _darrayResize error yet");
         // Ptr shold be updated too since the arr have been realloced
-        ptr = (u64 *)(*arr) - DARRAY_HEADER_FIELDS_MAX;
+        ptr = ((u64 *)(*arr)) - DARRAY_HEADER_FIELDS_MAX;
     }
 
-    sMemMove(((*arr) + (ptr[DARRAY_STRIDE] * (index + 1))),
-             ((*arr) + (ptr[DARRAY_STRIDE] * index)),
+    sMemMove(((void *)(((u64)(*arr)) + (ptr[DARRAY_STRIDE] * (index + 1)))),
+             ((void *)(((u64)(*arr)) + (ptr[DARRAY_STRIDE] * index))),
              (ptr[DARRAY_STRIDE] * (ptr[DARRAY_LENGTH] - index)));
 
-    sMemCopy(((*arr) + (ptr[DARRAY_STRIDE] * index)), element,
+    sMemCopy(((void *)(((u64)(*arr)) + (ptr[DARRAY_STRIDE] * index))), element,
              ptr[DARRAY_STRIDE]);
 
     ++ptr[DARRAY_LENGTH];
@@ -177,7 +180,7 @@ void _darrayPushAt(void **arr, const u32 index, void *element) {
  * parameter element was not null, then will be set to NULL.
  */
 void _darrayPopAt(void *arr, const u32 index, void *element) {
-    u64 *ptr = (u64 *)arr - DARRAY_HEADER_FIELDS_MAX;
+    u64 *ptr = ((u64 *)arr) - DARRAY_HEADER_FIELDS_MAX;
 
     if (index >= ptr[DARRAY_LENGTH]) {
         if (element) element = NULL;
@@ -188,11 +191,12 @@ void _darrayPopAt(void *arr, const u32 index, void *element) {
     }
 
     if (element)
-        sMemCopy(element, (arr + (ptr[DARRAY_STRIDE] * index)),
+        sMemCopy(element,
+                 ((void *)(((u64)(arr)) + (ptr[DARRAY_STRIDE] * index))),
                  ptr[DARRAY_STRIDE]);
 
-    sMemMove((arr + (ptr[DARRAY_STRIDE] * index)),
-             (arr + (ptr[DARRAY_STRIDE] * (index + 1))),
+    sMemMove(((void *)(((u64)(arr)) + (ptr[DARRAY_STRIDE] * index))),
+             ((void *)(((u64)(arr)) + (ptr[DARRAY_STRIDE] * (index + 1)))),
              (ptr[DARRAY_STRIDE] * (ptr[DARRAY_LENGTH] - index)));
 
     --ptr[DARRAY_LENGTH];

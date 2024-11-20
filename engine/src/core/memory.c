@@ -24,7 +24,7 @@ static MemState mem_state;
  *
  * @return true memory subsystem was initialized successfully.
  */
-b8 initializeMemory() {
+b8 initializeMemory(void) {
     if (mem_state.initialized) {
         sError("Memory system is already initialized, but initializeMemory was "
                "called again");
@@ -44,7 +44,7 @@ b8 initializeMemory() {
 /**
  * @brief Shutdown the memory subsystem.
  */
-void shutdownMemory() {
+void shutdownMemory(void) {
     if (!mem_state.initialized) {
         sError("shutdownMemory called without initializing Memory");
         return;
@@ -120,9 +120,9 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
  */
 b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
     sassert_msg(mem_state.initialized,
-                "updateMemoryState called without initializing the memory")
+                "updateMemoryState called without initializing the memory");
 
-        if (!updateAllocatedPtrs(ptr, &size, is_allocation)) {
+    if (!updateAllocatedPtrs(ptr, &size, is_allocation)) {
         return false;
     }
 
@@ -248,7 +248,7 @@ void sFree(void *ptr) {
 /**
  * @brief Log how much memory is allocated.
  */
-void sLogMemState() {
+void sLogMemState(void) {
 }
 
 /**

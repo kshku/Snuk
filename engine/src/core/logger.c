@@ -26,7 +26,7 @@ b8 initializeLogger(const char *file) {
 /**
  * @brief Shuts down the logger.
  */
-void shutdownLogger() {
+void shutdownLogger(void) {
 }
 
 /**
