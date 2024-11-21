@@ -4,9 +4,13 @@
 #include "logger.h"
 #include "memory.h"
 
+struct EventSystem;
+
 typedef struct EngineState {
         b8 is_running;
         Application *app_inst;
+
+        struct EventSystem *event_system;
 } EngineState;
 
 static EngineState engine_state;
@@ -31,7 +35,14 @@ b8 initializeEngine(Application *app_inst) {
         return false;
     }
 
-    // TODO: specify the log file (platform specific)
+    engine_state.app_inst = app_inst;
+
+    if (!initializeMemory()) {
+        sError("Failed to initialize memory subsystem");
+    }
+
+    // TODO: Make logger work such that it doesn't need to be initialized.
+    // TODO: Or Try to make independent of any systems.
     if (!initializeLogger("log.txt")) {
         // Even if initialize is failed, messages should be logged to the stdout
         // or stderr
@@ -39,17 +50,19 @@ b8 initializeEngine(Application *app_inst) {
         sError("Failed to initialize logger");
     }
 
-    if (!initializeMemory()) {
-        sError("Failed to initialize memory subsystem");
-    }
+    {
+        u64 size;
+        initializeEvent(&size, NULL);
 
-    if (!initializeEvent()) {
-        sFatal("Failed to initialize event system");
-        return false;
+        engine_state.event_system = sMalloc(size);
+
+        if (!initializeEvent(&size, engine_state.event_system)) {
+            sFatal("Failed to initialize event system");
+            return false;
+        }
     }
 
     engine_state.is_running = true;
-    engine_state.app_inst = app_inst;
 
     // Should be called at last, i.e., after initializing subsystems
     if (!engine_state.app_inst->initialize(engine_state.app_inst)) {
@@ -67,9 +80,11 @@ void shutdownEngine(void) {
     // Should be called first, i.e., before terminating subsystems
     engine_state.app_inst->terminate(engine_state.app_inst);
 
-    shutdownEvent();
-    shutdownMemory();
+    // No need to deallocate memory since our memory system handles it
+
+    shutdownEvent(engine_state.event_system);
     shutdownLogger();
+    shutdownMemory();
 }
 
 /**

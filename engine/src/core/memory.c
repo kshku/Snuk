@@ -50,13 +50,16 @@ void shutdownMemory(void) {
         return;
     }
 
+    sTrace("Deallocating the allocated memroy in shutdown memory");
+    sLogMemState();
+
     if (mem_state.allocated_ptrs) {
         for (u32 i = 0; i < mem_state.index; ++i) {
-            sWarn("Allocated %ld bytes of memory was not deallocated, "
-                  "Deallocating...",
-                  mem_state.allocated_ptrs[i].size);
+            sTrace("Deallocating %ld bytes of memory",
+                   mem_state.allocated_ptrs[i].size);
             platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
         }
+
         platformDeallocateMemory(mem_state.allocated_ptrs);
         mem_state.allocated_ptrs = NULL;
     }
@@ -232,8 +235,7 @@ void *sRealloc(void *ptr, u64 size) {
  */
 void sFree(void *ptr) {
     if (!mem_state.initialized) {
-        sError("sFree called without initializing the memory, allocation will "
-               "not be tracked.");
+        sError("sFree called without initializing the memory");
         platformDeallocateMemory(ptr);
         return;
     }
@@ -241,7 +243,8 @@ void sFree(void *ptr) {
     if (!updatedMemoryState(0, ptr, false))
         sInfo("Untracked memory allocation is being deallocated");
 
-    // NOTE: ptr may point to somewhere else so that it can be passed to free
+    // NOTE: ptr may point to somewhere else so that it can be passed to again
+    // NOTE: to free function
     platformDeallocateMemory(ptr);
 }
 
@@ -249,6 +252,34 @@ void sFree(void *ptr) {
  * @brief Log how much memory is allocated.
  */
 void sLogMemState(void) {
+    if (!mem_state.initialized) {
+        sInfo("Memory subsystem is not initialized, no tracked memory "
+              "allocation");
+    }
+
+    const u64 KiB = 1024;
+    const u64 MiB = 1024 * KiB;
+    const u64 GiB = 1024 * MiB;
+
+    f32 allocation = 0;
+    char ext[4] = "XiB";
+
+    if (mem_state.total_allocated >= GiB) {
+        ext[0] = 'G';
+        allocation = (f32)mem_state.total_allocated / GiB;
+    } else if (mem_state.total_allocated >= MiB) {
+        ext[0] = 'M';
+        allocation = (f32)mem_state.total_allocated / MiB;
+    } else if (mem_state.total_allocated >= KiB) {
+        ext[0] = 'K';
+        allocation = (f32)mem_state.total_allocated / KiB;
+    } else {
+        ext[0] = 'B';
+        ext[1] = 0;
+        allocation = (f32)mem_state.total_allocated;
+    }
+
+    sInfo("Total of %f %s memory is allocated", allocation, ext);
 }
 
 /**

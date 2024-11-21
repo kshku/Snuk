@@ -41,9 +41,9 @@ typedef struct EventContext {
 typedef b8 (*fpEventCallback)(u16 code, void *sender, void *listener,
                               EventContext context);
 
-b8 initializeEvent(void);
+b8 initializeEvent(u64 *size, void *state);
 
-void shutdownEvent(void);
+void shutdownEvent(void *state);
 
 SAPI b8 registerEventListener(u16 code, void *listener,
                               fpEventCallback callback);

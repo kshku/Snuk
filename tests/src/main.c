@@ -1,4 +1,5 @@
 #include <core/logger.h>
+#include <core/memory.h>
 #include <entry.h>
 
 #include "test_manager.h"
@@ -8,10 +9,16 @@
 #include "tests/memory.h"
 
 b8 tests_init(Application *app_inst) {
+    sInfo("Before registering tests");
+    sLogMemState();
+
     // NOTE: Register tests here
     app_inst->state = core_memory_register_tests(app_inst->state);
     app_inst->state = ds_darray_register_tests(app_inst->state);
     // -------------------
+
+    sInfo("After registering tests");
+    sLogMemState();
 
     testManagerRun(app_inst->state);
 

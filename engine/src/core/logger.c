@@ -4,10 +4,7 @@
 #include <stdio.h>
 
 #include "assertions.h"
-// TODO: Remove this
-#include <stdlib.h>
-
-#include "platform/io.h"
+#include "platform/log.h"
 #include "platform/memory.h"
 
 /**
@@ -50,7 +47,6 @@ void _logMessage(LogLevel level, const char *msg, ...) {
              + 10;  // log_level_string require at max 9 char, 1 for null.
     va_end(args);
 
-#ifdef SPLATFORM_LINUX
     // Can't use memory subsystem since it calls logger.
     char *buf = (char *)platformAllocateMemory(size * sizeof(char));
     if (!buf) {
@@ -59,15 +55,6 @@ void _logMessage(LogLevel level, const char *msg, ...) {
             "[ERROR]: Failed to allocate memory while trying to log a message");
         return;
     }
-#else
-    char *buf = (char *)malloc(size * sizeof(char));
-    if (!buf) {
-        printf(
-            "[ERROR]: Failed to allocate memory while trying to log a message");
-
-        return;
-    }
-#endif
 
     // Write the log_level_string
     // At max 9 char are there + 1 for null so 10
