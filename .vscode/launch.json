@@ -1,9 +1,9 @@
 {
     "version": "0.2.0",
     "configurations": [
-        // Engine
+        // TestApp
         {
-            "name": "(Linux) Engine",
+            "name": "(Linux) TestApp",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/testapp/testapp",
@@ -13,7 +13,7 @@
             "environment": []
         },
         {
-            "name": "(Windows) Engine",
+            "name": "(Windows) TestApp",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}\\build\\testapp\\testapp.exe",
@@ -40,7 +40,7 @@
             "environment": []
         },
         {
-            "name": "(Windows) Engine",
+            "name": "(Windows) Tests",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}\\build\\tests\\tests.exe",

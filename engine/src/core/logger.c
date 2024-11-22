@@ -1,11 +1,9 @@
 #include "logger.h"
 
 #include <stdarg.h>
-#include <stdio.h>
 
 #include "assertions.h"
 #include "platform/log.h"
-#include "platform/memory.h"
 
 /**
  * @brief Initializes the logger.
@@ -39,42 +37,10 @@ void _logMessage(LogLevel level, const char *msg, ...) {
         "[INFO]: ",  "[DEBUG]: ", "[TRACE]: "};
 
     // TODO: Log to file, timestamp, etc.
-
     va_list args;
-
     va_start(args, msg);
-    u64 size = vsnprintf(NULL, 0, msg, args)
-             + 10;  // log_level_string require at max 9 char, 1 for null.
+    platformLogMessage(level, msg, args, log_level_strings[level]);
     va_end(args);
-
-    // Can't use memory subsystem since it calls logger.
-    char *buf = (char *)platformAllocateMemory(size * sizeof(char));
-    if (!buf) {
-        platformLogMessage(
-            LOG_LEVEL_ERROR,
-            "[ERROR]: Failed to allocate memory while trying to log a message");
-        return;
-    }
-
-    // Write the log_level_string
-    // At max 9 char are there + 1 for null so 10
-    snprintf(buf, 10, "%s", log_level_strings[level]);
-
-    va_start(args, msg);
-    // NOTE: Write after log_level_string and also override the null character
-    // by previous snprintf
-    vsnprintf(
-        (buf + ((level == LOG_LEVEL_WARN || level == LOG_LEVEL_INFO) ? 8 : 9)),
-        size, msg, args);
-    va_end(args);
-
-#ifdef SPLATFORM_LINUX
-    platformLogMessage(level, buf);
-    platformDeallocateMemory(buf);
-#else
-    printf("%s\n", buf);
-    free(buf);
-#endif
 }
 
 /**

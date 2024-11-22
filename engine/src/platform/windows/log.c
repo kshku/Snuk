@@ -20,11 +20,11 @@ b8 enableVTProcessing(DWORD handle_type) {
     if (handle == INVALID_HANDLE_VALUE) return false;
 
     DWORD modes = 0;
-    if (!failed && !GetConsoleMode(handle, &modes)) return false;
+    if (!GetConsoleMode(handle, &modes)) return false;
 
     modes |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING
            | DISABLE_NEWLINE_AUTO_RETURN;
-    if (!failed && !SetConsoleMode(handle, modes)) return false;
+    if (!SetConsoleMode(handle, modes)) return false;
 
     return true;
 }
@@ -41,9 +41,17 @@ b8 enableVTProcessing(DWORD handle_type) {
  * https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
  *
  * @param level Log level
- * @param msg The message to write
+ * @param msg The format string message to write
+ * @param args Arguments to the format string message
+ * @param prefix Format string prefix to be displayed before the message
+ * @param ... Arguments to the format string prefix
+ *
+ * @note The prefix parameter is used so that the logger don't have to allocate
+ * memory and do the formatting to add the prefix to the message sent by the
+ * user.
  */
-void platformLogMessage(LogLevel level, const char *msg) {
+void platformLogMessage(LogLevel level, const char *msg, va_list args,
+                        const char *prefix, ...) {
     static const char *colors[6] = {
         "1;41", "1;31", "0;33",  // Fatal, Error, Warn
         "0;32", "0;34", "0;37"};  // Info, Debug, Trace
@@ -53,20 +61,35 @@ void platformLogMessage(LogLevel level, const char *msg) {
     static b8 vt_enabled[2] = {false, false};
 
     // true = 1 and false = 0
-    u8 error = level < LOG_LEVEL_WARN;
-    if (!vt_enabled[error]) {  // VT processing is not enabled
+    // Using u8 just because it is used to access the elements of vt_enabled.
+    u8 error = level < LOG_LEVEL_WARN;  // Fatal or Error is error
+    FILE *out_file = error ? stderr : stdout;
+
+    // TODO: I don't think we need to try again since the handles will be
+    // TODO: pointing to the same utill the app terminates. So call this only
+    // TODO: once.
+    // If previously couldn't able to turn on VT processing then will try
+    // again whenever we call this function
+    if (!vt_enabled[error])  // VT processing is not enabled, try to turn on
         vt_enabled[error] =
             enableVTProcessing(error ? STD_ERROR_HANDLE : STD_OUTPUT_HANDLE);
-    }
 
-    if (error) {  // Fatal and Error
-        if (!vt_enabled[error]) fprintf(stderr, "%s\n", msg);
-        else fprintf(stderr, "\x1b[%sm%s\x1b[0m\n", colors[level], msg);
-        fflush(NULL);
-    } else {
-        if (!vt_enabled[error]) fprintf(stdout, "%s\n", msg);
-        else fprintf(stdout, "\x1b[%sm%s\x1b[0m\n", colors[level], msg);
-    }
+    // If VT processing enabled, we can print color
+    if (vt_enabled[error]) fprintf(out_file, "\x1b[%sm", colors[level]);
+
+    va_list parg;
+    va_start(parg, prefix);
+    vfprintf(out_file, prefix, parg);
+    va_end(parg);
+
+    vfprintf(out_file, msg, args);
+
+    // If VT processing enabled, reset the color after printing the message
+    if (vt_enabled[error]) fprintf(out_file, "\x1b[0m");
+
+    fprintf(out_file, "\n");
+
+    if (error) fflush(NULL);
 }
 
 #endif
