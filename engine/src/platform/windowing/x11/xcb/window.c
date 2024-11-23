@@ -1,6 +1,11 @@
 #include "../../../window.h"
 
 #ifdef SPLATFORM_WINDOWING_X11_XCB
+// NOTE: Just go to /usr/include/xcb and read header files to know what are
+// NOTE: things we can use. Really there are no good docs :( Also for the
+// NOTE: header files we include there might be separate libraries which
+// NOTE: need to be used. Go to /usr/lib and run 'ls | grep xcb'
+
 // Documentation used
 // https://www.x.org/releases/current/doc/libX11/libX11/libX11.html
 // https://www.x.org/releases/X11R7.7/doc/libxcb/tutorial/index.html
@@ -10,6 +15,7 @@
 
     #include <stdlib.h>
     #include <xcb/xcb.h>
+    #include <xcb/xcb_icccm.h>
 
     #include "core/assertions.h"
     #include "core/logger.h"
@@ -74,17 +80,15 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     u32 value_list[2] = {xcb_state->screen->black_pixel, event_mask};
 
     // Create window
-    xcb_void_cookie_t window_coockie = xcb_create_window(
-        xcb_state->connection, XCB_COPY_FROM_PARENT, xcb_state->app_window,
-        xcb_state->screen->root, config->x, config->y, config->width,
-        config->height, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
-        xcb_state->screen->root_visual, value_mask, value_list);
-    UNUSED(window_coockie);
+    xcb_create_window(xcb_state->connection, XCB_COPY_FROM_PARENT,
+                      xcb_state->app_window, xcb_state->screen->root, config->x,
+                      config->y, config->width, config->height, 0,
+                      XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                      xcb_state->screen->root_visual, value_mask, value_list);
 
     // Atoms
     xcb_intern_atom_cookie_t wm_delete_window_cookie =
         xcb_intern_atom(xcb_state->connection, false, 16, "WM_DELETE_WINDOW");
-
     xcb_intern_atom_cookie_t wm_protocols_cookie =
         xcb_intern_atom(xcb_state->connection, false, 12, "WM_PROTOCOLS");
 
@@ -100,12 +104,20 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     free(wm_protocols_reply);
 
     // Get notified when the window is getting destroyed
-    xcb_change_property(xcb_state->connection, XCB_PROP_MODE_REPLACE,
-                        xcb_state->app_window, xcb_state->wm_protocols,
-                        XCB_ATOM_ATOM, 32, 1, &xcb_state->wm_delete_window);
+    xcb_atom_t wm_protocol_atoms[1] = {xcb_state->wm_delete_window};
+    xcb_icccm_set_wm_protocols(xcb_state->connection, xcb_state->app_window,
+                               xcb_state->wm_protocols, 1, wm_protocol_atoms);
 
     // Set class hint
-    // TODO: Don't know how
+    u32 name_length;
+    for (name_length = 0; config->name[name_length]; ++name_length);
+    char *buf = (char *)sCalloc(((name_length * 2) + 2), sizeof(char));
+    sMemCopy(buf, (char *)config->name, name_length);
+    sMemCopy((buf + (name_length + 1)), (char *)config->name, name_length);
+    // sDebug("class = '%s' '%s'", buf, buf + name_length + 1);
+    xcb_icccm_set_wm_class(xcb_state->connection, xcb_state->app_window,
+                           (name_length * 2 + 1), buf);
+    sFree(buf);
 
     if (!platformSetWindowTitle(config->name))
         sError("Couldn't set the window title");
@@ -231,9 +243,9 @@ b8 platformSetWindowTitle(const char *title) {
     u32 title_length;
     for (title_length = 0; title[title_length]; ++title_length);
 
-    xcb_change_property(xcb_state->connection, XCB_PROP_MODE_REPLACE,
-                        xcb_state->app_window, XCB_ATOM_WM_NAME,
-                        XCB_ATOM_STRING, 8, title_length, title);
+    xcb_icccm_set_wm_name(xcb_state->connection, xcb_state->app_window,
+                          XCB_ATOM_STRING, 8, title_length, title);
+
     return true;
 }
 
@@ -246,11 +258,19 @@ b8 platformSetWindowTitle(const char *title) {
  * @return Returns true if title was set successfully, else false.
  */
 b8 platformGetWindowTitle(char *title, u64 size) {
-    UNUSED(title);
-    UNUSED(size);
     sassert_msg(xcb_state, "Windowing system is not initialized?");
 
-    // Todo: Don't know
+    xcb_get_property_cookie_t title_cookie =
+        xcb_icccm_get_wm_name(xcb_state->connection, xcb_state->app_window);
+
+    xcb_icccm_get_text_property_reply_t *title_reply = NULL;
+    if (xcb_icccm_get_wm_name_reply(xcb_state->connection, title_cookie,
+                                    title_reply, NULL)) {
+        sMemCopy(title, title_reply->name, size);
+        free(title_reply);
+        return true;
+    }
+
     return false;
 }
 
