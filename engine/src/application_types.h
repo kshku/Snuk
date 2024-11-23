@@ -2,7 +2,16 @@
 
 #include "defines.h"
 
+typedef struct MainWindowConfig {
+        const char *name;
+        i32 x, y;
+        u32 width, height;
+} MainWindowConfig;
+
 typedef struct Application {
+        // Main window configurations
+        MainWindowConfig config;
+
         // Function pointer to app's initialize function
         b8 (*initialize)(struct Application *app_inst);
 

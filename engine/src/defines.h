@@ -2,25 +2,25 @@
 
 // Platform detection
 #if defined(__WIN32__) || defined(_WIN32)
-    #define SPLATFORM_WINDOWS
+    #define SPLATFORM_OS_WINDOWS
     #ifndef _WIN64
         #error "64-bit is required on Windows"
     #endif
 #elif defined(__linux__) || defined(__gnu_linux__)
-    #define SPLATFORM_LINUX
+    #define SPLATFORM_OS_LINUX
 #else
     #error "Platform not supported"
 #endif
 
 // SAPI for exporting and importing
 #ifdef S_EXPORTS
-    #ifdef SPLATFORM_WINDOWS
+    #ifdef SPLATFORM_OS_WINDOWS
         #define SAPI __declspec(dllexport)
     #else
         #define SAPI __attribute__((visibility("default")))
     #endif
 #else
-    #ifdef SPLATFORM_WINDOWS
+    #ifdef SPLATFORM_OS_WINDOWS
         #define SAPI __declspec(dllimport)
     #else
         #define SAPI

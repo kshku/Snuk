@@ -1,6 +1,6 @@
-#include "../memory.h"
+#include "../../memory.h"
 
-#ifdef SPLATFORM_LINUX
+#ifdef SPLATFORM_OS_LINUX
 
     #include <stdlib.h>
     #include <string.h>

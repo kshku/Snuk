@@ -22,7 +22,7 @@ static EventState *event_state;
  * @brief Initialize the Event system.
  *
  * Call with state NULL to get the size to be allocated and call once again with
- * pointer to the allocated memory.
+ * pointer to the allocated memory to actually initialize.
  *
  * @param size The size of allocation required by Event system
  * @param state Pointer to the allocated memory of the Event system

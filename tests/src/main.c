@@ -44,6 +44,12 @@ void tests_terminate(Application *app_inst) {
 }
 
 b8 createApplication(Application *app_inst) {
+    app_inst->config.name = "Snuk Tests";
+    app_inst->config.x = 50;
+    app_inst->config.y = 50;
+    app_inst->config.width = 600;
+    app_inst->config.height = 400;
+
     app_inst->initialize = tests_init;
     app_inst->update = tests_update;
     app_inst->render = tests_render;

@@ -3,7 +3,9 @@ SRCDIR := src
 SRCS := $(shell find $(SRCDIR) -type f -name "*.c")
 CFLAGS +=
 INCLUDES := -I ../engine/src
-LDFLAGS += -L $(BUILD_DIR)/engine -lsnuk -Wl,-rpath=$(BUILD_DIR)/engine
+X11 := $(shell pkg-config --cflags --libs x11)
+LIBRARIES := $(X11)
+LDFLAGS += -L $(BUILD_DIR)/engine -lsnuk -Wl,-rpath=$(BUILD_DIR)/engine $(LIBRARIES)
 DEFINES +=
 
 OBJS := $(SRCS:%.c=$(BUILD_DIR)/testapp/%.o)

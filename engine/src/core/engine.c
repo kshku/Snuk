@@ -3,14 +3,17 @@
 #include "event.h"
 #include "logger.h"
 #include "memory.h"
+#include "platform/window.h"
 
 struct EventSystem;
+struct WindowingSystem;
 
 typedef struct EngineState {
         b8 is_running;
         Application *app_inst;
 
         struct EventSystem *event_system;
+        struct WindowingSystem *windowing_system;
 } EngineState;
 
 static EngineState engine_state;
@@ -56,8 +59,31 @@ b8 initializeEngine(Application *app_inst) {
 
         engine_state.event_system = sMalloc(size);
 
+        if (!engine_state.event_system) {
+            sFatal("Failed to allocate memory for event system");
+            return false;
+        }
+
         if (!initializeEvent(&size, engine_state.event_system)) {
             sFatal("Failed to initialize event system");
+            return false;
+        }
+    }
+
+    {
+        u64 size;
+        initializePlatformWindowing(&engine_state.app_inst->config, &size,
+                                    NULL);
+
+        engine_state.windowing_system = sMalloc(size);
+        if (!engine_state.windowing_system) {
+            sFatal("Failed to allocate memory for event system");
+            return false;
+        }
+
+        if (!initializePlatformWindowing(&engine_state.app_inst->config, &size,
+                                         engine_state.windowing_system)) {
+            sFatal("Failed to initialize the windowing system");
             return false;
         }
     }
@@ -82,6 +108,7 @@ void shutdownEngine(void) {
 
     // No need to deallocate memory since our memory system handles it
 
+    shutdownPlatformWindowing(engine_state.windowing_system);
     shutdownEvent(engine_state.event_system);
     shutdownLogger();
     shutdownMemory();
@@ -95,24 +122,15 @@ void shutdownEngine(void) {
 b8 engineRun(void) {
     // if engine was not initialized then is_running is false => engineRun
     // failed since not initialized.
-    b8 ret_val = engine_state.is_running;
-    if (!ret_val) {
+    if (!engine_state.is_running) {
         sError("engineRun was called without initializing engine "
                "(engine_state.is_running = false)");
         return false;
     }
 
     while (engine_state.is_running) {
-        if (!engine_state.app_inst->update(engine_state.app_inst, (f32)0)) {
-            sFatal("Application update failed!");
-            ret_val = false;
-            // TODO: Yet to decide how to terminate main loop
-            engine_state.is_running = false;
-            break;
-        }
-
-        engine_state.is_running = false;
+        if (!platformWindowPumpMessages()) engine_state.is_running = false;
     }
 
-    return ret_val;
+    return true;
 }

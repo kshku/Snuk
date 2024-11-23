@@ -1,6 +1,6 @@
-#include "../memory.h"
+#include "../../memory.h"
 
-#ifdef SPLATFORM_WINDOWS
+#ifdef SPLATFORM_OS_WINDOWS
 
     #include <stdlib.h>
     #include <string.h>

@@ -30,6 +30,12 @@ void appTerminate(Application *app_inst) {
 }
 
 b8 createApplication(Application *app_inst) {
+    app_inst->config.name = "Snuk Testapp";
+    app_inst->config.x = 50;
+    app_inst->config.y = 50;
+    app_inst->config.width = 600;
+    app_inst->config.height = 400;
+
     app_inst->initialize = appInitialize;
     app_inst->update = appUpdate;
     app_inst->render = appRender;

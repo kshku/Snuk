@@ -1,6 +1,6 @@
-#include "../log.h"
+#include "../../log.h"
 
-#ifdef SPLATFORM_WINDOWS
+#ifdef SPLATFORM_OS_WINDOWS
 
     #include <stdio.h>
     #include <wchar.h>

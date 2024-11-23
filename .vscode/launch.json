@@ -6,20 +6,20 @@
             "name": "(Linux) TestApp",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/testapp/testapp",
+            "program": "${workspaceFolder}/build/linux/testapp/testapp",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/testapp",
+            "cwd": "${workspaceFolder}/build/linux/testapp",
             "environment": []
         },
         {
             "name": "(Windows) TestApp",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\build\\testapp\\testapp.exe",
+            "program": "${workspaceFolder}\\build\\windows\\testapp\\testapp.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}\\build\\testapp",
+            "cwd": "${workspaceFolder}\\build\\windows\\testapp",
             "environment": [
                 {
                     "name": "PATH",
@@ -33,20 +33,20 @@
             "name": "(Linux) Tests",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/tests/tests",
+            "program": "${workspaceFolder}/build/linux/tests/tests",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/tests",
+            "cwd": "${workspaceFolder}/build/linux/tests",
             "environment": []
         },
         {
             "name": "(Windows) Tests",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\build\\tests\\tests.exe",
+            "program": "${workspaceFolder}\\build\\windows\\tests\\tests.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}\\build\\tests",
+            "cwd": "${workspaceFolder}\\build\\windows\\tests",
             "environment": [
                 {
                     "name": "PATH",

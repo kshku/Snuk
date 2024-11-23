@@ -1,6 +1,6 @@
-#include "../log.h"
+#include "../../log.h"
 
-#ifdef SPLATFORM_LINUX
+#ifdef SPLATFORM_OS_LINUX
 
     #include <stdio.h>
     #include <unistd.h>
@@ -33,7 +33,7 @@ void platformLogMessage(LogLevel level, const char *msg, va_list args,
 
     // Track whether we are writitng to terminal or not
     // 0 -> stdout 1 -> stderr
-    static b8 is_terminal = {false, false};
+    static b8 is_terminal[2] = {false, false};
 
     // true = 1 and false = 0
     // Using u8 just because it is used to access the elements of is_terminal.

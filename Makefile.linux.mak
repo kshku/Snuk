@@ -2,7 +2,7 @@ CC := clang
 CFLAGS := -Wall -Wextra -g
 DEFINES := -DS_DEBUG
 LDFLAGS := -g
-BUILD_DIR := build
+BUILD_DIR := build/linux
 
 SUBDIRS := engine testapp tests
 CLEAN_TARGETS := $(SUBDIRS:%=clean-%)
