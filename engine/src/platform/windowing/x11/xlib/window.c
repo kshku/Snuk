@@ -68,12 +68,12 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     if (!state) return false;
 
-    xlib_state = state;
+    xlib_state = (XlibState *)state;
 
     // Open Connection to X server
     xlib_state->display = XOpenDisplay(NULL);
     if (!xlib_state->display) {
-        sError("Faild to open connection to X server");
+        sError("Faild to open connection to X server via xlib");
         return false;
     }
 
@@ -130,10 +130,11 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                              .res_class = (char *)config->name};
     XSetClassHint(xlib_state->display, xlib_state->app_window, &class_hint);
 
-    platformSetWindowTitle(config->name);
+    if (!platformSetWindowTitle(config->name))
+        sError("Couldn't set the window title");
 
     // Todo: Make it as a parameter may be
-    platformSetWindowVisible(true);
+    if (!platformSetWindowVisible(true)) sError("Couldn't show the window");
 
     // Make sure to flush so that everything will be sent to the server
     XFlush(xlib_state->display);
@@ -141,7 +142,14 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     return true;
 }
 
+/**
+ * @brief Implementation of xlib.
+ *
+ * @param state Pointer to the allocated memory
+ */
 void shutdownPlatformWindowing(void *state) {
+    sassert_msg(xlib_state,
+                "Shutting down windowing system twice or not initialized?");
     UNUSED(state);
     XDestroyWindow(xlib_state->display, xlib_state->app_window);
     XCloseDisplay(xlib_state->display);
@@ -153,6 +161,7 @@ void shutdownPlatformWindowing(void *state) {
  * @return Returns false if application quit was recieved else true.
  */
 b8 platformWindowPumpMessages(void) {
+    sassert_msg(xlib_state, "Windowing system is not initialized?");
     b8 quit = false;
 
     XEvent event;
@@ -161,6 +170,7 @@ b8 platformWindowPumpMessages(void) {
     // XNextEvent is blocking which means if direcly used then this function
     // will not return with true, i.e., utill the application recieves the quit
     // signal the loop will not stop. So use XPending
+    // ? Do I need to check for !quit
     while (!quit && XPending(xlib_state->display)) {
         XNextEvent(xlib_state->display, &event);
         switch (event.type) {
@@ -186,7 +196,8 @@ b8 platformWindowPumpMessages(void) {
                 // TODO:
                 break;
             case ClientMessage:
-                if (event.xclient.data.l[0] == xlib_state->wm_delete_window)
+                if ((unsigned long)event.xclient.data.l[0]
+                    == xlib_state->wm_delete_window)
                     quit = true;
                 break;
             default:
@@ -218,6 +229,7 @@ void platformWindowDestroy() {
  * @return Returns true if changes were made successfully.
  */
 b8 platformSetWindowVisible(b8 visible) {
+    sassert_msg(xlib_state, "Windowing system is not initialized?");
     if (visible) XMapWindow(xlib_state->display, xlib_state->app_window);
     else XUnmapWindow(xlib_state->display, xlib_state->app_window);
     return true;
@@ -231,6 +243,7 @@ b8 platformSetWindowVisible(b8 visible) {
  * @return Returns true if title was changed successfully.
  */
 b8 platformSetWindowTitle(const char *title) {
+    sassert_msg(xlib_state, "Windowing system is not initialized?");
     XStoreName(xlib_state->display, xlib_state->app_window, title);
     return true;
 }
@@ -244,6 +257,7 @@ b8 platformSetWindowTitle(const char *title) {
  * @return Returns true if title was set successfully, else false.
  */
 b8 platformGetWindowTitle(char *title, u64 size) {
+    sassert_msg(xlib_state, "Windowing system is not initialized?");
     char *ret;
     if (XFetchName(xlib_state->display, xlib_state->app_window, &ret)) {
         sMemCopy(title, ret, size);
