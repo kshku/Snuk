@@ -18,6 +18,7 @@
     #include <xcb/xcb_icccm.h>
 
     #include "core/assertions.h"
+    #include "core/event.h"
     #include "core/logger.h"
     #include "core/memory.h"
 
@@ -145,6 +146,7 @@ void shutdownPlatformWindowing(void *state) {
     UNUSED(state);
 
     xcb_destroy_window(xcb_state->connection, xcb_state->app_window);
+    // Even if connection was failed we have to free
     xcb_disconnect(xcb_state->connection);
 }
 
@@ -189,8 +191,11 @@ b8 platformWindowPumpMessages(void) {
                 break;
             case XCB_CLIENT_MESSAGE:
                 if (((xcb_client_message_event_t *)event)->data.data32[0]
-                    == xcb_state->wm_delete_window)
+                    == xcb_state->wm_delete_window) {
+                    fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL,
+                              ((EventContext){0}));
                     quit = true;
+                }
                 break;
             default:
                 sTrace("An event is being ignored: Event type: %d",

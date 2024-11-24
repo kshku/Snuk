@@ -18,6 +18,26 @@ typedef struct EngineState {
 
 static EngineState engine_state;
 
+// TODO: Remove this temporary implementation to close the window
+/**
+ * @brief Temporary solutition to quit application in windows.
+ *
+ * If on other platforms, we just print this function is called.
+ */
+b8 applicationQuitEvent(u16 code, void *sender, void *listener,
+                        EventContext context) {
+    UNUSED(code);
+    UNUSED(sender);
+    UNUSED(listener);
+    UNUSED(context);
+    sInfo("Application quit event is recieved");
+#ifdef SPLATFORM_OS_WINDOWS
+    engine_state.is_running = false;
+#endif
+    // Event is handled
+    return true;
+}
+
 /**
  * @brief Initialize the engine.
  *
@@ -96,6 +116,10 @@ b8 initializeEngine(Application *app_inst) {
         return false;
     }
 
+    if (!registerEventListener(EVENT_CODE_APPLICATION_QUIT, NULL,
+                               applicationQuitEvent))
+        sError("Failed to register for application quit event");
+
     return true;
 }
 
@@ -103,6 +127,10 @@ b8 initializeEngine(Application *app_inst) {
  * @brief Shutdown the engine.
  */
 void shutdownEngine(void) {
+    if (!unregisterEventListener(EVENT_CODE_APPLICATION_QUIT, NULL,
+                                 applicationQuitEvent))
+        sError("Failed to unregister from application quit event");
+
     // Should be called first, i.e., before terminating subsystems
     engine_state.app_inst->terminate(engine_state.app_inst);
 

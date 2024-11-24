@@ -8,7 +8,7 @@ SRCDIR := src
 SRCS := $(call rwildcard,$(SRCDIR)/,*.c)
 CFLAGS += -fdeclspec
 INCLUDES := -I $(SRCDIR)
-LDFLAGS += -shared
+LDFLAGS += -shared -luser32
 DEFINES += -DS_EXPORTS
 
 OBJS := $(SRCS:%.c=$(BUILD_DIR)/engine/%.o)

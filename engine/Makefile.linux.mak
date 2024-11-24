@@ -2,8 +2,13 @@ TARGET := libsnuk.so
 SRCDIR := src
 SRCS := $(shell find $(SRCDIR) -type f -name "*.c")
 CFLAGS += -fvisibility=hidden -fPIC
+XLIB := x11
+XCB := xcb xcb-icccm
+WAYLAND := wayland-client
 INCLUDES := -I $(SRCDIR)
+INCLUDES += $(shell pkg-config --cflags $(XLIB) $(XCB) $(WAYLAND))
 LDFLAGS += -shared
+LDFLAGS += $(shell pkg-config --libs $(XLIB) $(XCB) $(WAYLAND))
 DEFINES += -DS_EXPORTS
 
 OBJS := $(SRCS:%.c=$(BUILD_DIR)/engine/%.o)

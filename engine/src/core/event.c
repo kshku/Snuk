@@ -161,8 +161,8 @@ SAPI b8 fireEvent(u16 code, void *sender, EventContext context) {
     for (u32 i = 0; i < listeners_length; ++i) {
         RegisterdListener listerner = event_state->entries[code][i];
         if (listerner.callback(code, sender, listerner.listener, context)) {
-            sTrace("The fired evnet with code %d was handled by listener "
-                   "number %d%s listener out of %d %s",
+            sTrace("The fired evnet with code %d was handled by %d%s listener "
+                   "out of %d %s",
                    code, i + 1,
                    ((i + 1 == 1)   ? "st"
                     : (i + 1 == 2) ? "nd"

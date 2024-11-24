@@ -12,6 +12,7 @@
     #include <X11/Xutil.h>
 
     #include "core/assertions.h"
+    #include "core/event.h"
     #include "core/logger.h"
     #include "core/memory.h"
 
@@ -151,8 +152,10 @@ void shutdownPlatformWindowing(void *state) {
     sassert_msg(xlib_state,
                 "Shutting down windowing system twice or not initialized?");
     UNUSED(state);
-    XDestroyWindow(xlib_state->display, xlib_state->app_window);
-    XCloseDisplay(xlib_state->display);
+    if (xlib_state->display) {
+        XDestroyWindow(xlib_state->display, xlib_state->app_window);
+        XCloseDisplay(xlib_state->display);
+    }
 }
 
 /**
@@ -197,8 +200,11 @@ b8 platformWindowPumpMessages(void) {
                 break;
             case ClientMessage:
                 if ((unsigned long)event.xclient.data.l[0]
-                    == xlib_state->wm_delete_window)
+                    == xlib_state->wm_delete_window) {
+                    fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL,
+                              ((EventContext){0}));
                     quit = true;
+                }
                 break;
             default:
                 sTrace("An event is being ignored: Event type: %d", event.type);
