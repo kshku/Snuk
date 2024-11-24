@@ -135,7 +135,7 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 }
 
 /**
- * @brief Implementation of xlib.
+ * @brief Implementation of xcb.
  *
  * @param state Pointer to the allocated memory
  */
@@ -213,7 +213,7 @@ void platformWindowDestroy() {
 }
 
 /**
- * @brief Chnage the visibility of the window (xlib implementation).
+ * @brief Chnage the visibility of the window (xcb implementation).
  *
  * If called with true even if the window is visible, or called with false even
  * if the window is not visible, no error will be generated.
@@ -231,7 +231,7 @@ b8 platformSetWindowVisible(b8 visible) {
 }
 
 /**
- * @brief Set the title of the window (xlib implementation).
+ * @brief Set the title of the window (xcb implementation).
  *
  * @param title The title
  *
@@ -250,7 +250,7 @@ b8 platformSetWindowTitle(const char *title) {
 }
 
 /**
- * @brief Get the title of the window (xlib implementation).
+ * @brief Get the title of the window (xcb implementation).
  *
  * @param[out] title Title will be copied to this
  * @param size Maximum size can be written to the title

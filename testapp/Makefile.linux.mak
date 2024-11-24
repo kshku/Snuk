@@ -2,11 +2,13 @@ TARGET := testapp
 SRCDIR := src
 SRCS := $(shell find $(SRCDIR) -type f -name "*.c")
 CFLAGS +=
+XLIB := x11
+XCB := xcb xcb-icccm
+WAYLAND := wayland-client
 INCLUDES := -I ../engine/src
-X11 := $(shell pkg-config --cflags --libs x11)
-XCB := $(shell pkg-config --cflags --libs xcb xcb-icccm)
-LIBRARIES := $(X11) $(XCB)
-LDFLAGS += -L $(BUILD_DIR)/engine -lsnuk -Wl,-rpath=$(BUILD_DIR)/engine $(LIBRARIES)
+INCLUDES += $(shell pkg-config --cflags $(XLIB) $(XCB) $(WAYLAND))
+LDFLAGS += -L $(BUILD_DIR)/engine -lsnuk -Wl,-rpath=$(BUILD_DIR)/engine
+LDFLAGS += $(shell pkg-config --libs $(XLIB) $(XCB) $(WAYLAND))
 DEFINES +=
 
 OBJS := $(SRCS:%.c=$(BUILD_DIR)/testapp/%.o)

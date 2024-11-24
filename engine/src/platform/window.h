@@ -4,9 +4,10 @@
 #include "defines.h"
 
 #ifdef SPLATFORM_OS_LINUX
-// TODO: to decide between
-// #define SPLATFORM_WINDOWING_X11_XLIB
-    #define SPLATFORM_WINDOWING_X11_XCB
+    // TODO: to decide between
+    #define SPLATFORM_WINDOWING_X11_XLIB
+// #define SPLATFORM_WINDOWING_X11_XCB
+// #define SPLATFORM_WINDOWING_WAYLAND
 #endif
 
 #ifdef SPLATFORM_OS_WINDOWS
