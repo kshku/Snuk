@@ -56,7 +56,8 @@ SAPI b8 fireEvent(u16 code, void *sender, EventContext context);
 typedef enum SystemEventCode {
     // Shutting down the application
     EVENT_CODE_APPLICATION_QUIT = 0x01,
-    MAX_SYSTEM_EVENT_CODE = 0xff
+
+    EVENT_CODE_MAX_SYSTEM_CODE = 0xff
 }
 
 SystemEventCode;

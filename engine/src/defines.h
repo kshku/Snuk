@@ -84,3 +84,35 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b8 to be 1 byte");
  * @param x Variable of function call
  */
 #define UNUSED(x) (void)(x)
+
+/**
+ * @brief Convert the input to string.
+ *
+ * @param x value to be converted to string
+ */
+#define STRINGIFY(x) #x
+
+/**
+ * @brief Join two inputs.
+ *
+ * @param x first one
+ * @param y second one
+ */
+#define CONCAT(x, y) x##y
+
+/**
+ * @brief Expand the macro.
+ *
+ * Usefull when we need to pass the macro to another macro and we want the macro
+ * to be expanded before it is passed as the argument.
+ *
+ * @param x The macro to be expanded
+ */
+#define EXPAND(x) x
+
+/**
+ * @brief Bit flags.
+ *
+ * @param n Number of shifts to 1
+ */
+#define BITFLAG(n) (1 << n)

@@ -105,8 +105,9 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     win32_state = (Win32State *)state;
 
-    // NOTE: Just following from Kohi series. Not interested in going through
-    // NOTE: the windows documentation or search topics to write this
+    // NOTE: Just following from Kohi series. Not interested now in going
+    // NOTE: through the windows documentation or search topics to write this
+    // NOTE: Will look at the docs and may rewrite these things in future.
 
     // Load this application
     win32_state->h_instance = GetModuleHandleA(NULL);
