@@ -53,11 +53,22 @@ SAPI b8 unregisterEventListener(u16 code, void *listener,
 
 SAPI b8 fireEvent(u16 code, void *sender, EventContext context);
 
+#define SYSTEM_EVENT_CODE_PREFIX EVENT_CODE_
+#define DEFINE_SYSTEM_EVENT_CODE(event, value) \
+    CONCAT_EXPANDED(SYSTEM_EVENT_CODE_PREFIX, event) = value
+
 typedef enum SystemEventCode {
-    // Shutting down the application
-    EVENT_CODE_APPLICATION_QUIT = 0x01,
+    DEFINE_SYSTEM_EVENT_CODE(NONE, 0x00),
+
+    /* Shutting down the application */
+    DEFINE_SYSTEM_EVENT_CODE(APPLICATION_QUIT, 0x01),
+
+    /**  Key press and release events.
+     * Use data.i32
+     * [0] = scancode [1] = keycode [2] = keymod
+     */
+    DEFINE_SYSTEM_EVENT_CODE(KEY_PRESSED, 0x02),
+    DEFINE_SYSTEM_EVENT_CODE(KEY_RELEASED, 0x03),
 
     EVENT_CODE_MAX_SYSTEM_CODE = 0xff
-}
-
-SystemEventCode;
+} SystemEventCode;

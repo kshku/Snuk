@@ -101,14 +101,15 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b8 to be 1 byte");
 #define CONCAT(x, y) x##y
 
 /**
- * @brief Expand the macro.
+ * @brief Expands and then joins.
  *
- * Usefull when we need to pass the macro to another macro and we want the macro
- * to be expanded before it is passed as the argument.
+ * Usefull when we are passing macro as an argument and we want the macro to be
+ * expanded before the concatenation.
  *
- * @param x The macro to be expanded
+ * @param x first one
+ * @param y second one
  */
-#define EXPAND(x) x
+#define CONCAT_EXPANDED(x, y) CONCAT(x, y)
 
 /**
  * @brief Bit flags.
