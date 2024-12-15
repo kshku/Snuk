@@ -10,20 +10,20 @@
 #define SCANCODE_MASK (1 << 30)
 
 // /**
-//  * @brief KeyCode from the ScanCode with given KeyCode name.
+//  * @brief Keycode from the Scancode with given Keycode name.
 //  */
 // #define DEFINE_FROM_SCANCODE_WITH_NAME(key, scan) \
 //     DEFINE_KEYCODE(key, (CONCAT(EXPAND(SCANCODE_PREFIX), scan)) |
 //     SCANCODE_MASK)
 
 // /**
-//  * @brief KeyCode from ScanCode, KeyCode name same as ScanCode name.
+//  * @brief Keycode from Scancode, Keycode name same as Scancode name.
 //  */
 // #define DEFINE_KEYCODE_FROM_SCANCODE(key) \
 //     DEFINE_FROM_SCANCODE_WITH_NAME(key, key)
 
 /**
- * @brief KeyCode from ScanCode, KeyCode name same as ScanCode name.
+ * @brief Keycode from Scancode, Keycode name same as Scancode name.
  */
 #define DEFINE_KEYCODE_FROM_SCANCODE(key) \
     DEFINE_KEYCODE(key, (CONCAT_EXPANDED(SCANCODE_PREFIX, key)) | SCANCODE_MASK)
@@ -31,7 +31,7 @@
 // NOTE: The virtual key codes.
 // Using SDL's approach
 
-typedef enum KeyCode {
+typedef enum Keycode {
     DEFINE_KEYCODE(NONE, 0),
 
     DEFINE_KEYCODE(BACKSPACE, 0x08),
@@ -193,7 +193,7 @@ typedef enum KeyCode {
 
     DEFINE_KEYCODE_FROM_SCANCODE(KEYPAD_PERIOD),
 
-    // Add all the keycodes defined in ScanCode which are not already defined.
+    // Add all the keycodes defined in Scancode which are not already defined.
 
     DEFINE_KEYCODE_FROM_SCANCODE(APPLICATION),
     DEFINE_KEYCODE_FROM_SCANCODE(POWER),
@@ -309,13 +309,13 @@ typedef enum KeyCode {
     DEFINE_KEYCODE_FROM_SCANCODE(RIGHT_GUI),
 
     KEYCODE_MAX_KEYCODE
-} KeyCode;
+} Keycode;
 
 #define KEYMOD_PREFIX KEYMOD_
 
 #define DEFINE_KEYMOD(mod, value) CONCAT_EXPANDED(KEYMOD_PREFIX, mod) = value
 
-typedef enum KeyMod {
+typedef enum Keymod {
     DEFINE_KEYMOD(NONE, 0),
 
     DEFINE_KEYMOD(LEFT_SHIFT, BITFLAG(0)),
@@ -330,12 +330,12 @@ typedef enum KeyMod {
     DEFINE_KEYMOD(LEFT_GUI, BITFLAG(6)),
     DEFINE_KEYMOD(RIGHT_GUI, BITFLAG(7)),
 
-#define KEYMOD(key) CONCAT_EXPANDED(KEYMOD_PREFIX, key)
-    DEFINE_KEYMOD(SHIFT, (KEYMOD(LEFT_SHIFT) | KEYMOD(RIGHT_SHIFT))),
-    DEFINE_KEYMOD(CONTROL, (KEYMOD(LEFT_CONTROL) | KEYMOD(RIGHT_CONTROL))),
-    DEFINE_KEYMOD(ALT, (KEYMOD(LEFT_ALT) | KEYMOD(RIGHT_ALT))),
-    DEFINE_KEYMOD(GUI, (KEYMOD(LEFT_GUI) | KEYMOD(RIGHT_GUI))),
-#undef KEYMOD
+#define Keymod(key) CONCAT_EXPANDED(KEYMOD_PREFIX, key)
+    DEFINE_KEYMOD(SHIFT, (Keymod(LEFT_SHIFT) | Keymod(RIGHT_SHIFT))),
+    DEFINE_KEYMOD(CONTROL, (Keymod(LEFT_CONTROL) | Keymod(RIGHT_CONTROL))),
+    DEFINE_KEYMOD(ALT, (Keymod(LEFT_ALT) | Keymod(RIGHT_ALT))),
+    DEFINE_KEYMOD(GUI, (Keymod(LEFT_GUI) | Keymod(RIGHT_GUI))),
+#undef Keymod
 
     DEFINE_KEYMOD(NUM_LOCK, BITFLAG(8)),  // num lock is on
     DEFINE_KEYMOD(CAPS_LOCK, BITFLAG(9)),  // caps lock is on
@@ -343,7 +343,7 @@ typedef enum KeyMod {
 
     // #define SDL_KMOD_MODE 0x4000u /**< the !AltGr key is down. */
 
-} KeyMod;
+} Keymod;
 
 STATIC_ASSERT(sizeof(KEYCODE_MAX_KEYCODE) == 4,
               "Expected size of the enum constant is 4 bytes.");

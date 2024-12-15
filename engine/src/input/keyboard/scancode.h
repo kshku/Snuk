@@ -14,7 +14,7 @@
 // https://www.usb.org/sites/default/files/documents/hut1_12v2.pdf or
 // https://usb.org/sites/default/files/hut1_5.pdf
 // Physical keycodes Independent of the language.
-typedef enum ScanCode {
+typedef enum Scancode {
     DEFINE_SCANCODE(NONE, 0x00),
 
     DEFINE_SCANCODE(A, 0x04),
@@ -285,4 +285,4 @@ typedef enum ScanCode {
     DEFINE_SCANCODE(RIGHT_GUI, 0xE7),
 
     SCANCODE_MAX_SCANCODE
-} ScanCode;
+} Scancode;

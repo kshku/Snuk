@@ -1,12 +1,14 @@
 #include "engine.h"
 
 #include "event.h"
+#include "input/input.h"
 #include "logger.h"
 #include "memory.h"
 #include "platform/window.h"
 
 struct EventSystem;
 struct WindowingSystem;
+struct InputSystem;
 
 typedef struct EngineState {
         b8 is_running;
@@ -14,6 +16,7 @@ typedef struct EngineState {
 
         struct EventSystem *event_system;
         struct WindowingSystem *windowing_system;
+        struct InputSystem *input_system;
 } EngineState;
 
 static EngineState engine_state;
@@ -92,6 +95,23 @@ b8 initializeEngine(Application *app_inst) {
 
     {
         u64 size;
+        initializeInput(&size, NULL);
+
+        engine_state.input_system = sMalloc(size);
+
+        if (!engine_state.input_system) {
+            sFatal("Failed to allocate memory for input system");
+            return false;
+        }
+
+        if (!initializeInput(&size, engine_state.input_system)) {
+            sFatal("Failed to initialize the input system");
+            return false;
+        }
+    }
+
+    {
+        u64 size;
         initializePlatformWindowing(&engine_state.app_inst->config, &size,
                                     NULL);
 
@@ -137,6 +157,7 @@ void shutdownEngine(void) {
     // No need to deallocate memory since our memory system handles it
 
     shutdownPlatformWindowing(engine_state.windowing_system);
+    shutdownInput(engine_state.input_system);
     shutdownEvent(engine_state.event_system);
     shutdownLogger();
     shutdownMemory();

@@ -2,7 +2,7 @@
 
 #include "core/logger.h"
 
-static const KeyCode scan_to_key[] = {
+static const Keycode scan_to_key[] = {
     [SCANCODE_NONE] = KEYCODE_NONE,
 
     [SCANCODE_ENTER] = KEYCODE_ENTER,
@@ -69,7 +69,7 @@ static const KeyCode scan_to_key[] = {
     [SCANCODE_LANG_9] = KEYCODE_NONE,
 };
 
-static const ScanCode key_to_scan[] = {
+static const Scancode key_to_scan[] = {
     [KEYCODE_NONE] = SCANCODE_NONE,
 
     [KEYCODE_BACKSPACE] = SCANCODE_BACKSPACE,
@@ -128,15 +128,15 @@ static const ScanCode key_to_scan[] = {
 };
 
 /**
- * @brief Get the keycode from the scancode and the modifier state.
+ * @brief Get the keycode from the Scancode and the modifier state.
  *
- * @param sc ScanCode
- * @param mod KeyMod
+ * @param sc Scancode
+ * @param mod Keymod
  *
- * @return Returns the respective KeyCode for given scancode and modifiers.
+ * @return Returns the respective Keycode for given Scancode and modifiers.
  */
-KeyCode scanCodeToKeyCode(ScanCode sc, KeyMod mod) {
-    if (SCANCODE_MAX_SCANCODE) return KEYCODE_NONE;
+Keycode scancodeToKeycode(Scancode sc, Keymod mod) {
+    if (sc == SCANCODE_MAX_SCANCODE) return KEYCODE_NONE;
 
     if ((sc >= SCANCODE_CAPS_LOCK && sc < SCANCODE_DELETE)
         || (sc > SCANCODE_DELETE && sc < SCANCODE_NON_US_BACKSLASH)
@@ -157,7 +157,7 @@ KeyCode scanCodeToKeyCode(ScanCode sc, KeyMod mod) {
                 // Small letters
                 return KEYCODE_a + (sc - SCANCODE_A);
             default:
-                sError("Error in the logic of scanCodeToKeyCode function "
+                sError("Error in the logic of scancodeToKeycode function "
                        "while "
                        "checking whether to return Capital or Small letter.");
                 return KEYCODE_NONE;
@@ -202,14 +202,14 @@ KeyCode scanCodeToKeyCode(ScanCode sc, KeyMod mod) {
 }
 
 /**
- * @brief Get the scancode from the keycode.
+ * @brief Get the Scancode from the Keycode.
  *
- * @param kc KeyCode
+ * @param kc Keycode
  *
- * @return Returns the respective ScanCode for given keycode.
+ * @return Returns the respective Scancode for given Keycode.
  */
-ScanCode keyCodeToScanCode(KeyCode kc) {
-    if (KEYCODE_MAX_KEYCODE) return SCANCODE_NONE;
+Scancode keycodeToScancode(Keycode kc) {
+    if (kc == KEYCODE_MAX_KEYCODE) return SCANCODE_NONE;
 
     if (kc >= KEYCODE_A && kc <= KEYCODE_Z)
         return SCANCODE_A + (kc - KEYCODE_A);

@@ -10,18 +10,21 @@
     #include <X11/Xatom.h>
     #include <X11/Xlib.h>
     #include <X11/Xutil.h>
+    #include <X11/extensions/XInput2.h>
 
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
     #include "core/memory.h"
+    #include "input/input.h"
 
 typedef struct XlibState {
         Display *display;
         i32 screen, screen_width, screen_height;
+        i32 xi_opcode, xi_event_code, xi_error_code;
         Window root_window, app_window;
         u64 white_pixel, black_pixel;
-        int (*xlib_error_handler)(Display *, XErrorEvent *);
+        i32 (*xlib_error_handler)(Display *, XErrorEvent *);
         Atom wm_delete_window;
 } XlibState;
 
@@ -37,7 +40,7 @@ static XlibState *xlib_state;
  *
  * @return Value is ignored (The documentation says).
  */
-int handleXErrors(Display *display, XErrorEvent *e) {
+i32 handleXErrors(Display *display, XErrorEvent *e) {
     char buf[256];  // 256 might be sufficient
     XGetErrorText(display, e->error_code, buf, 256);
     sError("Error from X Server: Request Code: %d, Error Code: %d",
@@ -107,9 +110,10 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     XSetWindowAttributes attribs;
     u32 attrib_mask = CWEventMask | CWBackPixel;
     attribs.background_pixel = xlib_state->black_pixel;
-    attribs.event_mask = KeyPressMask | KeyReleaseMask | ButtonPressMask
-                       | ButtonReleaseMask | PointerMotionMask | ExposureMask
-                       | StructureNotifyMask;
+    attribs.event_mask = ExposureMask | StructureNotifyMask;
+    // attribs.event_mask = KeyPressMask | KeyReleaseMask | ButtonPressMask
+    //                    | ButtonReleaseMask | PointerMotionMask | ExposureMask
+    //                    | StructureNotifyMask;
 
     // Create the main window
     xlib_state->app_window = XCreateWindow(
@@ -117,14 +121,47 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         config->width, config->height, 0, CopyFromParent, InputOutput,
         CopyFromParent, attrib_mask, &attribs);
 
+    // Query the availability of the extensions and their versions
+    if (!XQueryExtension(xlib_state->display, "XInputExtension",
+                         &xlib_state->xi_opcode, &xlib_state->xi_event_code,
+                         &xlib_state->xi_error_code)) {
+        sError("XInputExtension is not available");
+        return false;
+    }
+
+    i32 major = 2, minor = 4;
+    if (XIQueryVersion(xlib_state->display, &major, &minor)) {
+        sError("XI2 max version supported by server is %d.%d.", major, minor);
+        return false;
+    }
+
+    // Select the XInput2 events
+
+    // Similar to bit maks using byte array, where each bit represents a mask
+    // and initialize to 0. Understood this concept from the chatgpt :)
+    u8 masks[XIMaskLen(XI_LASTEVENT)] = {0};
+    XIEventMask emask = {//.deviceid = XIAllDevices,
+                         .deviceid = XIAllMasterDevices,
+                         .mask = masks,
+                         .mask_len = XIMaskLen(XI_LASTEVENT)};
+    XISetMask(emask.mask, XI_ButtonPress);
+    XISetMask(emask.mask, XI_ButtonRelease);
+    XISetMask(emask.mask, XI_KeyPress);
+    XISetMask(emask.mask, XI_KeyRelease);
+    XISetMask(emask.mask, XI_Motion);
+    if (XISelectEvents(xlib_state->display, xlib_state->app_window, &emask,
+                       1)) {
+        sError("Failed to select the input events using XInput2 extension.");
+        return false;
+    }
+
     // Atoms
     xlib_state->wm_delete_window =
         XInternAtom(xlib_state->display, "WM_DELETE_WINDOW", false);
 
     // Get notified when the window is getting destroyed
-    Atom wm_protocol_atoms[1] = {xlib_state->wm_delete_window};
     XSetWMProtocols(xlib_state->display, xlib_state->app_window,
-                    wm_protocol_atoms, 1);
+                    &xlib_state->wm_delete_window, 1);
 
     // Set class hint
     XClassHint class_hint = {.res_name = (char *)config->name,
@@ -177,38 +214,135 @@ b8 platformWindowPumpMessages(void) {
     while (!quit && XPending(xlib_state->display)) {
         XNextEvent(xlib_state->display, &event);
         switch (event.type) {
-            case KeyPress:
-                // TODO:
-                break;
-            case KeyRelease:
-                // TODO:
-                break;
-            case ButtonPress:
-                // TODO:
-                break;
-            case ButtonRelease:
-                // TODO:
-                break;
-            case MotionNotify:
-                // TODO:
-                break;
             case Expose:
                 // TODO:
                 break;
             case ConfigureNotify:
                 // TODO:
                 break;
-            case ClientMessage:
+            case ClientMessage: {
                 if ((unsigned long)event.xclient.data.l[0]
                     == xlib_state->wm_delete_window) {
                     fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL,
                               ((EventContext){0}));
                     quit = true;
                 }
-                break;
-            default:
+            } break;
+            case GenericEvent: {
+                if (event.xcookie.extension == xlib_state->xi_opcode) {
+                    if (!XGetEventData(xlib_state->display, &event.xcookie)) {
+                        sWarn("Failed to get the data from the cookie for XI");
+                        break;
+                    }
+                    XIDeviceEvent *device_event =
+                        (XIDeviceEvent *)event.xcookie.data;
+                    // XIRawEvent *raw_event = (XIRawEvent *)event.xcookie.data;
+                    switch (event.xcookie.evtype) {
+                        case XI_ButtonPress: {
+                            // sDebug("Button press: device=%d, button=%d",
+                            //        device_event->deviceid,
+                            //        device_event->detail);
+                            if (device_event->detail < 4) {
+                                // Left = 1, right = 3, middle = 2
+                                inputProcessButton(device_event->detail,
+                                                   device_event->event_x,
+                                                   device_event->event_y, true);
+                            } else {
+                                // TODO: Peek at the next event till the next
+                                // TODO: event is not scroll and then pass delta
+                                // TODO: as the number of scroll events in the
+                                // TODO: same direction
+
+                                // scroll:
+                                //  up = 4 down = 5 left = 6 right = 7
+                                inputProcessScroll((device_event->detail - 3),
+                                                   1, device_event->event_x,
+                                                   device_event->event_y);
+                            }
+                        } break;
+                        case XI_ButtonRelease: {
+                            // sDebug("Button release: device:%d, button=%d",
+                            //        device_event->deviceid,
+                            //        device_event->detail);
+                            if (device_event->detail < 4) {
+                                // Left = 1, right = 3, middle = 2
+                                inputProcessButton(
+                                    device_event->detail, device_event->event_x,
+                                    device_event->event_y, false);
+                            }
+                            // Scroll is being processed in button press event
+                        } break;
+                        case XI_KeyPress: {
+                            // sDebug("Key press: device:%d, keycode=%d%s",
+                            // device_event->deviceid, device_event->detail,
+                            //        (device_event->flags & XIKeyRepeat)
+                            //            ? " KeyRepeat"
+                            //            : "");
+                            inputProcessKey(
+                                device_event->detail, true,
+                                (device_event->flags & XIKeyRepeat));
+                        } break;
+                        case XI_KeyRelease: {
+                            // sDebug("Key release: device:%d, keycode=%d",
+                            //        device_event->deviceid,
+                            //        device_event->detail);
+                            inputProcessKey(device_event->detail, false, false);
+                        } break;
+                        case XI_Motion: {
+                            inputProcessPointerMotion(device_event->event_x,
+                                                      device_event->event_y);
+                            // static f64 ex, ey, rx, ry;
+                            // sDebug("Motion: device=%d, event=(%.0f, %.0f), "
+                            //        "root=(%.0f, %.0f)",
+                            //        device_event->deviceid,
+                            //        ex - device_event->event_x,
+                            //        ey - device_event->event_y,
+                            //        rx - device_event->root_x,
+                            //        ry - device_event->root_y);
+                            // ex = device_event->event_x;
+                            // ey = device_event->event_y;
+                            // rx = device_event->root_x;
+                            // ry = device_event->root_y;
+                        } break;
+
+                        // case XI_RawButtonPress: {
+                        //     sDebug("Raw button press: device=%d, button=%d",
+                        //            raw_event->deviceid, raw_event->detail);
+                        // } break;
+                        // case XI_RawButtonRelease: {
+                        //     sDebug("Raw button release: device=%d,
+                        //     button=%d",
+                        //            raw_event->deviceid, raw_event->detail);
+                        // } break;
+                        // case XI_RawKeyPress: {
+                        //     sDebug("Raw key press: device=%d, keycode=%d",
+                        //            raw_event->deviceid, raw_event->detail);
+                        // } break;
+                        // case XI_RawKeyRelease: {
+                        //     sDebug("Raw key release: device=%d, keycode=%d",
+                        //            raw_event->deviceid, raw_event->detail);
+                        // } break;
+                        // case XI_RawMotion: {
+                        //     sDebug("Raw motion: device=%d, dx=%.2f,
+                        //     dy=%.2f\n",
+                        //            raw_event->deviceid,
+                        //            raw_event->raw_values[0],
+                        //            raw_event->raw_values[1]);
+                        // } break;
+                        default: {
+                            sError("Should not be getting some unkown event "
+                                   "from the XI.");
+                        } break;
+                    }
+                    // sDebug("valuators.data = (%f, %f)",
+                    //        device_event->valuators.values[0],
+                    //        device_event->valuators.values[1]);
+                    XFreeEventData(xlib_state->display, &event.xcookie);
+                }
+            } break;
+            default: {
                 sTrace("An event is being ignored: Event type: %d", event.type);
-                break;
+            } break;
         }
     }
 
@@ -227,8 +361,8 @@ void platformWindowDestroy() {
 /**
  * @brief Chnage the visibility of the window (xlib implementation).
  *
- * If called with true even if the window is visible, or called with false even
- * if the window is not visible, no error will be generated.
+ * If called with true even if the window is visible, or called with false
+ * even if the window is not visible, no error will be generated.
  *
  * @param visibility if true make window visible
  *

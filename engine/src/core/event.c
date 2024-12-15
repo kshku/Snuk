@@ -152,7 +152,7 @@ SAPI b8 fireEvent(u16 code, void *sender, EventContext context) {
                 "Event system is not initialized, cannot fire events");
 
     if (!event_state->entries[code]) {
-        sTrace("No listeners were listening to the event code %d", code);
+        // sTrace("No listeners were listening to the event code %d", code);
         return false;
     }
 

@@ -21,7 +21,7 @@ typedef struct EventContext {
 
                 struct {
                         u64 size;
-                        void *ptr;
+                        void *ptr;  // Free should be called by the handler
                 } custom;
         } data;
 } EventContext;
@@ -37,6 +37,9 @@ typedef struct EventContext {
  * @param context Event context data
  *
  * @return Returns ture if the event was handled, else false.
+ *
+ * @note In case the event is handled and the context is custom data (which is
+ * malloced), then the pointer should be freed by the handler.
  */
 typedef b8 (*fpEventCallback)(u16 code, void *sender, void *listener,
                               EventContext context);
@@ -63,12 +66,37 @@ typedef enum SystemEventCode {
     /* Shutting down the application */
     DEFINE_SYSTEM_EVENT_CODE(APPLICATION_QUIT, 0x01),
 
-    /**  Key press and release events.
-     * Use data.i32
-     * [0] = scancode [1] = keycode [2] = keymod
+    /**
+     * Key press and release events.
+     * Use data.u32
+     * [0] = scancode, [1] = keycode, [2] = keymod
      */
-    DEFINE_SYSTEM_EVENT_CODE(KEY_PRESSED, 0x02),
-    DEFINE_SYSTEM_EVENT_CODE(KEY_RELEASED, 0x03),
+    DEFINE_SYSTEM_EVENT_CODE(KEY_PRESS, 0x02),
+    DEFINE_SYSTEM_EVENT_CODE(KEY_RELEASE, 0x03),
+    DEFINE_SYSTEM_EVENT_CODE(KEY_REPEAT, 0x04),
+
+    /**
+     * Button press and release events.
+     * Use data.u16
+     * [0] = button, [1] = x, [2] = y, [3] = keymod
+     */
+    DEFINE_SYSTEM_EVENT_CODE(BUTTON_PRESS, 0x05),
+    DEFINE_SYSTEM_EVENT_CODE(BUTTON_RELEASE, 0x06),
+
+    /**
+     * Scroll events.
+     * Use data.u16
+     * [0] = direction, [1] = x, [2] = y, [3] = delta, [4] = keymod
+     */
+    DEFINE_SYSTEM_EVENT_CODE(SCROLL, 0x07),
+
+    /**
+     * Pointer motion event.
+     * Use data.i16
+     * [0] = delta_x, [1] = delta_y, [2] = final_x, [3] = final_y, [4] = beg_x,
+     * [5] = beg_y
+     */
+    DEFINE_SYSTEM_EVENT_CODE(POINTER_MOTION, 0x08),
 
     EVENT_CODE_MAX_SYSTEM_CODE = 0xff
 } SystemEventCode;

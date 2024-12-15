@@ -13,20 +13,26 @@
 // Basic Graphics Programming with the Xlib library
 // https://ftp.dim13.org/pub/doc/Xlib.pdf
 
+    // #include <X11/Xlib-xcb.h>
     #include <stdlib.h>
+    // #include <xcb/ge.h>
     #include <xcb/xcb.h>
     #include <xcb/xcb_icccm.h>
+    #include <xcb/xinput.h>
 
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
     #include "core/memory.h"
+    #include "input/input.h"
 
 typedef struct XCBState {
+        // Display *display;
         xcb_connection_t *connection;
         xcb_screen_t *screen;
         xcb_window_t app_window;
         xcb_atom_t wm_delete_window, wm_protocols;
+        u8 xi_opcode, xi_event_code, xi_error_code;
 } XCBState;
 
 static XCBState *xcb_state;
@@ -55,12 +61,21 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     // TODO: Error handling
     // Open connection to X server
+    // if (!(xcb_state->display = XOpenDisplay(NULL))) {
+    //     sError("Faild to open connection to X server");
+    //     return false;
+    // }
+
+    // xcb_state->connection = XGetXCBConnection(xcb_state->display);
+
     i32 screen_number;
     xcb_state->connection = xcb_connect(NULL, &screen_number);
     if (xcb_connection_has_error(xcb_state->connection)) {
-        sError("Faild to open connection to X server via xcb");
+        sError("Faild to connect X server via xcb");
         return false;
     }
+
+    // screen_number = DefaultScreen(xcb_state->display);
 
     // Getting screen number
     xcb_screen_iterator_t iter =
@@ -73,10 +88,12 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     // Similar to XSetWindowAttributes
     u32 value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    u32 event_mask = XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE
-                   | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE
-                   | XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_EXPOSURE
-                   | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    u32 event_mask = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    // u32 event_mask = XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE
+    //                | XCB_EVENT_MASK_BUTTON_PRESS |
+    //                XCB_EVENT_MASK_BUTTON_RELEASE |
+    //                XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_EXPOSURE |
+    //                XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
     u32 value_list[2] = {xcb_state->screen->black_pixel, event_mask};
 
@@ -86,6 +103,67 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                       config->y, config->width, config->height, 0,
                       XCB_WINDOW_CLASS_INPUT_OUTPUT,
                       xcb_state->screen->root_visual, value_mask, value_list);
+
+    // Query the availability of the extensions and their versions
+
+    // Send all the extension queries and get the reply below
+    xcb_query_extension_cookie_t xi_cookie =
+        xcb_query_extension(xcb_state->connection, 15, "XInputExtension");
+
+    xcb_query_extension_reply_t *xi_reply =
+        xcb_query_extension_reply(xcb_state->connection, xi_cookie, NULL);
+
+    if (!xi_reply || !xi_reply->present) {
+        sError("XInputExtension is not available");
+        free(xi_reply);
+        return false;
+    }
+
+    xcb_state->xi_opcode = xi_reply->major_opcode;
+    xcb_state->xi_event_code = xi_reply->first_event;
+    xcb_state->xi_error_code = xi_reply->first_error;
+
+    free(xi_reply);
+
+    i32 major = 2, minor = 4;
+    // Can't put these above because these are not available if extension is not
+    // there right?
+    xcb_input_xi_query_version_cookie_t xi_ver_cookie =
+        xcb_input_xi_query_version(xcb_state->connection, major, minor);
+
+    xcb_input_xi_query_version_reply_t *xi_ver_reply =
+        xcb_input_xi_query_version_reply(xcb_state->connection, xi_ver_cookie,
+                                         NULL);
+
+    if (xi_ver_reply->major_version != major
+        || xi_ver_reply->minor_version != minor) {
+        sError("XI2 max version supported by server is %d.%d.",
+               xi_ver_reply->major_version, xi_ver_reply->minor_version);
+        free(xi_ver_reply);
+        return false;
+    }
+
+    free(xi_ver_reply);
+
+    // Select the XInput2 events
+    // https://stackoverflow.com/questions/39641675/how-to-register-events-using-libxcb-xinput
+
+    struct {
+            xcb_input_event_mask_t header;
+            xcb_input_xi_event_mask_t masks;
+    } emask = {
+        .header = {.deviceid = XCB_INPUT_DEVICE_ALL_MASTER,
+                   .mask_len =
+                       sizeof(emask.masks) / sizeof(u32) /* Basically 1 */},
+        .masks = XCB_INPUT_XI_EVENT_MASK_BUTTON_PRESS
+               | XCB_INPUT_XI_EVENT_MASK_BUTTON_RELEASE
+               | XCB_INPUT_XI_EVENT_MASK_KEY_PRESS
+               | XCB_INPUT_XI_EVENT_MASK_KEY_RELEASE
+               | XCB_INPUT_XI_EVENT_MASK_MOTION
+    };
+
+    xcb_input_xi_select_events(xcb_state->connection, xcb_state->app_window, 1,
+                               &emask.header);
 
     // Atoms
     xcb_intern_atom_cookie_t wm_delete_window_cookie =
@@ -146,7 +224,8 @@ void shutdownPlatformWindowing(void *state) {
     UNUSED(state);
 
     xcb_destroy_window(xcb_state->connection, xcb_state->app_window);
-    // Even if connection was failed we have to free
+
+    // if (xcb_state->display) XCloseDisplay(xcb_state->display);
     xcb_disconnect(xcb_state->connection);
 }
 
@@ -168,39 +247,102 @@ b8 platformWindowPumpMessages(void) {
     while (!quit && (event = xcb_poll_for_event(xcb_state->connection))) {
         // should be & with ~0x80. Don't know more
         switch (event->response_type & ~0x80) {
-            case XCB_KEY_PRESS:
-                // TODO:
-                break;
-            case XCB_KEY_RELEASE:
-                // TODO:
-                break;
-            case XCB_BUTTON_PRESS:
-                // TODO:
-                break;
-            case XCB_BUTTON_RELEASE:
-                // TODO:
-                break;
-            case XCB_MOTION_NOTIFY:
-                // TODO:
-                break;
+            case XCB_GE_GENERIC: {
+                xcb_ge_generic_event_t *ge = (xcb_ge_generic_event_t *)event;
+                if (ge->extension == xcb_state->xi_opcode) {
+                    switch (ge->event_type) {
+                        case XCB_INPUT_BUTTON_PRESS: {
+                            xcb_input_button_release_event_t *bpe =
+                                (xcb_input_button_release_event_t *)ge;
+                            // sDebug("Button press: device=%d, button = %d",
+                            //        bpe->deviceid, bpe->detail);
+                            if (bpe->detail < 4) {
+                                // Left = 1, right = 3, middle = 2
+                                inputProcessButton(bpe->detail, bpe->event_x,
+                                                   bpe->event_y, true);
+                            } else {
+                                // TODO: Peek at the next event till the next
+                                // TODO: event is not scroll and then pass delta
+                                // TODO: as the number of scroll events in the
+                                // TODO: same direction
+
+                                // scroll:
+                                // up = 4 down = 5 left = 6 right = 7
+                                inputProcessScroll((bpe->detail - 3), 1,
+                                                   bpe->event_x, bpe->event_y);
+                            }
+                        } break;
+                        case XCB_INPUT_BUTTON_RELEASE: {
+                            xcb_input_button_press_event_t *bre =
+                                (xcb_input_button_press_event_t *)ge;
+                            // sDebug("Button release: device:%d, button = %d",
+                            //        bre->deviceid, bre->detail);
+                            if (bre->detail < 4) {
+                                inputProcessButton(bre->detail, bre->event_x,
+                                                   bre->event_y, false);
+                            }
+                        } break;
+                        case XCB_INPUT_KEY_PRESS: {
+                            xcb_input_key_press_event_t *kpe =
+                                (xcb_input_key_press_event_t *)ge;
+                            // sDebug("Key press: device:%d, keycode=%d%s",
+                            //        kpe->deviceid, kpe->detail,
+                            //        (kpe->flags
+                            //         & XCB_INPUT_KEY_EVENT_FLAGS_KEY_REPEAT)
+                            //            ? " KeyRepeat"
+                            //            : "");
+                            inputProcessKey(
+                                kpe->detail, true,
+                                (kpe->flags
+                                 & XCB_INPUT_KEY_EVENT_FLAGS_KEY_REPEAT));
+                        } break;
+                        case XCB_INPUT_KEY_RELEASE: {
+                            xcb_input_key_release_event_t *kre =
+                                (xcb_input_key_release_event_t *)ge;
+                            // sDebug("Key release: device:%d, keycode=%d",
+                            //        kre->deviceid, kre->detail);
+                            inputProcessKey(kre->detail, false, false);
+                        } break;
+                        case XCB_INPUT_MOTION: {
+                            xcb_input_motion_event_t *me =
+                                (xcb_input_motion_event_t *)ge;
+                            inputProcessPointerMotion(me->event_x, me->event_y);
+                            // static f64 ex, ey, rx, ry;
+                            // sDebug("Motion: device=%d, event=(%.0f, %.0f), "
+                            //        "root=(%.0f, %.0f)",
+                            //        me->deviceid, ex - me->event_x,
+                            //        ey - me->event_y, rx - me->root_x,
+                            //        ry - me->root_y);
+                            // ex = me->event_x;
+                            // ey = me->event_y;
+                            // rx = me->root_x;
+                            // ry = me->root_y;
+                        } break;
+                        default: {
+                            sError("Should not be getting some unkown event "
+                                   "from the XI.");
+                        } break;
+                    }
+                }
+            } break;
             case XCB_EXPOSE:
                 // TODO:
                 break;
             case XCB_CONFIGURE_NOTIFY:
                 // TODO:
                 break;
-            case XCB_CLIENT_MESSAGE:
+            case XCB_CLIENT_MESSAGE: {
                 if (((xcb_client_message_event_t *)event)->data.data32[0]
                     == xcb_state->wm_delete_window) {
                     fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL,
                               ((EventContext){0}));
                     quit = true;
                 }
-                break;
-            default:
+            } break;
+            default: {
                 sTrace("An event is being ignored: Event type: %d",
                        (event->response_type & ~0x80));
-                break;
+            } break;
         }
         free(event);
     }
@@ -220,8 +362,8 @@ void platformWindowDestroy() {
 /**
  * @brief Chnage the visibility of the window (xcb implementation).
  *
- * If called with true even if the window is visible, or called with false even
- * if the window is not visible, no error will be generated.
+ * If called with true even if the window is visible, or called with false
+ * even if the window is not visible, no error will be generated.
  *
  * @param visibility if true make window visible
  *
