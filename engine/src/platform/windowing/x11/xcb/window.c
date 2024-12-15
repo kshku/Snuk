@@ -198,8 +198,15 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                            (name_length * 2 + 1), buf);
     sFree(buf);
 
-    if (!platformSetWindowTitle(config->name))
+    u32 len;
+    for (len = 0; config->name[len]; ++len);
+    const char *append = " - X11(XCB)";
+    char *app_name = (char *)sMalloc(len + 14);
+    sMemCopy((void *)app_name, (void *)config->name, len);
+    sMemCopy((((void *)app_name) + len), (void *)append, 14);
+    if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
+    sFree(app_name);
 
     // Todo: Make it as a parameter may be
     if (!platformSetWindowVisible(true)) sError("Couldn't show the window");

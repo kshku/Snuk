@@ -172,6 +172,16 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         return false;
     }
 
+    u32 len;
+    for (len = 0; config->name[len]; ++len);
+    const char *append = " - Win32";
+    char *app_name = (char *)sMalloc(len + 14);
+    sMemCopy((void *)app_name, (void *)config->name, len);
+    sMemCopy((((void *)app_name) + len), (void *)append, 14);
+    if (!platformSetWindowTitle(app_name))
+        sError("Couldn't set the window title");
+    sFree(app_name);
+
     if (!platformSetWindowVisible(true)) sError("Failed to show the window");
 
     return true;
