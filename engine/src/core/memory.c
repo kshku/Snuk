@@ -82,15 +82,15 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
     if (is_allocation) {
         if (mem_state.size == mem_state.index) {
             mem_state.size += 2;
-            void *ptr = platformReallocateMemory(
+            void *p = platformReallocateMemory(
                 mem_state.allocated_ptrs,
                 (mem_state.size * sizeof(PtrSizePair)));
-            if (!ptr) {
+            if (!p) {
                 sError("updateAllocatedPtrs reallocation failed");
                 mem_state.size -= 2;
                 return false;
             }
-            mem_state.allocated_ptrs = (PtrSizePair *)ptr;
+            mem_state.allocated_ptrs = (PtrSizePair *)p;
         }
         mem_state.allocated_ptrs[mem_state.index++] =
             (PtrSizePair){.ptr = ptr, .size = (*size)};
@@ -290,8 +290,21 @@ void sLogMemState(void) {
  *
  * @return Returns the given pointer.
  */
-void *sZeroOutMem(void *ptr, u64 size) {
+void *sMemZeroOut(void *ptr, u64 size) {
     return platformZeroOutMemory(ptr, size);
+}
+
+/**
+ * @brief Similar to memset sets each byte in memory to given value.
+ *
+ * @param ptr Pointer to the memory
+ * @param size Size of memory
+ * @param value The value to which each byte to be set
+ *
+ * @return Returns the given pointer.
+ */
+void *sMemSet(void *ptr, u64 size, u8 value) {
+    return platformMemSet(ptr, size, value);
 }
 
 /**
@@ -317,9 +330,24 @@ void *sMemCopy(void *dest, void *src, u64 size) {
  * @param size Number of bytes to copy
  *
  * @return Returns the destination pointer.
-
+ *
  * @note Source and destination may overlap.
  */
 void *sMemMove(void *dest, void *src, u64 size) {
     return platformMemMove(dest, src, size);
 }
+
+// /**
+//  * @brief Set the each block to given value.
+//  *
+//  * Similar to memset, but sets each block of given size to the given value.
+//  *
+//  * @param ptr Pointer to the memory
+//  * @param block_size Size of each block
+//  * @param no_blocks Number of blocks
+//  * @param value Pointer to the value to which each block should be set
+//  *
+//  * @return Returns the given pointer.
+//  */
+// void *sMemBlockSet(void *ptr, u64 block_size, u64 no_blocks, u64 value) {
+// }

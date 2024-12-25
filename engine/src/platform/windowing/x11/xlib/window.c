@@ -7,6 +7,7 @@
 // Basic Graphics Programming with the Xlib library
 // https://ftp.dim13.org/pub/doc/Xlib.pdf
 
+    #include <X11/XKBlib.h>
     #include <X11/Xatom.h>
     #include <X11/Xlib.h>
     #include <X11/Xutil.h>
@@ -16,6 +17,7 @@
     #include "core/event.h"
     #include "core/logger.h"
     #include "core/memory.h"
+    #include "core/sstring.h"
     #include "input/input.h"
 
 typedef struct XlibState {
@@ -168,12 +170,7 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                              .res_class = (char *)config->name};
     XSetClassHint(xlib_state->display, xlib_state->app_window, &class_hint);
 
-    u32 len;
-    for (len = 0; config->name[len]; ++len);
-    const char *append = " - X11(Xlib)";
-    char *app_name = (char *)sMalloc(len + 14);
-    sMemCopy((void *)app_name, (void *)config->name, len);
-    sMemCopy((((void *)app_name) + len), (void *)append, 14);
+    char *app_name = sStringConcat(config->name, " - X11(Xlib)", 0, 13, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -281,8 +278,9 @@ b8 platformWindowPumpMessages(void) {
                         } break;
                         case XI_KeyPress: {
                             // sDebug("Key press: device:%d, keycode=%d%s",
-                            // device_event->deviceid, device_event->detail,
-                            //        (device_event->flags & XIKeyRepeat)
+                            //        device_event->deviceid,
+                            //        device_event->detail, (device_event->flags
+                            //        & XIKeyRepeat)
                             //            ? " KeyRepeat"
                             //            : "");
                             inputProcessKey(
@@ -398,21 +396,18 @@ b8 platformSetWindowTitle(const char *title) {
 /**
  * @brief Get the title of the window (xlib implementation).
  *
- * @param[out] title Title will be copied to this
- * @param size Maximum size can be written to the title
- *
- * @return Returns true if title was set successfully, else false.
+ * @return Returns the malloced stirng, user should call sFree.
  */
-b8 platformGetWindowTitle(char *title, u64 size) {
+char *platformGetWindowTitle(void) {
     sassert_msg(xlib_state, "Windowing system is not initialized?");
-    char *ret;
-    if (XFetchName(xlib_state->display, xlib_state->app_window, &ret)) {
-        sMemCopy(title, ret, size);
-        XFree(ret);
-        return true;
+    char *title;
+    if (XFetchName(xlib_state->display, xlib_state->app_window, &title)) {
+        char *ret = sStringCopy(title, 0);
+        XFree(title);
+        return ret;
     }
 
-    return false;
+    return NULL;
 }
 
 #endif

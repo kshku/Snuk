@@ -54,6 +54,19 @@ void *platformZeroOutMemory(void *ptr, u64 size) {
 }
 
 /**
+ * @brief Mem set implementation for Linux.
+ *
+ * @param ptr Pointer to the memory
+ * @param size Size of the memory
+ * @param value value to which each byte to be set
+ *
+ * @return Returns the given pointer.
+ */
+void *platformMemSet(void *ptr, u64 size, u8 value) {
+    return memset(ptr, value, size);
+}
+
+/**
  * @brief Copy memory from source to destination.
  *
  * @param dest Destination pointer

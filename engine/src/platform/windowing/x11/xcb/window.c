@@ -24,6 +24,7 @@
     #include "core/event.h"
     #include "core/logger.h"
     #include "core/memory.h"
+    #include "core/sstring.h"
     #include "input/input.h"
 
 typedef struct XCBState {
@@ -188,22 +189,18 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                                xcb_state->wm_protocols, 1, wm_protocol_atoms);
 
     // Set class hint
-    u32 name_length;
-    for (name_length = 0; config->name[name_length]; ++name_length);
-    char *buf = (char *)sCalloc(((name_length * 2) + 2), sizeof(char));
-    sMemCopy(buf, (char *)config->name, name_length);
-    sMemCopy((buf + (name_length + 1)), (char *)config->name, name_length);
+    u64 name_length = sStringLenght(config->name);
+    char *buf = sStringConcat(
+        config->name, config->name,
+        name_length + 1,  // name_length + 1 to copy the NULL character
+        name_length, NULL);
     // sDebug("class = '%s' '%s'", buf, buf + name_length + 1);
     xcb_icccm_set_wm_class(xcb_state->connection, xcb_state->app_window,
                            (name_length * 2 + 1), buf);
     sFree(buf);
 
-    u32 len;
-    for (len = 0; config->name[len]; ++len);
-    const char *append = " - X11(XCB)";
-    char *app_name = (char *)sMalloc(len + 14);
-    sMemCopy((void *)app_name, (void *)config->name, len);
-    sMemCopy((((void *)app_name) + len), (void *)append, 14);
+    char *app_name =
+        sStringConcat(config->name, " - X11(XCB)", name_length, 12, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -394,11 +391,8 @@ b8 platformSetWindowVisible(b8 visible) {
 b8 platformSetWindowTitle(const char *title) {
     sassert_msg(xcb_state, "Windowing system is not initialized?");
 
-    u32 title_length;
-    for (title_length = 0; title[title_length]; ++title_length);
-
     xcb_icccm_set_wm_name(xcb_state->connection, xcb_state->app_window,
-                          XCB_ATOM_STRING, 8, title_length, title);
+                          XCB_ATOM_STRING, 8, sStringLenght(title), title);
 
     return true;
 }
@@ -406,12 +400,9 @@ b8 platformSetWindowTitle(const char *title) {
 /**
  * @brief Get the title of the window (xcb implementation).
  *
- * @param[out] title Title will be copied to this
- * @param size Maximum size can be written to the title
- *
- * @return Returns true if title was set successfully, else false.
+ * @return Returns the malloced stirng, user should call sFree.
  */
-b8 platformGetWindowTitle(char *title, u64 size) {
+char *platformGetWindowTitle(void) {
     sassert_msg(xcb_state, "Windowing system is not initialized?");
 
     xcb_get_property_cookie_t title_cookie =
@@ -420,12 +411,12 @@ b8 platformGetWindowTitle(char *title, u64 size) {
     xcb_icccm_get_text_property_reply_t *title_reply = NULL;
     if (xcb_icccm_get_wm_name_reply(xcb_state->connection, title_cookie,
                                     title_reply, NULL)) {
-        sMemCopy(title, title_reply->name, size);
+        char *ret = sStringCopy(title_reply->name, title_reply->name_len);
         free(title_reply);
-        return true;
+        return ret;
     }
 
-    return false;
+    return NULL;
 }
 
 #endif

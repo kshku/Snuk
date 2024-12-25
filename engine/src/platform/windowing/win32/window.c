@@ -8,6 +8,8 @@
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
+    #include "core/memory.h"
+    #include "core/sstring.h"
 
 typedef struct Win32State {
         HINSTANCE h_instance;
@@ -172,12 +174,7 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         return false;
     }
 
-    u32 len;
-    for (len = 0; config->name[len]; ++len);
-    const char *append = " - Win32";
-    char *app_name = (char *)sMalloc(len + 14);
-    sMemCopy((void *)app_name, (void *)config->name, len);
-    sMemCopy((((void *)app_name) + len), (void *)append, 14);
+    char *app_name = sStringConcat(config->name, " - Win32", 0, 8, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -266,14 +263,13 @@ b8 platformSetWindowTitle(const char *title) {
 /**
  * @brief Get the title of the window (Win32 implementation).
  *
- * @param[out] title Title will be copied to this
- * @param size Maximum size can be written to the title
- *
- * @return Returns true if title was set successfully, else false.
+ * @return Returns the malloced stirng, user should call sFree.
  */
-b8 platformGetWindowTitle(char *title, u64 size) {
-    if (!GetWindowTextA(win32_state->hwnd, title, size)) return false;
-    return true;
+char *platformGetWindowTitle(void) {
+    const u64 size = 256;
+    char *title = sMalloc(size * sizeof(char));
+    if (!GetWindowTextA(win32_state->hwnd, title, size)) return NULL;
+    return title;
 }
 
 #endif
