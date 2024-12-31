@@ -4,6 +4,12 @@
 #include "core/event.h"
 #include "core/memory.h"
 
+// TODO: How to maintain the states
+// TODO: Two different events for scancodes and keycodes?
+// NOTE: First call scancode's process function which fires scancode event then
+// keycode's process function which fires keycode event
+// TODO: May be change the enent systmes way of working
+
 typedef struct InputState {
         KeyboardState keyboard_current;
         KeyboardState keyboard_previous;
@@ -252,22 +258,18 @@ b8 inputWasScrolling(Scroll direction) {
  * @param y y position
  * @param pressed Whether the button is pressed
  */
-void inputProcessButton(Button b, u32 x, u32 y, b8 pressed) {
+void inputProcessButton(Button b, b8 pressed) {
     sassert_msg(input_state, "Input system is not initialized.");
 
     if (input_state->mouse_current.button_state.buttons[b] != pressed) {
         input_state->mouse_current.button_state.buttons[b] = pressed;
-        input_state->mouse_current.button_state.x = x;
-        input_state->mouse_current.button_state.y = y;
 
         fireEvent(
             (pressed ? EVENT_CODE_BUTTON_PRESS : EVENT_CODE_BUTTON_RELEASE),
             NULL,
             ((EventContext){
-                .data.u16 = {[0] = b,
-                             [1] = x,
-                             [2] = y,
-                             [3] = input_state->mouse_current.keymod}
+                .data.u32 = {
+                             [0] = b, [1] = input_state->mouse_current.keymod}
         }));
     }
 }
@@ -279,19 +281,14 @@ void inputProcessButton(Button b, u32 x, u32 y, b8 pressed) {
  * @param x x position
  * @param y y position
  */
-void inputProcessScroll(Scroll direction, u32 delta, u32 x, u32 y) {
+void inputProcessScroll(Scroll direction, u32 delta) {
     sassert_msg(input_state, "Input system is not initialized.");
-
-    input_state->mouse_current.scroll_state.x = x;
-    input_state->mouse_current.scroll_state.y = y;
 
     fireEvent(EVENT_CODE_SCROLL, NULL,
               ((EventContext){
-                  .data.u16 = {[0] = direction,
+                  .data.u32 = {[0] = direction,
                                [1] = delta,
-                               [2] = x,
-                               [3] = y,
-                               [4] = input_state->mouse_current.keymod}
+                               [2] = input_state->mouse_current.keymod}
     }));
 }
 
@@ -303,15 +300,12 @@ void inputProcessScroll(Scroll direction, u32 delta, u32 x, u32 y) {
  */
 void inputProcessPointerMotion(u32 x, u32 y) {
     sassert_msg(input_state, "Input system is not initialized.");
-    static u32 prev_x = 0, prev_y = 0;
+
+    input_state->mouse_current.scroll_state.x = x;
+    input_state->mouse_current.scroll_state.y = y;
+
     fireEvent(EVENT_CODE_POINTER_MOTION, NULL,
               ((EventContext){
-                  .data.i16 = {[0] = prev_x - x,
-                               [1] = prev_y - y,
-                               [2] = x,
-                               [3] = y,
-                               [4] = prev_x,
-                               [5] = prev_y}
+                  .data.i32 = {[0] = x, [1] = y}
     }));
-    prev_x = x, prev_y = y;
 }

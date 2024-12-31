@@ -262,8 +262,7 @@ b8 platformWindowPumpMessages(void) {
                             //        bpe->deviceid, bpe->detail);
                             if (bpe->detail < 4) {
                                 // Left = 1, right = 3, middle = 2
-                                inputProcessButton(bpe->detail, bpe->event_x,
-                                                   bpe->event_y, true);
+                                inputProcessButton(bpe->detail, true);
                             } else {
                                 // TODO: Peek at the next event till the next
                                 // TODO: event is not scroll and then pass delta
@@ -272,8 +271,7 @@ b8 platformWindowPumpMessages(void) {
 
                                 // scroll:
                                 // up = 4 down = 5 left = 6 right = 7
-                                inputProcessScroll((bpe->detail - 3), 1,
-                                                   bpe->event_x, bpe->event_y);
+                                inputProcessScroll((bpe->detail - 3), 1);
                             }
                         } break;
                         case XCB_INPUT_BUTTON_RELEASE: {
@@ -282,8 +280,7 @@ b8 platformWindowPumpMessages(void) {
                             // sDebug("Button release: device:%d, button = %d",
                             //        bre->deviceid, bre->detail);
                             if (bre->detail < 4) {
-                                inputProcessButton(bre->detail, bre->event_x,
-                                                   bre->event_y, false);
+                                inputProcessButton(bre->detail, false);
                             }
                         } break;
                         case XCB_INPUT_KEY_PRESS: {

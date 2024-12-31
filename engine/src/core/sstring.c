@@ -46,20 +46,25 @@ char *sStringConcat(const char *str1, const char *str2, u64 l1, u64 l2,
 /**
  * @brief Check whether two strings are equal.
  *
+ * If length is zero, it compares all the characters. If length is not zero,
+ * then compares both strings upto given length.
+ *
  * @param str1 String to compare
  * @param str2 String to compare
+ * @param len Length of the strings to be compared
  *
  * @return Returns true if the strings are equal.
  */
-b8 sStringEqual(const char *str1, const char *str2) {
+b8 sStringEqual(const char *str1, const char *str2, u64 len) {
     if (str1 == str2) return true;
+    if (len == 0) len = (u64)-1;
 
-    u32 i;
+    u64 i = 0;
 
-    for (i = 0; str1[i] && str2[i]; ++i)
+    for (i = 0; i < len && str1[i] && str2[i]; ++i)
         if (str1[i] != str2[i]) return false;
 
-    if (str1[i] || str2[i]) return false;
+    if ((str1[i] || str2[i]) && i != len) return false;
 
     return true;
 }

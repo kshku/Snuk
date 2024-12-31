@@ -24,7 +24,7 @@ SAPI b8 inputWasButtonUp(Button b);
 SAPI b8 inputIsScrolling(Scroll direction);
 SAPI b8 inputWasScrolling(Scroll direction);
 
-void inputProcessButton(Button b, u32 x, u32 y, b8 pressed);
-void inputProcessScroll(Scroll direction, u32 delta, u32 x, u32 y);
+void inputProcessButton(Button b, b8 pressed);
+void inputProcessScroll(Scroll direction, u32 delta);
 
 void inputProcessPointerMotion(u32 x, u32 y);

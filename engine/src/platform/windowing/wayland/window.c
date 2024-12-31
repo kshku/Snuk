@@ -412,15 +412,15 @@ void wlRegistryGlobal(void *data, struct wl_registry *wl_registry, u32 name,
     sassert_msg(wayland_state, "Windowing system is not initialized?");
 
     // TODO: Version compatibility check
-    if (sStringEqual(interface, wl_compositor_interface.name)) {
+    if (sStringEqual(interface, wl_compositor_interface.name, 0)) {
         // sDebug("wl_compositor server version: %d", version);
         wayland_state->wl_compositor = (struct wl_compositor *)wl_registry_bind(
             wl_registry, name, &wl_compositor_interface, 6);
-    } else if (sStringEqual(interface, xdg_wm_base_interface.name)) {
+    } else if (sStringEqual(interface, xdg_wm_base_interface.name, 0)) {
         // sDebug("xdg_wm_base server version: %d", version);
         wayland_state->xdg_wm_base = (struct xdg_wm_base *)wl_registry_bind(
             wl_registry, name, &xdg_wm_base_interface, 6);
-    } else if (sStringEqual(interface, wl_shm_interface.name)) {
+    } else if (sStringEqual(interface, wl_shm_interface.name, 0)) {
         // sDebug("wl_shm server version: %d", version);
         wayland_state->wl_shm = (struct wl_shm *)wl_registry_bind(
             wl_registry, name, &wl_shm_interface,
@@ -429,7 +429,7 @@ void wlRegistryGlobal(void *data, struct wl_registry *wl_registry, u32 name,
         static const struct wl_shm_listener wl_shm_listener = {.format =
                                                                    wlShmFormat};
         wl_shm_add_listener(wayland_state->wl_shm, &wl_shm_listener, NULL);
-    } else if (sStringEqual(interface, wl_seat_interface.name)) {
+    } else if (sStringEqual(interface, wl_seat_interface.name, 0)) {
         // sDebug("wl_seat server version: %d", version);
         wayland_state->wl_seat = (struct wl_seat *)wl_registry_bind(
             wl_registry, name, &wl_seat_interface, 9);
@@ -437,7 +437,7 @@ void wlRegistryGlobal(void *data, struct wl_registry *wl_registry, u32 name,
             .capabilities = seatCapabilityHandler, .name = seatNameHandler};
         wl_seat_add_listener(wayland_state->wl_seat, &wl_seat_listener, NULL);
     } else if (sStringEqual(interface,
-                            zxdg_decoration_manager_v1_interface.name)) {
+                            zxdg_decoration_manager_v1_interface.name, 0)) {
         // sDebug("zxdg_decoration_manager_v1 server version: %d", version);
         wayland_state->zxdg_decoration_manager_v1 =
             (struct zxdg_decoration_manager_v1 *)wl_registry_bind(
@@ -594,7 +594,7 @@ void wlPointerMotion(void *data, struct wl_pointer *wl_pointer, u32 time,
     // sDebug("Pointer moved to (%f, %f)", wl_fixed_to_double(x),
     //        wl_fixed_to_double(y));
     // TODO: Haven't implemented yet.
-    // inputProcessPointerMotion(x, y);
+    inputProcessPointerMotion(x, y);
 }
 
 /**
@@ -637,7 +637,7 @@ void wlPointerButton(void *data, struct wl_pointer *wl_pointer, u32 serial,
 
     // TODO: Either have to change how the input processing works or have to
     // keep track of the position and pass it.
-    inputProcessButton(b, 0, 0, state == WL_POINTER_BUTTON_STATE_PRESSED);
+    inputProcessButton(b, state == WL_POINTER_BUTTON_STATE_PRESSED);
 }
 
 void wlPointerAxis(void *data, struct wl_pointer *wl_pointer, u32 time,
@@ -650,10 +650,10 @@ void wlPointerAxis(void *data, struct wl_pointer *wl_pointer, u32 time,
     // TODO: Similar to the inputProcessButton, need to be changed
     if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
         inputProcessScroll(((value < 0) ? SCROLL_UP : SCROLL_DOWN),
-                           ((value < 0) ? -value : value), 0, 0);
+                           ((value < 0) ? -value : value));
     } else if (axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
         inputProcessScroll(((value < 0) ? SCROLL_LEFT : SCROLL_RIGHT),
-                           ((value < 0) ? -value : value), 0, 0);
+                           ((value < 0) ? -value : value));
     }
 }
 

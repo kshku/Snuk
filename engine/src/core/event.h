@@ -77,24 +77,23 @@ typedef enum SystemEventCode {
 
     /**
      * Button press and release events.
-     * Use data.u16
-     * [0] = button, [1] = x, [2] = y, [3] = keymod
+     * Use data.u32
+     * [0] = button, [2] = keymod
      */
     DEFINE_SYSTEM_EVENT_CODE(BUTTON_PRESS, 0x05),
     DEFINE_SYSTEM_EVENT_CODE(BUTTON_RELEASE, 0x06),
 
     /**
      * Scroll events.
-     * Use data.u16
-     * [0] = direction, [1] = x, [2] = y, [3] = delta, [4] = keymod
+     * Use data.u32
+     * [0] = direction, [1] = delta, [2] = keymod
      */
     DEFINE_SYSTEM_EVENT_CODE(SCROLL, 0x07),
 
     /**
      * Pointer motion event.
-     * Use data.i16
-     * [0] = delta_x, [1] = delta_y, [2] = final_x, [3] = final_y, [4] = beg_x,
-     * [5] = beg_y
+     * Use data.i32
+     * [0] = x, [1] = y
      */
     DEFINE_SYSTEM_EVENT_CODE(POINTER_MOTION, 0x08),
 

@@ -7,6 +7,7 @@
 // NOTE: Include headers for tests here
 #include "tests/darray.h"
 #include "tests/memory.h"
+#include "tests/sstring.h"
 
 b8 tests_init(Application *app_inst) {
     sInfo("Before registering tests");
@@ -15,6 +16,7 @@ b8 tests_init(Application *app_inst) {
     // NOTE: Register tests here
     app_inst->state = core_memory_register_tests(app_inst->state);
     app_inst->state = ds_darray_register_tests(app_inst->state);
+    app_inst->state = core_sstring_register_tests(app_inst->state);
     // -------------------
 
     sInfo("After registering tests");
