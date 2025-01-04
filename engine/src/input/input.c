@@ -121,15 +121,14 @@ b8 inputWasKeyUp(Scancode sc) {
  * @param sc Scancode of the key whose state changed
  * @param pressed Whether the key is pressed
  */
-void inputProcessKey(Scancode sc, b8 pressed, b8 repeat) {
+void inputProcessKey(Scancode sc, Keycode kc, b8 pressed, b8 repeat) {
     sassert_msg(input_state, "Input system is not initialized.");
 
     if (repeat) {
         fireEvent(EVENT_CODE_KEY_REPEAT, NULL,
                   ((EventContext){
                       .data.u32 = {[0] = sc,
-                                   [1] = scancodeToKeycode(
-                                       sc, input_state->keyboard_current.mod),
+                                   [1] = kc,
                                    [2] = input_state->keyboard_current.mod}
         }));
     }
@@ -171,8 +170,7 @@ void inputProcessKey(Scancode sc, b8 pressed, b8 repeat) {
                   NULL,
                   (EventContext){
                       .data.u32 = {[0] = sc,
-                                   [1] = scancodeToKeycode(
-                                       sc, input_state->keyboard_current.mod),
+                                   [1] = kc,
                                    [2] = input_state->keyboard_current.mod}
         });
     }

@@ -15,7 +15,7 @@ SAPI b8 inputIsKeyUp(Scancode sc);
 SAPI b8 inputWasKeyDown(Scancode sc);
 SAPI b8 inputWasKeyUp(Scancode sc);
 
-void inputProcessKey(Scancode sc, b8 pressed, b8 repeat);
+void inputProcessKey(Scancode sc, Keycode kc, b8 pressed, b8 repeat);
 
 SAPI b8 inputIsButtonDown(Button b);
 SAPI b8 inputIsButtonUp(Button b);

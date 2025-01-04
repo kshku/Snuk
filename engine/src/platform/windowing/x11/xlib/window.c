@@ -13,6 +13,7 @@
     #include <X11/Xutil.h>
     #include <X11/extensions/XInput2.h>
 
+    #include "../input_helper.h"
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
@@ -26,10 +27,12 @@ typedef struct XlibState {
         i32 xi_opcode, xi_event_code, xi_error_code;
         i32 xkb_opcode, xkb_event_code, xkb_error_code;
         Window root_window, app_window;
-        Scancode xkeyCode_to_scancode[256];
         u64 white_pixel, black_pixel;
         i32 (*xlib_error_handler)(Display *, XErrorEvent *);
         Atom wm_delete_window;
+
+        Scancode xKeyCode_to_Scancode[256];
+        XkbDescPtr xkb_desc;
 } XlibState;
 
 static XlibState *xlib_state;
@@ -62,194 +65,25 @@ i32 handleXErrors(Display *display, XErrorEvent *e) {
  * Refering the glfw's implementation
  * https://github.com/glfw/glfw/blob/21fea01161e0d6b70c0c5c1f52dc8e7a7df14a50/src/x11_init.c
  */
-void mapKeycodesToScancodes() {
+void mapKeycodesToScancodes(void) {
     // TODO: Error handling
     sassert_msg(xlib_state, "Windowing system is not initialized?");
 
-    XkbDescPtr desc = XkbGetMap(xlib_state->display, 0, XkbUseCoreKbd);
+    XkbDescPtr desc = xlib_state->xkb_desc;
+
     XkbGetNames(xlib_state->display, XkbKeyNamesMask | XkbKeyAliasesMask, desc);
 
-    const struct {
-            char *name;
-            Scancode code;
-    } name_code_map[] = {
-        // Look at the xev output as well as the
-        // /usr/share/X11/xkb/keycodes/evdev
-        {"TLDE",            SCANCODE_GRAVE},
-        {"AE01",                SCANCODE_1},
-        {"AE02",                SCANCODE_2},
-        {"AE03",                SCANCODE_3},
-        {"AE04",                SCANCODE_4},
-        {"AE05",                SCANCODE_5},
-        {"AE06",                SCANCODE_6},
-        {"AE07",                SCANCODE_7},
-        {"AE08",                SCANCODE_8},
-        {"AE09",                SCANCODE_9},
-        {"AE10",                SCANCODE_0},
-        {"AE11",            SCANCODE_MINUS},
-        {"AE12",           SCANCODE_EQUALS},
-        {"BKSP",        SCANCODE_BACKSPACE},
+    mapXKeyCodesToScancodes(
+        (mapFunctionParams){
+            .key_aliases = (XKeyAliasNameType *)desc->names->key_aliases,
+            .key_names = (XKeyNameType *)desc->names->keys,
+            .key_names_start_from_min_key_code = false,
+            .max_key_code = desc->max_key_code,
+            .min_key_code = desc->min_key_code,
+            .num_key_aliases = desc->names->num_key_aliases},
+        xlib_state->xKeyCode_to_Scancode);
 
-        { "TAB",              SCANCODE_TAB},
-        {"AD01",                SCANCODE_Q},
-        {"AD02",                SCANCODE_W},
-        {"AD03",                SCANCODE_E},
-        {"AD04",                SCANCODE_R},
-        {"AD05",                SCANCODE_T},
-        {"AD06",                SCANCODE_Y},
-        {"AD07",                SCANCODE_U},
-        {"AD08",                SCANCODE_I},
-        {"AD09",                SCANCODE_O},
-        {"AD10",                SCANCODE_P},
-        {"AD11",     SCANCODE_LEFT_BRACKET},
-        {"AD12",    SCANCODE_RIGHT_BRACKET},
-        {"BKSL",        SCANCODE_BACKSLASH},
-        {"RTRN",            SCANCODE_ENTER},
-
-        {"CAPS",        SCANCODE_CAPS_LOCK},
-        {"AC01",                SCANCODE_A},
-        {"AC02",                SCANCODE_S},
-        {"AC03",                SCANCODE_D},
-        {"AC04",                SCANCODE_F},
-        {"AC05",                SCANCODE_G},
-        {"AC06",                SCANCODE_H},
-        {"AC07",                SCANCODE_J},
-        {"AC08",                SCANCODE_K},
-        {"AC09",                SCANCODE_L},
-        {"AC10",        SCANCODE_SEMICOLON},
-        {"AC11",       SCANCODE_APOSTROPHE},
-        {"AC12",        SCANCODE_BACKSLASH},
-
-        {"LFSH",       SCANCODE_LEFT_SHIFT},
-        {"LSGT", SCANCODE_NON_US_BACKSLASH},
-        {"AB01",                SCANCODE_Z},
-        {"AB02",                SCANCODE_X},
-        {"AB03",                SCANCODE_C},
-        {"AB04",                SCANCODE_V},
-        {"AB05",                SCANCODE_B},
-        {"AB06",                SCANCODE_N},
-        {"AB07",                SCANCODE_M},
-        {"AB08",            SCANCODE_COMMA},
-        {"AB09",           SCANCODE_PERIOD},
-        {"AB10",            SCANCODE_SLASH},
-        {"RTSH",      SCANCODE_RIGHT_SHIFT},
-
-        {"LCTL",     SCANCODE_LEFT_CONTROL},
-        {"LWIN",         SCANCODE_LEFT_GUI},
-        {"LALT",         SCANCODE_LEFT_ALT},
-        {"SPCE",         SCANCODE_SPACEBAR},
-        {"RALT",        SCANCODE_RIGHT_ALT},
-        {"ALGR",        SCANCODE_RIGHT_ALT},
-        {"RWIN",        SCANCODE_RIGHT_GUI},
-        {"COMP",             SCANCODE_MENU},
-        {"MENU",             SCANCODE_MENU},
-        {"RCTL",    SCANCODE_RIGHT_CONTROL},
-
-        { "ESC",           SCANCODE_ESCAPE},
-        {"FK01",               SCANCODE_F1},
-        {"FK02",               SCANCODE_F2},
-        {"FK03",               SCANCODE_F3},
-        {"FK04",               SCANCODE_F4},
-        {"FK05",               SCANCODE_F5},
-        {"FK06",               SCANCODE_F6},
-        {"FK07",               SCANCODE_F7},
-        {"FK08",               SCANCODE_F8},
-        {"FK09",               SCANCODE_F9},
-        {"FK10",              SCANCODE_F10},
-        {"FK11",              SCANCODE_F11},
-        {"FK12",              SCANCODE_F12},
-
-        {"PRSC",     SCANCODE_PRINT_SCREEN},
-        {"SCLK",      SCANCODE_SCROLL_LOCK},
-        {"PAUS",            SCANCODE_PAUSE},
-
-        { "INS",           SCANCODE_INSERT},
-        {"HOME",             SCANCODE_HOME},
-        {"PGUP",          SCANCODE_PAGE_UP},
-        {"DELE",           SCANCODE_DELETE},
-        { "END",              SCANCODE_END},
-        {"PGDN",        SCANCODE_PAGE_DOWN},
-
-        {  "UP",         SCANCODE_UP_ARROW},
-        {"LEFT",       SCANCODE_LEFT_ARROW},
-        {"DOWN",       SCANCODE_DOWN_ARROW},
-        {"RGHT",      SCANCODE_RIGHT_ARROW},
-
-        {"NMLK",         SCANCODE_NUM_LOCK},
-        {"KPDV",    SCANCODE_KEYPAD_DIVIDE},
-        {"KPMU",  SCANCODE_KEYPAD_MULTIPLY},
-        {"KPSU",     SCANCODE_KEYPAD_MINUS},
-
-        { "KP7",         SCANCODE_KEYPAD_7},
-        { "KP8",         SCANCODE_KEYPAD_8},
-        { "KP9",         SCANCODE_KEYPAD_9},
-        {"KPAD",      SCANCODE_KEYPAD_PLUS},
-
-        { "KP4",         SCANCODE_KEYPAD_4},
-        { "KP5",         SCANCODE_KEYPAD_5},
-        { "KP6",         SCANCODE_KEYPAD_6},
-
-        { "KP1",         SCANCODE_KEYPAD_1},
-        { "KP2",         SCANCODE_KEYPAD_2},
-        { "KP3",         SCANCODE_KEYPAD_3},
-        {"KPEN",     SCANCODE_KEYPAD_ENTER},
-
-        { "KP0",         SCANCODE_KEYPAD_0},
-        {"KPDL",    SCANCODE_KEYPAD_PERIOD},
-        {"KPEQ",    SCANCODE_KEYPAD_EQUALS},
-
-        {"FK13",              SCANCODE_F13},
-        {"FK14",              SCANCODE_F14},
-        {"FK15",              SCANCODE_F15},
-        {"FK16",              SCANCODE_F16},
-        {"FK17",              SCANCODE_F17},
-        {"FK18",              SCANCODE_F18},
-        {"FK19",              SCANCODE_F19},
-        {"FK20",              SCANCODE_F20},
-        {"FK21",              SCANCODE_F21},
-        {"FK22",              SCANCODE_F22},
-        {"FK23",              SCANCODE_F23},
-        {"FK24",              SCANCODE_F24},
-        // TODO: Add the other codes
-        // NOTE: Have already added most of the commonly used ones
-    };
-
-    u32 name_code_map_len = sizeof(name_code_map) / sizeof(name_code_map[0]);
-
-    for (u32 keycode = desc->min_key_code; keycode <= desc->max_key_code;
-         ++keycode) {
-        for (u32 i = 0; i < name_code_map_len; ++i) {
-            if (sStringEqual(desc->names->keys[keycode].name,
-                             name_code_map[i].name, XkbKeyNameLength)) {
-                xlib_state->xkeyCode_to_scancode[keycode] =
-                    name_code_map[i].code;
-                break;
-            }
-        }
-
-        if (xlib_state->xkeyCode_to_scancode[keycode] != SCANCODE_NONE)
-            continue;
-
-        // Look at the aliases if not found
-        for (u32 i = 0; i < desc->names->num_key_aliases; ++i) {
-            if (xlib_state->xkeyCode_to_scancode[keycode] != SCANCODE_NONE)
-                break;
-
-            if (!sStringEqual(desc->names->key_aliases[i].real,
-                              desc->names->keys[keycode].name,
-                              XkbKeyNameLength))
-                continue;
-
-            for (u32 j = 0; j < name_code_map_len; ++j)
-                if (sStringEqual(desc->names->key_aliases[i].alias,
-                                 name_code_map[j].name, XkbKeyNameLength))
-                    xlib_state->xkeyCode_to_scancode[keycode] =
-                        name_code_map[j].code;
-        }
-    }
-
-    XkbFreeNames(desc, XkbKeyNamesMask | XkbKeyAliasesMask, true);
-    XkbFreeKeyboard(desc, 0, true);
+    XkbFreeNames(desc, XkbKeyNamesMask | XkbKeyAliasesMask, false);
 }
 
 /**
@@ -346,7 +180,17 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         sError("Compatible version of XKB is not found in the server");
     }
 
+    xlib_state->xkb_desc = XkbGetKeyboard(xlib_state->display,
+                                          XkbAllComponentsMask, XkbUseCoreKbd);
+
     mapKeycodesToScancodes();
+
+    // Select Xkb events
+    // TODO: Register for xkb events and track the changes to the keyboard to
+    // update the keycodes to scancode map
+    u32 xkb_masks =
+        XkbNewKeyboardNotifyMask | XkbMapNotifyMask | XkbNamesNotifyMask;
+    XkbSelectEvents(xlib_state->display, XkbUseCoreKbd, xkb_masks, xkb_masks);
 
     // Select the XInput2 events
 
@@ -404,9 +248,111 @@ void shutdownPlatformWindowing(void *state) {
     sassert_msg(xlib_state,
                 "Shutting down windowing system twice or not initialized?");
     UNUSED(state);
+    if (xlib_state->xkb_desc) XkbFreeKeyboard(xlib_state->xkb_desc, 0, true);
     if (xlib_state->display) {
         XDestroyWindow(xlib_state->display, xlib_state->app_window);
         XCloseDisplay(xlib_state->display);
+    }
+}
+
+/**
+ * @brief Helper function for handling the Generic events.
+ */
+void handleGenericEvents(XEvent *event) {
+    if (event->xcookie.extension == xlib_state->xi_opcode) {
+        if (!XGetEventData(xlib_state->display, &event->xcookie)) {
+            sWarn("Failed to get the data from the cookie for XI");
+            return;
+        }
+        XIDeviceEvent *device_event = (XIDeviceEvent *)event->xcookie.data;
+        // XIRawEvent *raw_event = (XIRawEvent *)event.xcookie.data;
+        switch (event->xcookie.evtype) {
+            case XI_ButtonPress: {
+                // sDebug("Button press: device=%d, button=%d",
+                //        device_event->deviceid,
+                //        device_event->detail);
+                if (device_event->detail < 4) {
+                    // Left = 1, right = 3, middle = 2
+                    inputProcessButton(device_event->detail, true);
+                } else {
+                    // TODO: Peek at the next event till the next
+                    // TODO: event is not scroll and then pass delta
+                    // TODO: as the number of scroll events in the
+                    // TODO: same direction
+
+                    // scroll:
+                    //  up = 4 down = 5 left = 6 right = 7
+                    inputProcessScroll((device_event->detail - 3), 1);
+                }
+            } break;
+            case XI_ButtonRelease: {
+                // sDebug("Button release: device:%d, button=%d",
+                //        device_event->deviceid,
+                //        device_event->detail);
+                if (device_event->detail < 4) {
+                    // Left = 1, right = 3, middle = 2
+                    inputProcessButton(device_event->detail, false);
+                }
+                // Scroll is being processed in button press event
+            } break;
+            case XI_KeyPress: {
+                // sDebug("Key press: device:%d, keycode=%d%s",
+                //        device_event->deviceid,
+                //        device_event->detail, (device_event->flags
+                //        & XIKeyRepeat)
+                //            ? " KeyRepeat"
+                //            : "");
+                KeySym keysym;
+                u32 mods;
+                if (!XkbTranslateKeyCode(
+                        xlib_state->xkb_desc, device_event->detail,
+                        device_event->mods.effective, &mods, &keysym))
+                    sError("Failed to translate keycode to keysym");
+                // Found that when Caps lock is on and shift is pressed,
+                // XkbTranslateKeySym will return the capital letters only. So
+                // use a copy since keysym is used later. Output character will
+                // be capital only.
+                char buf[5] = {0};
+                i32 overflow = 0;
+                KeySym ks_copy = keysym;
+                XkbTranslateKeySym(xlib_state->display, &ks_copy,
+                                   device_event->mods.effective, buf,
+                                   sizeof(buf), &overflow);
+                if (overflow) sDebug("Overflowed by %d", overflow);
+                else sDebug("Keysym to string result = '%s'", buf);
+                inputProcessKey(
+                    xlib_state->xKeyCode_to_Scancode[device_event->detail],
+                    XKeySymToKeycode(keysym), true,
+                    (device_event->flags & XIKeyRepeat));
+            } break;
+            case XI_KeyRelease: {
+                // sDebug("Key release: device:%d, keycode=%d",
+                //        device_event->deviceid,
+                //        device_event->detail);
+                KeySym keysym;
+                u32 mods;
+                if (!XkbTranslateKeyCode(
+                        xlib_state->xkb_desc, device_event->detail,
+                        device_event->mods.effective, &mods, &keysym))
+                    sError("Failed to translate keycode to keysym");
+                inputProcessKey(
+                    xlib_state->xKeyCode_to_Scancode[device_event->detail],
+                    XKeySymToKeycode(keysym), false, false);
+            } break;
+            case XI_Motion: {
+                inputProcessPointerMotion(device_event->event_x,
+                                          device_event->event_y);
+            } break;
+
+            default: {
+                sError("Event type %d is not handled in XI's events?",
+                       event->xcookie.evtype);
+            } break;
+        }
+        // sDebug("valuators.data = (%f, %f)",
+        //        device_event->valuators.values[0],
+        //        device_event->valuators.values[1]);
+        XFreeEventData(xlib_state->display, &event->xcookie);
     }
 }
 
@@ -419,16 +365,42 @@ b8 platformWindowPumpMessages(void) {
     sassert_msg(xlib_state, "Windowing system is not initialized?");
     b8 quit = false;
 
-    XEvent event;
+    XkbEvent xkb_event;
+    XEvent *event = &xkb_event.core;
 
-    // XPending is equivalent to XEventsQueued(display, QueuedAfterFlush)
     // XNextEvent is blocking which means if direcly used then this function
     // will not return with true, i.e., utill the application recieves the quit
     // signal the loop will not stop. So use XPending
     // ? Do I need to check for !quit
     while (!quit && XPending(xlib_state->display)) {
-        XNextEvent(xlib_state->display, &event);
-        switch (event.type) {
+        XNextEvent(xlib_state->display, event);
+        if (xkb_event.type == xlib_state->xkb_event_code) {
+            switch (xkb_event.any.xkb_type) {
+                case XkbNewKeyboardNotify:
+                    // sDebug("XkbNewKeyboardNotify");
+                    // ? Should call this or not
+                    mapKeycodesToScancodes();
+                    break;
+                case XkbMapNotify:
+                    // sDebug("XkbMapNotify");
+                    // ? Should call this or not
+                    XkbGetUpdatedMap(xlib_state->display,
+                                     XkbAllMapComponentsMask,
+                                     xlib_state->xkb_desc);
+                    mapKeycodesToScancodes();
+                    break;
+                case XkbNamesNotify:
+                    // sDebug("XkbNamesNotify");
+                    // ? Should call this or not
+                    mapKeycodesToScancodes();
+                default:
+                    sError("Event type %d from xkb is not being handled?",
+                           xkb_event.any.xkb_type);
+            }
+            continue;
+        }
+
+        switch (event->type) {
             case Expose:
                 // TODO:
                 break;
@@ -436,7 +408,7 @@ b8 platformWindowPumpMessages(void) {
                 // TODO:
                 break;
             case ClientMessage: {
-                if ((unsigned long)event.xclient.data.l[0]
+                if ((unsigned long)event->xclient.data.l[0]
                     == xlib_state->wm_delete_window) {
                     fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL,
                               ((EventContext){0}));
@@ -444,83 +416,14 @@ b8 platformWindowPumpMessages(void) {
                 }
             } break;
             case GenericEvent: {
-                if (event.xcookie.extension == xlib_state->xi_opcode) {
-                    if (!XGetEventData(xlib_state->display, &event.xcookie)) {
-                        sWarn("Failed to get the data from the cookie for XI");
-                        break;
-                    }
-                    XIDeviceEvent *device_event =
-                        (XIDeviceEvent *)event.xcookie.data;
-                    // XIRawEvent *raw_event = (XIRawEvent *)event.xcookie.data;
-                    switch (event.xcookie.evtype) {
-                        case XI_ButtonPress: {
-                            // sDebug("Button press: device=%d, button=%d",
-                            //        device_event->deviceid,
-                            //        device_event->detail);
-                            if (device_event->detail < 4) {
-                                // Left = 1, right = 3, middle = 2
-                                inputProcessButton(device_event->detail, true);
-                            } else {
-                                // TODO: Peek at the next event till the next
-                                // TODO: event is not scroll and then pass delta
-                                // TODO: as the number of scroll events in the
-                                // TODO: same direction
-
-                                // scroll:
-                                //  up = 4 down = 5 left = 6 right = 7
-                                inputProcessScroll((device_event->detail - 3),
-                                                   1);
-                            }
-                        } break;
-                        case XI_ButtonRelease: {
-                            // sDebug("Button release: device:%d, button=%d",
-                            //        device_event->deviceid,
-                            //        device_event->detail);
-                            if (device_event->detail < 4) {
-                                // Left = 1, right = 3, middle = 2
-                                inputProcessButton(device_event->detail, false);
-                            }
-                            // Scroll is being processed in button press event
-                        } break;
-                        case XI_KeyPress: {
-                            // sDebug("Key press: device:%d, keycode=%d%s",
-                            //        device_event->deviceid,
-                            //        device_event->detail, (device_event->flags
-                            //        & XIKeyRepeat)
-                            //            ? " KeyRepeat"
-                            //            : "");
-                            inputProcessKey(
-                                xlib_state->xkeyCode_to_scancode[device_event
-                                                                     ->detail],
-                                true, (device_event->flags & XIKeyRepeat));
-                        } break;
-                        case XI_KeyRelease: {
-                            // sDebug("Key release: device:%d, keycode=%d",
-                            //        device_event->deviceid,
-                            //        device_event->detail);
-                            inputProcessKey(
-                                xlib_state->xkeyCode_to_scancode[device_event
-                                                                     ->detail],
-                                false, false);
-                        } break;
-                        case XI_Motion: {
-                            inputProcessPointerMotion(device_event->event_x,
-                                                      device_event->event_y);
-                        } break;
-
-                        default: {
-                            sError("Should not be getting some unkown event "
-                                   "from the XI.");
-                        } break;
-                    }
-                    // sDebug("valuators.data = (%f, %f)",
-                    //        device_event->valuators.values[0],
-                    //        device_event->valuators.values[1]);
-                    XFreeEventData(xlib_state->display, &event.xcookie);
-                }
+                handleGenericEvents(event);
             } break;
+            case MappingNotify:
+                // Ignore this event since we are handling it in the xkb events
+                break;
             default: {
-                sTrace("An event is being ignored: Event type: %d", event.type);
+                sTrace("An event is being ignored: Event type: %d",
+                       event->type);
             } break;
         }
     }

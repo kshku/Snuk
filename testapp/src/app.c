@@ -90,9 +90,10 @@ b8 key_press_logger(u16 code, void *sender, void *listener,
     UNUSED(listener);
     if (code != EVENT_CODE_KEY_PRESS) sError("Getting unregisterd events!");
 
-    u32 key = context.data.u32[0];
+    u32 sc = context.data.u32[0];
+    u32 kc = context.data.u32[1];
 
-    sInfo("Pressed '%d'", key);
+    sInfo("Pressed scancode = '%d', keycode = '%d'", sc, kc);
 
     return false;
 }
@@ -103,9 +104,10 @@ b8 key_release_logger(u16 code, void *sender, void *listener,
     UNUSED(listener);
     if (code != EVENT_CODE_KEY_RELEASE) sError("Getting unregisterd events!");
 
-    u32 key = context.data.u32[0];
+    u32 sc = context.data.u32[0];
+    u32 kc = context.data.u32[1];
 
-    sInfo("Released '%d'", key);
+    sInfo("Released scancode = '%d', keycode = '%d'", sc, kc);
 
     return false;
 }

@@ -4,6 +4,10 @@ DEFINES := -DS_DEBUG
 LDFLAGS := -g
 BUILD_DIR := build/linux
 
+XLIB := x11 xi
+XCB := xcb xcb-icccm xcb-xinput xcb-xkb xkbcommon-x11
+WAYLAND := wayland-client
+
 SUBDIRS := engine testapp tests
 CLEAN_TARGETS := $(SUBDIRS:%=clean-%)
 
@@ -12,6 +16,10 @@ export CC
 export CFLAGS
 export LDFLAGS
 export DEFINES
+
+export XLIB
+export XCB
+export WAYLAND
 
 all: $(BUILD_DIR) $(SUBDIRS)
 

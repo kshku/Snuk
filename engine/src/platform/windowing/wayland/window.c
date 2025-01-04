@@ -739,7 +739,8 @@ void wlKeyboardKey(void *data, struct wl_keyboard *wl_keyboard, u32 serial,
     // sDebug("Key %d %s", key,
     //        state == WL_KEYBOARD_KEY_STATE_PRESSED ? "pressed" : "released");
     // TODO: Translation
-    inputProcessKey(key, state == WL_KEYBOARD_KEY_STATE_PRESSED, false);
+    inputProcessKey(key, KEYCODE_NONE, state == WL_KEYBOARD_KEY_STATE_PRESSED,
+                    false);
 }
 
 void wlKeyboardEnter(void *data, struct wl_keyboard *wl_keyboard, u32 serial,
