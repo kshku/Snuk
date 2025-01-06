@@ -48,7 +48,7 @@ static XlibState *xlib_state;
  * @return Value is ignored (The documentation says).
  */
 i32 handleXErrors(Display *display, XErrorEvent *e) {
-    char buf[256];  // 256 might be sufficient
+    c8 buf[256];  // 256 might be sufficient
     XGetErrorText(display, e->error_code, buf, 256);
     sError("Error from X Server: Request Code: %d, Error Code: %d",
            e->request_code, e->error_code);
@@ -221,11 +221,11 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                     &xlib_state->wm_delete_window, 1);
 
     // Set class hint
-    XClassHint class_hint = {.res_name = (char *)config->name,
-                             .res_class = (char *)config->name};
+    XClassHint class_hint = {.res_name = (c8 *)config->name,
+                             .res_class = (c8 *)config->name};
     XSetClassHint(xlib_state->display, xlib_state->app_window, &class_hint);
 
-    char *app_name = sStringConcat(config->name, " - X11(Xlib)", 0, 13, NULL);
+    c8 *app_name = sStringConcatC8(config->name, " - X11(Xlib)", 0, 13, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -312,7 +312,7 @@ void handleGenericEvents(XEvent *event) {
                 // XkbTranslateKeySym will return the capital letters only. So
                 // use a copy since keysym is used later. Output character will
                 // be capital only.
-                char buf[5] = {0};
+                c8 buf[5] = {0};
                 i32 overflow = 0;
                 KeySym ks_copy = keysym;
                 XkbTranslateKeySym(xlib_state->display, &ks_copy,
@@ -464,7 +464,7 @@ b8 platformSetWindowVisible(b8 visible) {
  *
  * @return Returns true if title was changed successfully.
  */
-b8 platformSetWindowTitle(const char *title) {
+b8 platformSetWindowTitle(const c8 *title) {
     sassert_msg(xlib_state, "Windowing system is not initialized?");
     XStoreName(xlib_state->display, xlib_state->app_window, title);
     return true;
@@ -475,11 +475,11 @@ b8 platformSetWindowTitle(const char *title) {
  *
  * @return Returns the malloced stirng, user should call sFree.
  */
-char *platformGetWindowTitle(void) {
+c8 *platformGetWindowTitle(void) {
     sassert_msg(xlib_state, "Windowing system is not initialized?");
-    char *title;
+    c8 *title;
     if (XFetchName(xlib_state->display, xlib_state->app_window, &title)) {
-        char *ret = sStringCopy(title, 0);
+        c8 *ret = sStringCopyC8(title, 0);
         XFree(title);
         return ret;
     }

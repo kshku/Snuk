@@ -391,8 +391,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                                xcb_state->wm_protocols, 1, wm_protocol_atoms);
 
     // Set class hint
-    u64 name_length = sStringLenght(config->name);
-    char *buf = sStringConcat(
+    u64 name_length = sStringLengthC8(config->name);
+    c8 *buf = sStringConcatC8(
         config->name, config->name,
         name_length + 1,  // name_length + 1 to copy the NULL character
         name_length, NULL);
@@ -401,8 +401,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                            (name_length * 2 + 1), buf);
     sFree(buf);
 
-    char *app_name =
-        sStringConcat(config->name, " - X11(XCB)", name_length, 12, NULL);
+    c8 *app_name =
+        sStringConcatC8(config->name, " - X11(XCB)", name_length, 12, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -494,7 +494,7 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                     xcb_state->xkb_state, kpe->detail);
 
                 // In quick guide they used 64 bytes
-                char buf[64];
+                c8 buf[64];
                 xkb_keysym_get_name(keysym, buf, sizeof(buf));
                 sDebug("Keysym to string result = '%s'", buf);
 
@@ -677,11 +677,11 @@ b8 platformSetWindowVisible(b8 visible) {
  *
  * @return Returns true if title was changed successfully.
  */
-b8 platformSetWindowTitle(const char *title) {
+b8 platformSetWindowTitle(const c8 *title) {
     sassert_msg(xcb_state, "Windowing system is not initialized?");
 
     xcb_icccm_set_wm_name(xcb_state->connection, xcb_state->app_window,
-                          XCB_ATOM_STRING, 8, sStringLenght(title), title);
+                          XCB_ATOM_STRING, 8, sStringLengthC8(title), title);
 
     return true;
 }
@@ -691,7 +691,7 @@ b8 platformSetWindowTitle(const char *title) {
  *
  * @return Returns the malloced stirng, user should call sFree.
  */
-char *platformGetWindowTitle(void) {
+c8 *platformGetWindowTitle(void) {
     sassert_msg(xcb_state, "Windowing system is not initialized?");
 
     xcb_get_property_cookie_t title_cookie =
@@ -700,7 +700,7 @@ char *platformGetWindowTitle(void) {
     xcb_icccm_get_text_property_reply_t *title_reply = NULL;
     if (xcb_icccm_get_wm_name_reply(xcb_state->connection, title_cookie,
                                     title_reply, NULL)) {
-        char *ret = sStringCopy(title_reply->name, title_reply->name_len);
+        c8 *ret = sStringCopyC8(title_reply->name, title_reply->name_len);
         free(title_reply);
         return ret;
     }

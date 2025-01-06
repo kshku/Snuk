@@ -3,12 +3,13 @@ SHELL := powershell.exe
 
 CC := clang
 CFLAGS := -Wall -Wextra -g
-DEFINES := -DS_DEBUG
+DEFINES := -DS_DEBUG -DUNICODE -D_UNICODE
 LDFLAGS := -g
 BUILD_DIR := build/windows
 
 SUBDIRS := engine testapp tests
 CLEAN_TARGETS := $(SUBDIRS:%=clean-%)
+BUILD_DIR_TARGETS := $(SUBDIRS:%=build-dir-%)
 
 export BUILD_DIR := $(CURDIR)/$(BUILD_DIR)
 export CC
@@ -16,16 +17,18 @@ export CFLAGS
 export LDFLAGS
 export DEFINES
 
-all: $(BUILD_DIR) $(SUBDIRS)
+all: $(SUBDIRS)
 
 clean:
 	@Write-Output "Cleaning everything..."
 	@if (Test-Path $(BUILD_DIR)) { Remove-Item -Recurse -Force $(BUILD_DIR) }
 
+build-dir: $(BUILD_DIR) $(BUILD_DIR_TARGETS)
+
 $(CLEAN_TARGETS):
 	@$(MAKE) -C $(@:clean-%=%) -f Makefile.windows.mak clean
 
-$(SUBDIRS): | $(BUILD_DIR)
+$(SUBDIRS):
 	@$(MAKE) -C $@ -f Makefile.windows.mak
 	@Write-Output "--------------------------------------------"
 
@@ -33,4 +36,7 @@ $(BUILD_DIR):
 	@Write-Output "Creating directory $(BUILD_DIR)..."
 	@if (!(Test-Path $(BUILD_DIR))) { New-Item -ItemType Directory -Path $(BUILD_DIR) | Out-Null }
 
-.PHONY: all clean $(SUBDIRS) $(CLEAN_TARGETS)
+$(BUILD_DIR_TARGETS):
+	@$(MAKE) -C $(@:build-dir-%=%) -f Makefile.windows.mak build-dir
+
+.PHONY: all clean build-dir $(SUBDIRS) $(CLEAN_TARGETS) $(BUILD_DIR_TARGETS)

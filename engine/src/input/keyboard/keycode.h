@@ -32,50 +32,50 @@
     DEFINE_KEYCODE(key, (CONCAT_EXPANDED(SCANCODE_PREFIX, key)) | SCANCODE_MASK)
 
 // NOTE: The virtual key codes.
-// Using SDL's approach
+// Virtual keycodes are the keys on the current keyboard layout
 
 typedef enum Keycode {
     DEFINE_KEYCODE(NONE, 0),
 
-    DEFINE_KEYCODE(NUL, 0x00),
-    DEFINE_KEYCODE(SOH, 0x01),
-    DEFINE_KEYCODE(STX, 0x02),
-    DEFINE_KEYCODE(ETX, 0x03),
-    DEFINE_KEYCODE(EOT, 0x04),
-    DEFINE_KEYCODE(ENQ, 0x05),
-    DEFINE_KEYCODE(ACK, 0x06),
-    DEFINE_KEYCODE(BEL, 0x07),
+    // DEFINE_KEYCODE(NUL, 0x00),
+    // DEFINE_KEYCODE(SOH, 0x01),
+    // DEFINE_KEYCODE(STX, 0x02),
+    // DEFINE_KEYCODE(ETX, 0x03),
+    // DEFINE_KEYCODE(EOT, 0x04),
+    // DEFINE_KEYCODE(ENQ, 0x05),
+    // DEFINE_KEYCODE(ACK, 0x06),
+    // DEFINE_KEYCODE(BEL, 0x07),
 
     DEFINE_KEYCODE(BACKSPACE, 0x08),
     DEFINE_KEYCODE(TAB, 0x09),
     DEFINE_KEYCODE(LINE_FEED, 0x0A),
 
-    DEFINE_KEYCODE(VT, 0x0B),
+    // DEFINE_KEYCODE(VT, 0x0B),
     DEFINE_KEYCODE(FF, 0x0C),
 
     DEFINE_KEYCODE(ENTER, 0x0D),
 
-    DEFINE_KEYCODE(SO, 0x0E),
-    DEFINE_KEYCODE(SI, 0x0F),
+    // DEFINE_KEYCODE(SO, 0x0E),
+    // DEFINE_KEYCODE(SI, 0x0F),
 
-    DEFINE_KEYCODE(DLE, 0x10),
-    DEFINE_KEYCODE(DC1, 0x11),
-    DEFINE_KEYCODE(DC2, 0x12),
-    DEFINE_KEYCODE(DC3, 0x13),
-    DEFINE_KEYCODE(DC4, 0x14),
-    DEFINE_KEYCODE(NAK, 0x15),
-    DEFINE_KEYCODE(SYN, 0x16),
-    DEFINE_KEYCODE(ETB, 0x17),
-    DEFINE_KEYCODE(CAN, 0x18),
-    DEFINE_KEYCODE(EM, 0x19),
-    DEFINE_KEYCODE(SUB, 0x1A),
+    // DEFINE_KEYCODE(DLE, 0x10),
+    // DEFINE_KEYCODE(DC1, 0x11),
+    // DEFINE_KEYCODE(DC2, 0x12),
+    // DEFINE_KEYCODE(DC3, 0x13),
+    // DEFINE_KEYCODE(DC4, 0x14),
+    // DEFINE_KEYCODE(NAK, 0x15),
+    // DEFINE_KEYCODE(SYN, 0x16),
+    // DEFINE_KEYCODE(ETB, 0x17),
+    // DEFINE_KEYCODE(CAN, 0x18),
+    // DEFINE_KEYCODE(EM, 0x19),
+    // DEFINE_KEYCODE(SUB, 0x1A),
 
     DEFINE_KEYCODE(ESCAPE, 0x1B),
 
-    DEFINE_KEYCODE(FS, 0x1C),
-    DEFINE_KEYCODE(GS, 0x1D),
-    DEFINE_KEYCODE(RS, 0x1E),
-    DEFINE_KEYCODE(US, 0x1F),
+    // DEFINE_KEYCODE(FS, 0x1C),
+    // DEFINE_KEYCODE(GS, 0x1D),
+    // DEFINE_KEYCODE(RS, 0x1E),
+    // DEFINE_KEYCODE(US, 0x1F),
 
     DEFINE_KEYCODE(SPACE, 0x20),
     DEFINE_KEYCODE(EXCLAM, 0x21),
@@ -148,32 +148,38 @@ typedef enum Keycode {
     DEFINE_KEYCODE(UNDERSCORE, 0x5F),
     DEFINE_KEYCODE(GRAVE, 0x60),
 
-    DEFINE_KEYCODE(a, 0x61),
-    DEFINE_KEYCODE(b, 0x62),
-    DEFINE_KEYCODE(c, 0x63),
-    DEFINE_KEYCODE(d, 0x64),
-    DEFINE_KEYCODE(e, 0x65),
-    DEFINE_KEYCODE(f, 0x66),
-    DEFINE_KEYCODE(g, 0x67),
-    DEFINE_KEYCODE(h, 0x68),
-    DEFINE_KEYCODE(i, 0x69),
-    DEFINE_KEYCODE(j, 0x6A),
-    DEFINE_KEYCODE(k, 0x6B),
-    DEFINE_KEYCODE(l, 0x6C),
-    DEFINE_KEYCODE(m, 0x6D),
-    DEFINE_KEYCODE(n, 0x6E),
-    DEFINE_KEYCODE(o, 0x6F),
-    DEFINE_KEYCODE(p, 0x70),
-    DEFINE_KEYCODE(q, 0x71),
-    DEFINE_KEYCODE(r, 0x72),
-    DEFINE_KEYCODE(s, 0x73),
-    DEFINE_KEYCODE(t, 0x74),
-    DEFINE_KEYCODE(u, 0x75),
-    DEFINE_KEYCODE(v, 0x76),
-    DEFINE_KEYCODE(w, 0x77),
-    DEFINE_KEYCODE(x, 0x78),
-    DEFINE_KEYCODE(y, 0x79),
-    DEFINE_KEYCODE(z, 0x7A),
+    // In windows' virtual keys codes(in most of the keycodes) they don't have
+    // different keycodes for capital and small letters. And also it is easy to
+    // send only capital letter keys. Since in our event we will send Scancode,
+    // Keycode, Modifiers and the resulting character (unicode value) if
+    // printalbe
+
+    // DEFINE_KEYCODE(a, 0x61),
+    // DEFINE_KEYCODE(b, 0x62),
+    // DEFINE_KEYCODE(c, 0x63),
+    // DEFINE_KEYCODE(d, 0x64),
+    // DEFINE_KEYCODE(e, 0x65),
+    // DEFINE_KEYCODE(f, 0x66),
+    // DEFINE_KEYCODE(g, 0x67),
+    // DEFINE_KEYCODE(h, 0x68),
+    // DEFINE_KEYCODE(i, 0x69),
+    // DEFINE_KEYCODE(j, 0x6A),
+    // DEFINE_KEYCODE(k, 0x6B),
+    // DEFINE_KEYCODE(l, 0x6C),
+    // DEFINE_KEYCODE(m, 0x6D),
+    // DEFINE_KEYCODE(n, 0x6E),
+    // DEFINE_KEYCODE(o, 0x6F),
+    // DEFINE_KEYCODE(p, 0x70),
+    // DEFINE_KEYCODE(q, 0x71),
+    // DEFINE_KEYCODE(r, 0x72),
+    // DEFINE_KEYCODE(s, 0x73),
+    // DEFINE_KEYCODE(t, 0x74),
+    // DEFINE_KEYCODE(u, 0x75),
+    // DEFINE_KEYCODE(v, 0x76),
+    // DEFINE_KEYCODE(w, 0x77),
+    // DEFINE_KEYCODE(x, 0x78),
+    // DEFINE_KEYCODE(y, 0x79),
+    // DEFINE_KEYCODE(z, 0x7A),
 
     DEFINE_KEYCODE(LEFT_BRACE, 0x7B),
     DEFINE_KEYCODE(VERTICAL_BAR, 0x7C),
@@ -203,8 +209,10 @@ typedef enum Keycode {
     DEFINE_KEYCODE_FROM_SCANCODE(INSERT),
     DEFINE_KEYCODE_FROM_SCANCODE(HOME),
     DEFINE_KEYCODE_FROM_SCANCODE(PAGE_UP),
+    DEFINE_KEYCODE_ALIAS(PRIOR, PAGE_UP),
     DEFINE_KEYCODE_FROM_SCANCODE(END),
     DEFINE_KEYCODE_FROM_SCANCODE(PAGE_DOWN),
+    DEFINE_KEYCODE_ALIAS(NEXT, PAGE_DOWN),
 
     DEFINE_KEYCODE_FROM_SCANCODE(RIGHT_ARROW),
     DEFINE_KEYCODE_FROM_SCANCODE(LEFT_ARROW),
@@ -232,7 +240,8 @@ typedef enum Keycode {
 
     DEFINE_KEYCODE_FROM_SCANCODE(KEYPAD_PERIOD),
 
-    // Add all the keycodes defined in Scancode which are not already defined.
+    // Add all the keycodes defined in Scancode which are not already
+    // defined.
 
     DEFINE_KEYCODE_FROM_SCANCODE(APPLICATION),
     DEFINE_KEYCODE_FROM_SCANCODE(POWER),
@@ -274,7 +283,7 @@ typedef enum Keycode {
     DEFINE_KEYCODE_FROM_SCANCODE(CANCEL),
     DEFINE_KEYCODE_FROM_SCANCODE(CLEAR),
 
-    DEFINE_KEYCODE_FROM_SCANCODE(PRIOR),
+    DEFINE_KEYCODE_FROM_SCANCODE(PRIOR_HID),
     DEFINE_KEYCODE_FROM_SCANCODE(RETURN),
     DEFINE_KEYCODE_FROM_SCANCODE(SEPARATOR),
     DEFINE_KEYCODE_FROM_SCANCODE(OUT),
@@ -348,6 +357,7 @@ typedef enum Keycode {
     DEFINE_KEYCODE_FROM_SCANCODE(RIGHT_ALT),
     DEFINE_KEYCODE_FROM_SCANCODE(RIGHT_GUI),
     DEFINE_KEYCODE_ALIAS(RIGHT_SUPER, RIGHT_GUI),
+    DEFINE_KEYCODE_FROM_SCANCODE(NON_US_BACKSLASH),
 
 #define Keycode(key) CONCAT_EXPANDED(KEYCODE_PREFIX, key)
     Keycode(BEGIN),
@@ -379,7 +389,6 @@ typedef enum Keycode {
     Keycode(F34),
     Keycode(F35),
 #undef Keycode
-
     KEYCODE_MAX_KEYCODE
 }
 

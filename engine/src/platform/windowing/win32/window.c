@@ -1,7 +1,15 @@
 #include "../../window.h"
 
-#ifdef SPLATFORM_WINDOWING_WIN32
+// TODO: UNICODE and ASCII things
+// Check which one and use functions (mainly in setting window tiltes and all)
+// TODO: Error handling
 
+#ifdef SPLATFORM_WINDOWING_WIN32
+    // Include this before including the Windows specific header files
+    // Else names like DELETE will collide
+    #include "input/input.h"
+
+    // Windows specific
     #include <Windows.h>
     #include <windowsx.h>  // Param input extraction
 
@@ -10,80 +18,153 @@
     #include "core/logger.h"
     #include "core/memory.h"
     #include "core/sstring.h"
+    #include "input_helper.h"
 
 typedef struct Win32State {
         HINSTANCE h_instance;
         HWND hwnd;
+        c16 *app_name;
+        b8 quit;
 } Win32State;
 
 static Win32State *win32_state;
 
 /**
- * @brief Process the messages [INTERNAL FUNCTION]
+ * @brief Convert normal string to wide string.
+ *
+ * @param str String to convert
+ *
+ * @return Converted string.
+ */
+c16 *convertToWideString(const c8 *str) {
+    u64 len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+    c16 *converted = sMalloc(len * sizeof(c16));
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, converted, len);
+
+    len = NormalizeString(NormalizationC, converted, -1, NULL, 0);
+    c16 *normalized = sMalloc(len * sizeof(c16));
+    NormalizeString(NormalizationC, converted, -1, normalized, len);
+
+    sFree(converted);
+
+    return normalized;
+}
+
+/**
+ * @brief Convert wide string to normal string.
+ *
+ * @param str String to convert
+ *
+ * @return Converted string.
+ */
+c8 *convertToNormalString(const c16 *str) {
+    u64 len = WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL);
+    c8 *converted = sMalloc(len * sizeof(c8));
+    WideCharToMultiByte(CP_UTF8, 0, str, -1, converted, len, NULL, NULL);
+
+    return converted;
+}
+
+/**
+ * @brief Window procedure method (callback function) [INTERNAL FUNCTION].
  *
  * @param hwnd
- * @param msg
+ * @param u_msg
  * @param w_param
  * @param l_param
  *
  * @return
  */
-LRESULT CALLBACK win32ProcessMessage(HWND hwnd, u32 msg, WPARAM w_param,
-                                     LPARAM l_param) {
-    // To know more about why return that perticular value see documentation
-    switch (msg) {
-        case WM_ERASEBKGND:
-            // Notify the OS that erasing will be handled by the application to
-            // prevent flicker.
-            return 1;
+LRESULT CALLBACK windowProcedure(HWND hwnd, UINT u_msg, WPARAM w_param,
+                                 LPARAM l_param) {
+    switch (u_msg) {
         case WM_CLOSE:
-            // Fire application quit event
+            // NOTE: DefWindowProc will handle this and Destroy the window
+            win32_state->quit = true;
             if (!fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL,
-                           ((EventContext){0}))) {
+                           ((EventContext){0})))
                 sError("Expected someone to handle Application quit event");
-            }
-            return 0;
+            break;
         case WM_DESTROY:
+            // I know multiple times but still
+            win32_state->quit = true;
             PostQuitMessage(0);
             return 0;
-        case WM_SIZE:
-            // Get the updated size
-            // RECT r;
-            // GetClientRect(hwnd, &r);
-            // u32 width = r.right - r.left;
-            // u32 height = r.bottom - r.top;
-            // TODO: Fire window resize event
-            break;
-        case WM_KEYDOWN:
-        case WM_SYSKEYDOWN:
-            // TODO
-            break;
-        case WM_KEYUP:
-        case WM_SYSKEYUP:
-            // TODO
-            break;
+
+        // Mouse events
         case WM_MOUSEMOVE:
-            // i32 x_pos = GET_X_LPARAM(l_param);
-            // i32 y_pos = GET_Y_LPARAM(l_param);
-            // TODO:
-            break;
-        case WM_MOUSEWHEEL:
-            // TODO:
+            inputProcessPointerMotion(GET_X_LPARAM(l_param),
+                                      GET_Y_LPARAM(l_param));
+            return 0;
+        case WM_LBUTTONDBLCLK:
+            // Double click left button
             break;
         case WM_LBUTTONDOWN:
-        case WM_MBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-            break;
         case WM_LBUTTONUP:
-        case WM_MBUTTONUP:
-        case WM_RBUTTONUP:
+            inputProcessButton(BUTTON_LEFT, u_msg == WM_LBUTTONDOWN);
+            return 0;
+        case WM_MBUTTONDBLCLK:
+            // Dobule click right button
             break;
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONUP:
+            inputProcessButton(BUTTON_MIDDLE, u_msg == WM_MBUTTONDOWN);
+            return 0;
+        case WM_RBUTTONDBLCLK:
+            // Double click right button
+            break;
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP:
+            inputProcessButton(BUTTON_RIGHT, u_msg == WM_RBUTTONDOWN);
+            return 0;
+        case WM_MOUSEWHEEL:
+            inputProcessScroll(
+                GET_WHEEL_DELTA_WPARAM(w_param) > 0 ? SCROLL_UP : SCROLL_DOWN,
+                1);
+            return 0;
+        case WM_MOUSEHWHEEL:
+            inputProcessScroll(GET_WHEEL_DELTA_WPARAM(w_param) > 0
+                                   ? SCROLL_RIGHT
+                                   : SCROLL_LEFT,
+                               1);
+            return 0;
+
+        // Keyboard events
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN:
+        case WM_KEYUP:
+        case WM_SYSKEYUP: {
+            // How to handle the key repeat?
+            WORD key_flags = HIWORD(l_param);
+            BYTE scancode = LOBYTE(key_flags);
+            b8 is_extended = key_flags & KF_EXTENDED;
+
+            inputProcessKey(
+                scan1MakeToScancode(scancode, is_extended),
+                virtualKeyCodeToKeycode(LOWORD(w_param), scancode, is_extended),
+                (u_msg == WM_KEYDOWN || u_msg == WM_SYSKEYDOWN),
+                LOWORD(l_param) > 0);
+        }
+            return 0;
+
         default:
             break;
     }
 
-    return DefWindowProcA(hwnd, msg, w_param, l_param);
+    return DefWindowProc(hwnd, u_msg, w_param, l_param);
 }
+
+// Hooks
+// HHOOK hook;
+
+// Used to test the virtual keycodes and scancodes manually.
+// LRESULT CALLBACK keyboardhook(i32 n_code, WPARAM w_param, LPARAM l_param) {
+//     if (n_code == HC_ACTION) {
+//         sDebug("VK = '%u'", ((KBDLLHOOKSTRUCT *)l_param)->vkCode);
+//         return 1;  // Block the event
+//     }
+//     return CallNextHookEx(hook, n_code, w_param, l_param);
+// }
 
 /**
  * @brief Implementation for Win32.
@@ -107,79 +188,56 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     win32_state = (Win32State *)state;
 
-    // NOTE: Just following from Kohi series. Not interested now in going
-    // NOTE: through the windows documentation or search topics to write this
-    // NOTE: Will look at the docs and may rewrite these things in future.
+    sMemZeroOut(win32_state, sizeof(Win32State));
 
-    // Load this application
-    win32_state->h_instance = GetModuleHandleA(NULL);
+    // Retrive the module handle
+    win32_state->h_instance = GetModuleHandle(NULL);
     if (!win32_state->h_instance) {
-        sError("Failed to load this application's handle");
+        sError("Failed to get the handle");
         return false;
     }
 
-    // Setup window class
-    WNDCLASSA wc = {.style = CS_DBLCLKS,  // Get double clicks
-                    .lpfnWndProc = win32ProcessMessage,
-                    .cbClsExtra = 0,
-                    .cbWndExtra = 0,
-                    .hInstance = win32_state->h_instance,
-                    .hIcon = LoadIcon(win32_state->h_instance, IDI_APPLICATION),
-                    .hCursor = LoadCursor(
-                        NULL, IDC_ARROW),  // NULL -> Manage cursor manually
-                    .hbrBackground = NULL,  // Transparent
-                    .lpszClassName = config->name};
+    win32_state->app_name = convertToWideString(config->name);
 
-    // Register
-    if (!RegisterClassA(&wc)) {
-        MessageBoxA(NULL, "Window registration failed!", "Error!",
-                    MB_ICONEXCLAMATION | MB_OK);
-        sError("Failed to register window");
+    WNDCLASS window_class = {.lpfnWndProc = windowProcedure,
+                             .hInstance = win32_state->h_instance,
+                             .lpszClassName = win32_state->app_name,
+                             .style = CS_DBLCLKS};
+
+    if (!RegisterClass(&window_class)) {
+        sError("Failed to register the window class");
         return false;
     }
 
-    u32 client_x = config->x;
-    u32 client_y = config->y;
-    u32 client_width = config->width;
-    u32 client_height = config->height;
+    RECT boarder_rect = {0};
 
-    u32 window_x = client_x;
-    u32 window_y = client_y;
-    u32 window_width = client_width;
-    u32 window_height = client_height;
+    AdjustWindowRectEx(&boarder_rect, WS_OVERLAPPEDWINDOW, false, 0);
 
-    u32 window_style = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
-    u32 window_ex_style = WS_EX_APPWINDOW;
+    u32 window_x = config->x + boarder_rect.left;
+    u32 window_y = config->y + boarder_rect.top;
+    u32 window_width = config->width + boarder_rect.right - boarder_rect.left;
+    u32 window_height = config->height + boarder_rect.top - boarder_rect.bottom;
 
-    window_style |= WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
+    c8 *name = sStringConcatC8(config->name, " - Win32", 0, 8, NULL);
+    c16 *app_name = convertToWideString(name);
+    sFree(name);
 
-    // Obtain the size of the boarder
-    RECT border_rect = {0};
-    AdjustWindowRectEx(&border_rect, window_style, FALSE, window_ex_style);
-
-    window_x += border_rect.left;
-    window_y += border_rect.top;
-    window_width += border_rect.right - border_rect.left;
-    window_height += border_rect.bottom - border_rect.top;
-
-    win32_state->hwnd = CreateWindowExA(
-        window_ex_style, config->name, config->name, window_style, window_x,
-        window_y, window_width, window_height, NULL, NULL,
+    win32_state->hwnd = CreateWindowEx(
+        WS_EX_APPWINDOW, win32_state->app_name, app_name, WS_OVERLAPPEDWINDOW,
+        window_x, window_y, window_width, window_height, NULL, NULL,
         win32_state->h_instance, NULL);
-
+    sFree(app_name);
     if (!win32_state->hwnd) {
-        MessageBoxA(NULL, "Window creation failed!", "Error!",
-                    MB_ICONEXCLAMATION | MB_OK);
-        sError("Window creation failed");
+        sError("Failed to create window");
         return false;
     }
 
-    char *app_name = sStringConcat(config->name, " - Win32", 0, 8, NULL);
-    if (!platformSetWindowTitle(app_name))
-        sError("Couldn't set the window title");
-    sFree(app_name);
+    // An application should specify this flag when displaying the window for
+    // the first time. Documentation says. So not calling
+    // paltformSetWindowVisible
+    ShowWindow(win32_state->hwnd, SW_SHOWNORMAL);
 
-    if (!platformSetWindowVisible(true)) sError("Failed to show the window");
+    // hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardhook, NULL, 0);
 
     return true;
 }
@@ -194,7 +252,11 @@ void shutdownPlatformWindowing(void *state) {
                 "Shutting down windowing system twice or not initialized?");
     UNUSED(state);
 
-    if (win32_state->hwnd) DestroyWindow(win32_state->hwnd);
+    // UnhookWindowsHookEx(hook);
+
+    if (win32_state->app_name) sFree(win32_state->app_name);
+
+    // NOTE: Window procedure itself will destroy the window
 }
 
 /**
@@ -206,13 +268,12 @@ b8 platformWindowPumpMessages(void) {
     sassert_msg(win32_state, "Windowing system is not initialized?");
 
     MSG message;
-
-    while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE)) {
+    while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
         TranslateMessage(&message);
         DispatchMessage(&message);
     }
 
-    return true;
+    return !win32_state->quit;
 }
 
 b8 platformWindowCreate() {
@@ -227,24 +288,17 @@ void platformWindowDestroy() {
 /**
  * @brief Chnage the visibility of the window (Win32 implementation).
  *
- * If called with true even if the window is visible, or called with false even
- * if the window is not visible, no error will be generated.
+ * If called with true even if the window is visible, or called with false
+ * even if the window is not visible, no error will be generated.
  *
  * @param visibility if true make window visible
  *
  * @return Returns true if changes were made successfully.
  */
 b8 platformSetWindowVisible(b8 visible) {
+    UNUSED(visible);
     sassert_msg(win32_state, "Windowing system is not initialized?");
-    if (visible) {
-        // TODO:
-        b8 should_activate = 1;
-        i32 show_window_command_flags =
-            should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
-        ShowWindow(win32_state->hwnd, show_window_command_flags);
-    } else {
-        ShowWindow(win32_state->hwnd, SW_HIDE);
-    }
+    ShowWindow(win32_state->hwnd, visible ? SW_SHOW : SW_HIDE);
     return true;
 }
 
@@ -255,8 +309,14 @@ b8 platformSetWindowVisible(b8 visible) {
  *
  * @return Returns true if title was changed successfully.
  */
-b8 platformSetWindowTitle(const char *title) {
-    if (!SetWindowTextA(win32_state->hwnd, title)) return false;
+b8 platformSetWindowTitle(const c8 *title) {
+    sassert_msg(win32_state, "Windowing system is not initialized?");
+    c16 *w_title = convertToWideString(title);
+    if (!SetWindowText(win32_state->hwnd, w_title)) {
+        sFree(w_title);
+        return false;
+    }
+    sFree(w_title);
     return true;
 }
 
@@ -265,10 +325,16 @@ b8 platformSetWindowTitle(const char *title) {
  *
  * @return Returns the malloced stirng, user should call sFree.
  */
-char *platformGetWindowTitle(void) {
-    const u64 size = 256;
-    char *title = sMalloc(size * sizeof(char));
-    if (!GetWindowTextA(win32_state->hwnd, title, size)) return NULL;
+c8 *platformGetWindowTitle(void) {
+    sassert_msg(win32_state, "Windowing system is not initialized?");
+    const u64 size = GetWindowTextLength(win32_state->hwnd);
+    c16 *w_title = sMalloc(size * sizeof(c16));
+    if (!GetWindowText(win32_state->hwnd, w_title, size)) {
+        sFree(w_title);
+        return NULL;
+    }
+    c8 *title = convertToNormalString(w_title);
+    sFree(w_title);
     return title;
 }
 

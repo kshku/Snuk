@@ -12,7 +12,7 @@ void shutdownTestManager(Test *tests) {
     darrayDestroy(tests);
 }
 
-Test *testManagerRegister(Test *tests, pfn_test f, const char *desc) {
+Test *testManagerRegister(Test *tests, pfn_test f, const c8 *desc) {
     darrayPush(tests, ((Test){.f = f, .desc = desc}));
     return tests;
 }

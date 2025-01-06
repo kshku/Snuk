@@ -3,7 +3,6 @@
 #ifdef SPLATFORM_OS_WINDOWS
 
     #include <stdio.h>
-    #include <wchar.h>
     #include <windows.h>
 
 /**
@@ -50,9 +49,9 @@ b8 enableVTProcessing(DWORD handle_type) {
  * memory and do the formatting to add the prefix to the message sent by the
  * user.
  */
-void platformLogMessage(LogLevel level, const char *msg, va_list args,
-                        const char *prefix, ...) {
-    static const char *colors[6] = {
+void platformLogMessage(LogLevel level, const c8 *msg, va_list args,
+                        const c8 *prefix, ...) {
+    static const c8 *colors[6] = {
         "1;41", "1;31", "0;33",  // Fatal, Error, Warn
         "0;32", "0;34", "0;37"};  // Info, Debug, Trace
 

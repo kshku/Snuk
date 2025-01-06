@@ -262,7 +262,7 @@ void sLogMemState(void) {
     const u64 GiB = 1024 * MiB;
 
     f32 allocation = 0;
-    char ext[4] = "XiB";
+    c8 ext[4] = "XiB";
 
     if (mem_state.total_allocated >= GiB) {
         ext[0] = 'G';

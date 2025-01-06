@@ -3,16 +3,16 @@
 #include <core/sstring.h>
 
 u8 noLength(void) {
-    if (!sStringEqual("Hello", "Hello", 0)) return FAIL;
-    if (sStringEqual("Hello", "Hi", 0)) return FAIL;
-    if (sStringEqual("There", "The", 0)) return FAIL;
+    if (!sStringEqualC8("Hello", "Hello", 0)) return FAIL;
+    if (sStringEqualC8("Hello", "Hi", 0)) return FAIL;
+    if (sStringEqualC8("There", "The", 0)) return FAIL;
     return PASS;
 }
 
 u8 withLength(void) {
-    if (!sStringEqual("There", "The", 3)) return FAIL;
-    if (!sStringEqual("Hello", "Hi", 1)) return FAIL;
-    if (sStringEqual("Hello", "Hi", 2)) return FAIL;
+    if (!sStringEqualC8("There", "The", 3)) return FAIL;
+    if (!sStringEqualC8("Hello", "Hi", 1)) return FAIL;
+    if (sStringEqualC8("Hello", "Hi", 2)) return FAIL;
     return PASS;
 }
 

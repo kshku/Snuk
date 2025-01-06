@@ -52,11 +52,11 @@ static const Keycode scan_to_key[] = {
     [SCANCODE_INTERNATIONAL_2] = KEYCODE_NONE,
     [SCANCODE_INTERNATIONAL_3] = KEYCODE_NONE,
     [SCANCODE_INTERNATIONAL_4] = KEYCODE_NONE,
-    [SCANCODE_INTERNATIONAL_15] = KEYCODE_NONE,
-    [SCANCODE_INTERNATIONAL_16] = KEYCODE_NONE,
-    [SCANCODE_INTERNATIONAL_17] = KEYCODE_NONE,
-    [SCANCODE_INTERNATIONAL_18] = KEYCODE_NONE,
-    [SCANCODE_INTERNATIONAL_19] = KEYCODE_NONE,
+    [SCANCODE_INTERNATIONAL_5] = KEYCODE_NONE,
+    [SCANCODE_INTERNATIONAL_6] = KEYCODE_NONE,
+    [SCANCODE_INTERNATIONAL_7] = KEYCODE_NONE,
+    [SCANCODE_INTERNATIONAL_8] = KEYCODE_NONE,
+    [SCANCODE_INTERNATIONAL_9] = KEYCODE_NONE,
 
     [SCANCODE_LANG_1] = KEYCODE_NONE,
     [SCANCODE_LANG_2] = KEYCODE_NONE,
@@ -146,23 +146,24 @@ Keycode scancodeToKeycode(Scancode sc, Keymod mod) {
         // KeyCodes are just OR'd with SCANCODE_MASK
         return (sc | SCANCODE_MASK);
 
-    if (sc >= SCANCODE_A && sc <= SCANCODE_Z) {  // Letters
-        switch (mod & (KEYMOD_SHIFT | KEYMOD_CAPS_LOCK)) {
-            case KEYMOD_SHIFT:  // Only shift
-            case KEYMOD_CAPS_LOCK:  // Only caps
-                // Capital letters
-                return KEYCODE_A + (sc - SCANCODE_A);
-            case KEYMOD_CAPS_LOCK | KEYMOD_SHIFT:  // caps on and shift
-            case KEYMOD_NONE:  // neither caps nor shift
-                // Small letters
-                return KEYCODE_a + (sc - SCANCODE_A);
-            default:
-                sError("Error in the logic of scancodeToKeycode function "
-                       "while "
-                       "checking whether to return Capital or Small letter.");
-                return KEYCODE_NONE;
-        }
-    }
+    // if (sc >= SCANCODE_A && sc <= SCANCODE_Z) {  // Letters
+    //     switch (mod & (KEYMOD_SHIFT | KEYMOD_CAPS_LOCK)) {
+    //         case KEYMOD_SHIFT:  // Only shift
+    //         case KEYMOD_CAPS_LOCK:  // Only caps
+    //             // Capital letters
+    //             return KEYCODE_A + (sc - SCANCODE_A);
+    //         case KEYMOD_CAPS_LOCK | KEYMOD_SHIFT:  // caps on and shift
+    //         case KEYMOD_NONE:  // neither caps nor shift
+    //             // Small letters
+    //             return KEYCODE_k + (sc - SCANCODE_A);
+    //         default:
+    //             sError("Error in the logic of scancodeToKeycode function "
+    //                    "while "
+    //                    "checking whether to return Capital or Small
+    //                    letter.");
+    //             return KEYCODE_NONE;
+    //     }
+    // }
 
     if (mod & KEYMOD_SHIFT) {
         switch (sc) {
@@ -214,8 +215,8 @@ Scancode keycodeToScancode(Keycode kc) {
     if (kc >= KEYCODE_A && kc <= KEYCODE_Z)
         return SCANCODE_A + (kc - KEYCODE_A);
 
-    if (kc >= KEYCODE_a && kc <= KEYCODE_z)
-        return SCANCODE_A + (kc - KEYCODE_a);
+    // if (kc >= KEYCODE_a && kc <= KEYCODE_z)
+    //     return SCANCODE_A + (kc - KEYCODE_a);
 
     if (kc >= KEYCODE_1 && kc <= KEYCODE_9)
         return SCANCODE_1 + (kc - KEYCODE_1);

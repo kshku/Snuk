@@ -12,7 +12,7 @@
  *
  * @return true if the logger was initialized successfully.
  */
-b8 initializeLogger(const char *file) {
+b8 initializeLogger(const c8 *file) {
     UNUSED(file);
     // TODO: Logging to file, aynchronous logging, etc.
     return true;
@@ -31,8 +31,8 @@ void shutdownLogger(void) {
  * @param msg Format string message
  * @param ... Arguments for the format string
  */
-void _logMessage(LogLevel level, const char *msg, ...) {
-    static const char *log_level_strings[] = {
+void _logMessage(LogLevel level, const c8 *msg, ...) {
+    static const c8 *log_level_strings[] = {
         "[FATAL]: ", "[ERROR]: ", "[WARN]: ",
         "[INFO]: ",  "[DEBUG]: ", "[TRACE]: "};
 
@@ -51,8 +51,8 @@ void _logMessage(LogLevel level, const char *msg, ...) {
  * @param file The file in which assertion failed
  * @param line Line number where the assertion failed
  */
-void _reportAssertionFailure(const char *expr, const char *msg,
-                             const char *file, const i32 line) {
+void _reportAssertionFailure(const c8 *expr, const c8 *msg, const c8 *file,
+                             const i32 line) {
     sFatal("Assertion failure: '%s', message '%s' in %s:%d", expr, msg, file,
            line);
 }

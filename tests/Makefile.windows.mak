@@ -17,11 +17,13 @@ CFLAGS += -MMD -MP $(INCLUDES) $(DEFINES)
 TARGET := $(BUILD_DIR)/tests/$(TARGET)
 DIRS := $(sort $(dir $(OBJS)))
 
-all: $(DIRS) $(TARGET)
+all: $(TARGET)
 
 clean:
 	@Write-Output "Cleaning tests..."
 	@if (Test-Path $(BUILD_DIR)/tests) { Remove-Item -Recurse -Force $(BUILD_DIR)/tests }
+
+build-dir: $(DIRS)
 
 $(TARGET): $(OBJS)
 	@Write-Output "Linking $@..."
@@ -35,6 +37,6 @@ $(DIRS):
 	@Write-Output "Creating directory $@..."
 	@if (!(Test-Path $@)) { New-Item -ItemType Directory -Path $@ | Out-Null }
 
-.PHONY: all clean
+.PHONY: all clean build-dir
 
 -include $(DEPS)

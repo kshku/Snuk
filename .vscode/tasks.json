@@ -35,6 +35,27 @@
             "detail": "Tast to build all targets"
         },
         {
+            "label": "Build all dir",
+            "type": "shell",
+            "windows": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.windows.mak",
+                    "build-dir"
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "Tast to build all directories"
+        },
+        {
             "label": "Rebuild all",
             "type": "shell",
             "linux": {
@@ -52,6 +73,7 @@
                     "-f",
                     "Makefile.windows.mak",
                     "clean",
+                    "build-dir",
                     "all"
                 ]
             },
@@ -128,6 +150,27 @@
             "detail": "Task to build engine"
         },
         {
+            "label": "Build engine dir",
+            "type": "shell",
+            "windows": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.windows.mak",
+                    "build-dir-engine"
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "Tast to build all directories of engine"
+        },
+        {
             "label": "Rebuild Engine",
             "type": "shell",
             "linux": {
@@ -145,6 +188,7 @@
                     "-f",
                     "Makefile.windows.mak",
                     "clean-engine",
+                    "build-dir-engine",
                     "engine"
                 ]
             },
@@ -221,6 +265,27 @@
             "detail": "Task to build testapp"
         },
         {
+            "label": "Build testapp dir",
+            "type": "shell",
+            "windows": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.windows.mak",
+                    "build-dir-testapp"
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "Tast to build all directories of testapp"
+        },
+        {
             "label": "Rebuild testapp",
             "type": "shell",
             "linux": {
@@ -238,6 +303,7 @@
                     "-f",
                     "Makefile.windows.mak",
                     "clean-testapp",
+                    "build-dir-testapp",
                     "testapp"
                 ]
             },
@@ -314,6 +380,27 @@
             "detail": "Task to build tests"
         },
         {
+            "label": "Build tests dir",
+            "type": "shell",
+            "windows": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.windows.mak",
+                    "build-dir-tests"
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "Tast to build all directories of tests"
+        },
+        {
             "label": "Rebuild tests",
             "type": "shell",
             "linux": {
@@ -331,6 +418,7 @@
                     "-f",
                     "Makefile.windows.mak",
                     "clean-tests",
+                    "build-dir-tests",
                     "tests"
                 ]
             },

@@ -1,11 +1,14 @@
 #include "input_helper.h"
 
-#include <X11/keysym.h>
+#if defined(SPLATFORM_WINDOWING_X11_XCB) \
+    || defined(SPLATFORM_WINDOWING_X11_XLIB)
 
-#include "core/sstring.h"
+    #include <X11/keysym.h>
+
+    #include "core/sstring.h"
 
 static const struct {
-        char *name;
+        c8 *name;
         Scancode code;
 } name_code_map[] = {
     // Look at the xev output as well as the
@@ -149,7 +152,7 @@ static const struct {
     // NOTE: Have already added most of the commonly used ones
 };
 
-#define NameCodeMapLength sizeof(name_code_map) / sizeof(name_code_map[0])
+    #define NameCodeMapLength sizeof(name_code_map) / sizeof(name_code_map[0])
 
 /**
  * @brief Get the Scancode from the symbolic keynames of X (Xkb's database).
@@ -160,9 +163,9 @@ static const struct {
  * @return Returns the corresponding Scancode for the given key name from the
  * name_code_map
  */
-Scancode getScancodeForXKeyName(char *name) {
+Scancode getScancodeForXKeyName(c8 *name) {
     for (u32 i = 0; i < NameCodeMapLength; ++i)
-        if (sStringEqual(name, name_code_map[i].name, 4))
+        if (sStringEqualC8(name, name_code_map[i].name, 4))
             return name_code_map[i].code;
     return SCANCODE_NONE;
 }
@@ -198,8 +201,8 @@ void mapXKeyCodesToScancodes(mapFunctionParams params, Scancode *map) {
         for (u32 i = 0; i < params.num_key_aliases; ++i) {
             if (map[keycode] != SCANCODE_NONE) break;
 
-            if (!sStringEqual(params.key_aliases[i].real,
-                              params.key_names[key_name_index].name, 4))
+            if (!sStringEqualC8(params.key_aliases[i].real,
+                                params.key_names[key_name_index].name, 4))
                 continue;
 
             map[keycode] = getScancodeForXKeyName(params.key_aliases[i].alias);
@@ -371,3 +374,5 @@ Keycode XKeySymToKeycode(u64 sym) {
 
     return KEYCODE_NONE;
 }
+
+#endif
