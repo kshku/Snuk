@@ -10,19 +10,21 @@
 #include "tests/sstring.h"
 
 b8 tests_init(Application *app_inst) {
+    app_inst->data = (void *)initializeTestManager();
+
     sInfo("Before registering tests");
-    sLogMemState();
+    sMemLogState();
 
     // NOTE: Register tests here
-    app_inst->state = core_memory_register_tests(app_inst->state);
-    app_inst->state = ds_darray_register_tests(app_inst->state);
-    app_inst->state = core_sstring_register_tests(app_inst->state);
+    app_inst->data = core_memory_register_tests(app_inst->data);
+    app_inst->data = ds_darray_register_tests(app_inst->data);
+    app_inst->data = core_sstring_register_tests(app_inst->data);
     // -------------------
 
     sInfo("After registering tests");
-    sLogMemState();
+    sMemLogState();
 
-    testManagerRun(app_inst->state);
+    testManagerRun(app_inst->data);
 
     return true;
 }
@@ -42,22 +44,32 @@ b8 tests_render(Application *app_inst, f32 delta_time) {
 }
 
 void tests_terminate(Application *app_inst) {
-    shutdownTestManager(app_inst->state);
+    shutdownTestManager(app_inst->data);
 }
 
-b8 createApplication(Application *app_inst) {
-    app_inst->config.name = "Snuk Tests";
-    app_inst->config.x = 50;
-    app_inst->config.y = 50;
-    app_inst->config.width = 600;
-    app_inst->config.height = 400;
+// b8 createApplication(Application *app_inst) {
+//     app_inst->config.name = "Snuk Tests";
+//     app_inst->config.x = 50;
+//     app_inst->config.y = 50;
+//     app_inst->config.width = 600;
+//     app_inst->config.height = 400;
 
-    app_inst->initialize = tests_init;
-    app_inst->update = tests_update;
-    app_inst->render = tests_render;
-    app_inst->terminate = tests_terminate;
+//     app_inst->initialize = tests_init;
+//     app_inst->update = tests_update;
+//     app_inst->render = tests_render;
+//     app_inst->terminate = tests_terminate;
 
-    app_inst->state = (void *)initializeTestManager();
+//     app_inst->data = (void *)initializeTestManager();
 
-    return true;
-}
+//     return true;
+// }
+
+Application app = {
+    .config =
+        {.name = "Snuk Tests", .x = 50, .y = 50, .width = 600, .height = 400},
+    .data = NULL,
+    .initialize = tests_init,
+    .render = tests_render,
+    .update = tests_update,
+    .terminate = tests_terminate
+};

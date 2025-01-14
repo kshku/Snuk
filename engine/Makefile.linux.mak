@@ -26,6 +26,8 @@ clean:
 	@echo "Cleaning engine..."
 	@rm -rf $(BUILD_DIR)/engine
 
+build-dir: $(DIRS)
+
 wayland-protocols: $(WAYLAND_PROTO_HEADER) $(WAYLAND_PROTO_CODE)
 
 clean-wayland-protocols:
@@ -36,7 +38,7 @@ $(TARGET): $(OBJS)
 	@echo "Linking $@..."
 	@$(CC) $(LDFLAGS) $^ -o $@
 
-$(BUILD_DIR)/engine/%.o: %.c | $(DIRS)
+$(BUILD_DIR)/engine/%.o: %.c
 	@echo "Compiling $<..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -52,6 +54,6 @@ $(WAYLAND_PROTO_DIR)/%.c: $(WAYLAND_PROTO_DIR)/%.xml
 	@echo "Generating the protocol private code $@ from $<..."
 	@wayland-scanner private-code $< $@
 
-.PHONY: all clean wayland-protocols clean-wayland-protocols
+.PHONY: all clean wayland-protocols clean-wayland-protocols build-dir
 
 -include $(DEPS)

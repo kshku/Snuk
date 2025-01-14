@@ -12,17 +12,17 @@
  *
  * @return true if the logger was initialized successfully.
  */
-b8 initializeLogger(const c8 *file) {
-    UNUSED(file);
-    // TODO: Logging to file, aynchronous logging, etc.
-    return true;
-}
+// b8 initializeLogger(const c8 *file) {
+//     UNUSED(file);
+// TODO: Logging to file, aynchronous logging, etc.
+//     return true;
+// }
 
 /**
  * @brief Shuts down the logger.
  */
-void shutdownLogger(void) {
-}
+// void shutdownLogger(void) {
+// }
 
 /**
  * @brief Logs a message.

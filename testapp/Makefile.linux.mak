@@ -20,11 +20,13 @@ clean:
 	@echo "Cleaning testapp..."
 	@rm -rf $(BUILD_DIR)/testapp
 
+build-dir: $(DIRS)
+
 $(TARGET): $(OBJS)
 	@echo "Linking $@..."
 	@$(CC) $^ -o $@ $(LDFLAGS)
 
-$(BUILD_DIR)/testapp/%.o: %.c | $(DIRS)
+$(BUILD_DIR)/testapp/%.o: %.c
 	@echo "Compiling $<..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -32,6 +34,6 @@ $(DIRS):
 	@echo "Creating directory $@..."
 	@mkdir -p $@
 
-.PHONY: all clean
+.PHONY: all clean build-dir
 
 -include $(DEPS)

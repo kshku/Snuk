@@ -78,7 +78,7 @@ typedef enum SystemEventCode {
     /**
      * Button press and release events.
      * Use data.u32
-     * [0] = button, [2] = keymod
+     * [0] = button, [1] = x, [2] = y, [3] = keymod
      */
     DEFINE_SYSTEM_EVENT_CODE(BUTTON_PRESS, 0x05),
     DEFINE_SYSTEM_EVENT_CODE(BUTTON_RELEASE, 0x06),

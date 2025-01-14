@@ -10,6 +10,6 @@ typedef struct KeyboardState {
         Keymod mod;
 } KeyboardState;
 
-SAPI Keycode scancodeToKeycode(Scancode sc, Keymod mod);
+// SAPI Keycode scancodeToKeycode(Scancode sc, Keymod mod);
 
-SAPI Scancode keycodeToScancode(Keycode kc);
+// SAPI Scancode keycodeToScancode(Keycode kc);

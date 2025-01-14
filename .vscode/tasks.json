@@ -37,6 +37,14 @@
         {
             "label": "Build all dir",
             "type": "shell",
+            "linux": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.linux.mak",
+                    "build-dir"
+                ]
+            },
             "windows": {
                 "command": "make",
                 "args": [
@@ -64,6 +72,7 @@
                     "-f",
                     "Makefile.linux.mak",
                     "clean",
+                    "build-dir",
                     "all"
                 ]
             },
@@ -152,6 +161,14 @@
         {
             "label": "Build engine dir",
             "type": "shell",
+            "linux": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.linux.mak",
+                    "build-dir-engine"
+                ]
+            },
             "windows": {
                 "command": "make",
                 "args": [
@@ -179,6 +196,7 @@
                     "-f",
                     "Makefile.linux.mak",
                     "clean-engine",
+                    "build-dir-engine",
                     "engine"
                 ]
             },
@@ -267,6 +285,14 @@
         {
             "label": "Build testapp dir",
             "type": "shell",
+            "linux": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.linux.mak",
+                    "build-dir-testapp"
+                ]
+            },
             "windows": {
                 "command": "make",
                 "args": [
@@ -294,6 +320,7 @@
                     "-f",
                     "Makefile.linux.mak",
                     "clean-testapp",
+                    "build-dir-testapp",
                     "testapp"
                 ]
             },
@@ -382,6 +409,14 @@
         {
             "label": "Build tests dir",
             "type": "shell",
+            "linux": {
+                "command": "make",
+                "args": [
+                    "-f",
+                    "Makefile.linux.mak",
+                    "build-dir-tests"
+                ]
+            },
             "windows": {
                 "command": "make",
                 "args": [
@@ -409,6 +444,7 @@
                     "-f",
                     "Makefile.linux.mak",
                     "clean-tests",
+                    "build-dir-tests",
                     "tests"
                 ]
             },

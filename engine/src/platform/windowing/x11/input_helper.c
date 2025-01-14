@@ -1,11 +1,12 @@
-#include "input_helper.h"
+#if 0
+    #include "input_helper.h"
 
-#if defined(SPLATFORM_WINDOWING_X11_XCB) \
-    || defined(SPLATFORM_WINDOWING_X11_XLIB)
+    #if defined(SPLATFORM_WINDOWING_X11_XCB) \
+        || defined(SPLATFORM_WINDOWING_X11_XLIB)
 
-    #include <X11/keysym.h>
+        #include <X11/keysym.h>
 
-    #include "core/sstring.h"
+        #include "core/sstring.h"
 
 static const struct {
         c8 *name;
@@ -152,7 +153,8 @@ static const struct {
     // NOTE: Have already added most of the commonly used ones
 };
 
-    #define NameCodeMapLength sizeof(name_code_map) / sizeof(name_code_map[0])
+        #define NameCodeMapLength \
+            sizeof(name_code_map) / sizeof(name_code_map[0])
 
 /**
  * @brief Get the Scancode from the symbolic keynames of X (Xkb's database).
@@ -173,7 +175,7 @@ Scancode getScancodeForXKeyName(c8 *name) {
 /**
  * @brief Map the X's keycodes to the Scancodes.
  *
- * X KeyCodes will be mapped in in given map parameter. It's lenght should be
+ * X KeyCodes will be mapped in in given map parameter. Map's length should be
  * 256 since KeyCode is typedefed as unsigned char (At max it can only hold
  * value 255).
  *
@@ -210,169 +212,52 @@ void mapXKeyCodesToScancodes(mapFunctionParams params, Scancode *map) {
     }
 }
 
+typedef enum XModMask {
+    X_SHFIT_MASK = 0,
+    X_LOCK_MASK = 1,
+    X_CONTROL_MASK = 2,
+    X_MOD_1_MASK = 3,
+    X_MOD_2_MASK = 4,
+    X_MOD_3_MASK = 5,
+    X_MOD_4_MASK = 6,
+    X_MOD_5_MASK = 7,
+    X_BUTTON_1_MASK = 8,
+    X_BUTTON_2_MASK = 9,
+    X_BUTTON_3_MASK = 10,
+    X_BUTTON_4_MASK = 11,
+    X_BUTTON_5_MASK = 12,
+    X_MOD_MASK_MAX
+} XModMask;
+
+// https://stackoverflow.com/questions/19376338/xcb-keyboard-button-masks-meaning
+// Also xmodmap -pm
+// And my memory of looking at some source code repos.
+static const Keymod xmod_keymod_map[X_MOD_MASK_MAX] = {
+    [X_SHFIT_MASK] = KEYMOD_SHIFT,     [X_LOCK_MASK] = KEYMOD_CAPS_LOCK,
+    [X_CONTROL_MASK] = KEYMOD_CONTROL, [X_MOD_1_MASK] = KEYMOD_ALT,
+    [X_MOD_2_MASK] = KEYMOD_NUM_LOCK,  [X_MOD_3_MASK] = KEYMOD_ALTGR,
+    [X_MOD_4_MASK] = KEYMOD_GUI,       [X_MOD_5_MASK] = KEYMOD_SCROLL_LOCK,
+    [X_BUTTON_1_MASK] = KEYMOD_NONE,   [X_BUTTON_2_MASK] = KEYMOD_NONE,
+    [X_BUTTON_3_MASK] = KEYMOD_NONE,   [X_BUTTON_4_MASK] = KEYMOD_NONE,
+    [X_BUTTON_5_MASK] = KEYMOD_NONE,
+};
+
 /**
- * @brief Map the X's KeySym to Keycode (virtual keycodes provided by the
- * engine).
+ * @brief Get the keymod from the X's modifier.
  *
- * @param sym The KeySym
+ * @param mod_state modifier state
+ * @param kc Keycode (result of the getKeycodeFromKeySym)
+ *
+ * @return Bitwise or of the Keymods from the input mod_state.
  */
-Keycode XKeySymToKeycode(u64 sym) {
-    switch (sym) {
-        case XK_BackSpace:
-        case XK_Tab:
-        case XK_Linefeed:
-        case XK_Clear:
-        case XK_Return:
-        case XK_Escape:
-            return (Keycode)(sym & (~0xff00));
+u32 getKeymodFromXModSate(const XModState mod_state) {
+    u32 ret = 0;
+    for (u32 mod = mod_state.effective, i = 0; mod; mod >>= 1, ++i)
+        if (mod & 1) ret |= xmod_keymod_map[i];
 
-        case XK_Pause:
-            return KEYCODE_PAUSE;
-        case XK_Scroll_Lock:
-            return KEYCODE_SCROLL_LOCK;
-        case XK_Sys_Req:
-            return KEYCODE_SYSREQ;
-        case XK_Delete:
-            return KEYCODE_DELETE;
-
-        case XK_Home:
-            return KEYCODE_HOME;
-        case XK_Left:
-            return KEYCODE_LEFT_ARROW;
-        case XK_Up:
-            return KEYCODE_UP_ARROW;
-        case XK_Right:
-            return KEYCODE_RIGHT_ARROW;
-        case XK_Down:
-            return KEYCODE_DOWN_ARROW;
-        case XK_Prior:
-            return KEYCODE_PAGE_UP;
-        case XK_Next:
-            return KEYCODE_PAGE_DOWN;
-        case XK_End:
-            return KEYCODE_END;
-        case XK_Begin:
-            return KEYCODE_BEGIN;
-
-        case XK_Select:
-            return KEYCODE_SELECT;
-        case XK_Print:
-            return KEYCODE_PRINT_SCREEN;
-        case XK_Execute:
-            return KEYCODE_EXECUTE;
-        case XK_Insert:
-            return KEYCODE_INSERT;
-        case XK_Undo:
-            return KEYCODE_UNDO;
-        case XK_Redo:
-            return KEYCODE_REDO;
-        case XK_Menu:
-            return KEYCODE_MENU;
-        case XK_Find:
-            return KEYCODE_FIND;
-        case XK_Cancel:
-            return KEYCODE_CANCEL;
-        case XK_Help:
-            return KEYCODE_HELP;
-        case XK_Break:
-            return KEYCODE_BREAK;
-        case XK_Num_Lock:
-            return KEYCODE_NUM_LOCK;
-
-        case XK_KP_Space:
-            return KEYCODE_KEYPAD_SPACE;
-        case XK_KP_Tab:
-            return KEYCODE_KEYPAD_TAB;
-        case XK_KP_Enter:
-            return KEYCODE_KEYPAD_ENTER;
-            // case XK_KP_F1:
-            //     /* XK_KP_F1 -> PF1, KP_A, ... */
-            //     return KEYCODE_KEYPAD_A;
-            // case XK_KP_F2:
-            //     return KEYCODE_KEYPAD_B;
-            // case XK_KP_F3:
-            //     return KEYCODE_KEYPAD_C;
-            // case XK_KP_F4:
-            //     return KEYCODE_KEYPAD_D;
-
-        case XK_KP_Home:
-            return KEYCODE_KEYPAD_HOME;
-        case XK_KP_Left:
-            return KEYCODE_KEYPAD_LEFT_ARROW;
-        case XK_KP_Up:
-            return KEYCODE_KEYPAD_UP_ARROW;
-        case XK_KP_Right:
-            return KEYCODE_KEYPAD_RIGHT_ARROW;
-        case XK_KP_Down:
-            return KEYCODE_KEYPAD_DOWN_ARROW;
-        case XK_KP_Prior:
-            return KEYCODE_KEYPAD_PAGE_UP;
-        case XK_KP_Next:
-            return KEYCODE_KEYPAD_PAGE_DOWN;
-        case XK_KP_End:
-            return KEYCODE_KEYPAD_END;
-        case XK_KP_Begin:
-            return KEYCODE_KEYPAD_BEGIN;
-        case XK_KP_Insert:
-            return KEYCODE_KEYPAD_INSERT;
-        case XK_KP_Delete:
-            return KEYCODE_KEYPAD_DELETE;
-        case XK_KP_Equal:
-            return KEYCODE_KEYPAD_EQUALS;
-        case XK_KP_Multiply:
-            return KEYCODE_KEYPAD_MULTIPLY;
-        case XK_KP_Add:
-            return KEYCODE_KEYPAD_ADD;
-        case XK_KP_Separator:
-            return KEYCODE_KEYPAD_COMMA;
-        case XK_KP_Subtract:
-            return KEYCODE_KEYPAD_SUBTRACT;
-        case XK_KP_Decimal:
-            return KEYCODE_KEYPAD_DECIMAL;
-        case XK_KP_Divide:
-            return KEYCODE_KEYPAD_DIVIDE;
-        case XK_KP_0:
-            return KEYCODE_KEYPAD_0;
-
-        case XK_Shift_L:
-            return KEYCODE_LEFT_SHIFT;
-        case XK_Shift_R:
-            return KEYCODE_RIGHT_SHIFT;
-        case XK_Control_L:
-            return KEYCODE_LEFT_CONTROL;
-        case XK_Control_R:
-            return KEYCODE_RIGHT_CONTROL;
-        case XK_Caps_Lock:
-            return KEYCODE_CAPS_LOCK;
-
-        case XK_Alt_L:
-            return KEYCODE_LEFT_ALT;
-        case XK_Alt_R:
-            return KEYCODE_RIGHT_ALT;
-        case XK_Super_L:
-            return KEYCODE_LEFT_GUI;
-        case XK_Super_R:
-            return KEYCODE_RIGHT_GUI;
-
-        default:
-            break;
-    }
-
-    if (sym >= XK_KP_1 && sym <= XK_KP_9)
-        return (Keycode)(KEYCODE_KEYPAD_1 + (sym - XK_KP_1));
-
-    if (sym >= XK_F1 && sym <= XK_F12)
-        return (Keycode)(KEYCODE_F1 + (sym - XK_F1));
-
-    if (sym >= XK_F13 && sym <= XK_F24)
-        return (Keycode)(KEYCODE_F13 + (sym - XK_F13));
-
-    if (sym >= XK_F25 && sym <= XK_F35)
-        return (Keycode)(KEYCODE_F25 + (sym - XK_F25));
-
-    if (sym >= XK_space && sym <= XK_asciitilde) return (Keycode)sym;
-
-    return KEYCODE_NONE;
+    return ret;
 }
+
+    #endif
 
 #endif

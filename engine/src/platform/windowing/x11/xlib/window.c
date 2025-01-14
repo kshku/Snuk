@@ -13,7 +13,7 @@
     #include <X11/Xutil.h>
     #include <X11/extensions/XInput2.h>
 
-    #include "../input_helper.h"
+    #include "../../linux_input_helper.h"
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
@@ -36,6 +36,8 @@ typedef struct XlibState {
 } XlibState;
 
 static XlibState *xlib_state;
+
+u32 getKeymodsFromXIModifierState(const XIModifierState mod_state);
 
 /**
  * @brief The error handler [INTERNAL FUNCTION]
@@ -71,8 +73,11 @@ void mapKeycodesToScancodes(void) {
 
     XkbDescPtr desc = xlib_state->xkb_desc;
 
-    XkbGetNames(xlib_state->display, XkbKeyNamesMask | XkbKeyAliasesMask, desc);
+    u32 which = XkbKeyNamesMask | XkbKeyAliasesMask | XkbVirtualModNamesMask;
 
+    XkbGetNames(xlib_state->display, which, desc);
+
+    #if 0
     mapXKeyCodesToScancodes(
         (mapFunctionParams){
             .key_aliases = (XKeyAliasNameType *)desc->names->key_aliases,
@@ -82,15 +87,16 @@ void mapKeycodesToScancodes(void) {
             .min_key_code = desc->min_key_code,
             .num_key_aliases = desc->names->num_key_aliases},
         xlib_state->xKeyCode_to_Scancode);
+    #endif
 
-    XkbFreeNames(desc, XkbKeyNamesMask | XkbKeyAliasesMask, false);
+    XkbFreeNames(desc, which, false);
 }
 
 /**
  * @brief Implementation for xlib.
  *
- * Call with state NULL to get the size to be allocated and call once again with
- * pointer to the allocated memory to actually initialize.
+ * Call with state NULL to get the size to be allocated and call once again
+ * with pointer to the allocated memory to actually initialize.
  *
  * @param size The size of allocation required
  * @param state Pointer to the allocated memory
@@ -149,8 +155,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     attribs.background_pixel = xlib_state->black_pixel;
     attribs.event_mask = ExposureMask | StructureNotifyMask;
     // attribs.event_mask = KeyPressMask | KeyReleaseMask | ButtonPressMask
-    //                    | ButtonReleaseMask | PointerMotionMask | ExposureMask
-    //                    | StructureNotifyMask;
+    //                    | ButtonReleaseMask | PointerMotionMask |
+    //                    ExposureMask | StructureNotifyMask;
 
     // Create the main window
     xlib_state->app_window = XCreateWindow(
@@ -180,14 +186,17 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         sError("Compatible version of XKB is not found in the server");
     }
 
-    xlib_state->xkb_desc = XkbGetKeyboard(xlib_state->display,
-                                          XkbAllComponentsMask, XkbUseCoreKbd);
+    // xlib_state->xkb_desc = XkbGetKeyboard(xlib_state->display,
+    //                                       XkbAllComponentsMask,
+    //                                       XkbUseCoreKbd);
+    xlib_state->xkb_desc =
+        XkbGetMap(xlib_state->display, XkbAllMapComponentsMask, XkbUseCoreKbd);
 
     mapKeycodesToScancodes();
 
     // Select Xkb events
-    // TODO: Register for xkb events and track the changes to the keyboard to
-    // update the keycodes to scancode map
+    // TODO: Register for xkb events and track the changes to the keyboard
+    // to update the keycodes to scancode map
     u32 xkb_masks =
         XkbNewKeyboardNotifyMask | XkbMapNotifyMask | XkbNamesNotifyMask;
     XkbSelectEvents(xlib_state->display, XkbUseCoreKbd, xkb_masks, xkb_masks);
@@ -273,7 +282,9 @@ void handleGenericEvents(XEvent *event) {
                 //        device_event->detail);
                 if (device_event->detail < 4) {
                     // Left = 1, right = 3, middle = 2
-                    inputProcessButton(device_event->detail, true);
+                    inputProcessButton(device_event->detail,
+                                       device_event->event_x,
+                                       device_event->event_y, true);
                 } else {
                     // TODO: Peek at the next event till the next
                     // TODO: event is not scroll and then pass delta
@@ -291,53 +302,42 @@ void handleGenericEvents(XEvent *event) {
                 //        device_event->detail);
                 if (device_event->detail < 4) {
                     // Left = 1, right = 3, middle = 2
-                    inputProcessButton(device_event->detail, false);
+                    inputProcessButton(device_event->detail,
+                                       device_event->event_x,
+                                       device_event->event_y, false);
                 }
                 // Scroll is being processed in button press event
             } break;
-            case XI_KeyPress: {
-                // sDebug("Key press: device:%d, keycode=%d%s",
-                //        device_event->deviceid,
-                //        device_event->detail, (device_event->flags
-                //        & XIKeyRepeat)
-                //            ? " KeyRepeat"
-                //            : "");
-                KeySym keysym;
-                u32 mods;
-                if (!XkbTranslateKeyCode(
-                        xlib_state->xkb_desc, device_event->detail,
-                        device_event->mods.effective, &mods, &keysym))
-                    sError("Failed to translate keycode to keysym");
-                // Found that when Caps lock is on and shift is pressed,
-                // XkbTranslateKeySym will return the capital letters only. So
-                // use a copy since keysym is used later. Output character will
-                // be capital only.
-                c8 buf[5] = {0};
-                i32 overflow = 0;
-                KeySym ks_copy = keysym;
-                XkbTranslateKeySym(xlib_state->display, &ks_copy,
-                                   device_event->mods.effective, buf,
-                                   sizeof(buf), &overflow);
-                if (overflow) sDebug("Overflowed by %d", overflow);
-                else sDebug("Keysym to string result = '%s'", buf);
-                inputProcessKey(
-                    xlib_state->xKeyCode_to_Scancode[device_event->detail],
-                    XKeySymToKeycode(keysym), true,
-                    (device_event->flags & XIKeyRepeat));
-            } break;
+
+            case XI_KeyPress:
             case XI_KeyRelease: {
-                // sDebug("Key release: device:%d, keycode=%d",
-                //        device_event->deviceid,
-                //        device_event->detail);
                 KeySym keysym;
                 u32 mods;
                 if (!XkbTranslateKeyCode(
                         xlib_state->xkb_desc, device_event->detail,
                         device_event->mods.effective, &mods, &keysym))
-                    sError("Failed to translate keycode to keysym");
+                    sError("Failed to translate keycode");
+
+                // c8 buf[64] = {0};
+                // if (XLookupString(&ke, buf, sizeof(buf), &keysym, NULL))
+                //     sDebug("XLookupString: '%s'", buf);
+                sDebug("Keysym = %ld", keysym);
+                // sDebug("Actual keycode = %lu, KeysymToKeycode = %lu",
+                //        device_event->detail,
+                //        getKeycodeFromKeySym(xlib_state->display,
+                //        keysym));
+                // Scancode sc =
+                //     xlib_state->xKeyCode_to_Scancode[device_event->detail];
+                Keycode kc = getKeycodeFromKeySym(keysym);
+                // Translating the X's keycode to linux's keycode by -8
+                // Might not be reliable. Yet to figure out
                 inputProcessKey(
-                    xlib_state->xKeyCode_to_Scancode[device_event->detail],
-                    XKeySymToKeycode(keysym), false, false);
+                    getScancodeFromLinuxKeycode(device_event->detail - 8), kc,
+                    getKeymodsFromXIModifierState(device_event->mods),
+                    device_event->evtype == XI_KeyPress,
+                    (device_event->evtype == XI_KeyPress)
+                        ? (device_event->flags & XIKeyRepeat)
+                        : false);
             } break;
             case XI_Motion: {
                 inputProcessPointerMotion(device_event->event_x,
@@ -369,9 +369,9 @@ b8 platformWindowPumpMessages(void) {
     XEvent *event = &xkb_event.core;
 
     // XNextEvent is blocking which means if direcly used then this function
-    // will not return with true, i.e., utill the application recieves the quit
-    // signal the loop will not stop. So use XPending
-    // ? Do I need to check for !quit
+    // will not return with true, i.e., utill the application recieves the
+    // quit signal the loop will not stop. So use XPending ? Do I need to
+    // check for !quit
     while (!quit && XPending(xlib_state->display)) {
         XNextEvent(xlib_state->display, event);
         if (xkb_event.type == xlib_state->xkb_event_code) {
@@ -419,7 +419,8 @@ b8 platformWindowPumpMessages(void) {
                 handleGenericEvents(event);
             } break;
             case MappingNotify:
-                // Ignore this event since we are handling it in the xkb events
+                // Ignore this event since we are handling it in the xkb
+                // events
                 break;
             default: {
                 sTrace("An event is being ignored: Event type: %d",
@@ -485,6 +486,53 @@ c8 *platformGetWindowTitle(void) {
     }
 
     return NULL;
+}
+
+typedef enum XModMask {
+    X_SHFIT_MASK = 0,
+    X_LOCK_MASK = 1,
+    X_CONTROL_MASK = 2,
+    X_MOD_1_MASK = 3,
+    X_MOD_2_MASK = 4,
+    X_MOD_3_MASK = 5,
+    X_MOD_4_MASK = 6,
+    X_MOD_5_MASK = 7,
+    X_BUTTON_1_MASK = 8,
+    X_BUTTON_2_MASK = 9,
+    X_BUTTON_3_MASK = 10,
+    X_BUTTON_4_MASK = 11,
+    X_BUTTON_5_MASK = 12,
+    X_MOD_MASK_MAX
+} XModMask;
+
+// https://stackoverflow.com/questions/19376338/xcb-keyboard-button-masks-meaning
+// Also xmodmap -pm
+// And my memory of looking at some source code repos.
+static const Keymod xmod_keymod_map[X_MOD_MASK_MAX] = {
+    [X_SHFIT_MASK] = KEYMOD_SHIFT,     [X_LOCK_MASK] = KEYMOD_CAPS_LOCK,
+    [X_CONTROL_MASK] = KEYMOD_CONTROL, [X_MOD_1_MASK] = KEYMOD_ALT,
+    [X_MOD_2_MASK] = KEYMOD_NUM_LOCK,  [X_MOD_3_MASK] = KEYMOD_ALTGR,
+    [X_MOD_4_MASK] = KEYMOD_GUI,       [X_MOD_5_MASK] = KEYMOD_SCROLL_LOCK,
+    [X_BUTTON_1_MASK] = KEYMOD_NONE,   [X_BUTTON_2_MASK] = KEYMOD_NONE,
+    [X_BUTTON_3_MASK] = KEYMOD_NONE,   [X_BUTTON_4_MASK] = KEYMOD_NONE,
+    [X_BUTTON_5_MASK] = KEYMOD_NONE,
+};
+
+/**
+ * @brief Get the keymod from the X's modifier.
+ *
+ * @param mod_state modifier state
+ * @param kc Keycode (result of the getKeycodeFromKeySym)
+ *
+ * @return Bitwise or of the Keymods from the input mod_state.
+ */
+u32 getKeymodsFromXIModifierState(const XIModifierState mod_state) {
+    u32 ret = 0;
+    // TODO: Use the virtual modifiers (or query to find which is what?)
+    for (u32 mod = mod_state.effective, i = 0; mod; mod >>= 1, ++i)
+        if (mod & 1) ret |= xmod_keymod_map[i];
+
+    return ret;
 }
 
 #endif

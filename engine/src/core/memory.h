@@ -14,7 +14,7 @@ SAPI void *sRealloc(void *ptr, u64 size);
 
 SAPI void sFree(void *ptr);
 
-SAPI void sLogMemState(void);
+SAPI void sMemLogState(void);
 
 SAPI void *sMemZeroOut(void *ptr, u64 size);
 

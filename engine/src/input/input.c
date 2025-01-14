@@ -5,10 +5,7 @@
 #include "core/memory.h"
 
 // TODO: How to maintain the states
-// TODO: Two different events for scancodes and keycodes?
-// NOTE: First call scancode's process function which fires scancode event then
-// keycode's process function which fires keycode event
-// TODO: May be change the enent systmes way of working
+// TODO: Move the functions to the keyboard.h and mouse.h files
 
 typedef struct InputState {
         KeyboardState keyboard_current;
@@ -67,53 +64,53 @@ void inputUpdate(void) {
              sizeof(MouseState));
 }
 
-/**
- * @brief Check whether the given key is down now.
- *
- * @param sc Scancode of the key to be checked.
- *
- * @return true if is down, else false.
- */
-b8 inputIsKeyDown(Scancode sc) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return input_state->keyboard_current.scancodes[sc];
-}
+// /**
+//  * @brief Check whether the given key is down now.
+//  *
+//  * @param sc Scancode of the key to be checked.
+//  *
+//  * @return true if is down, else false.
+//  */
+// b8 inputIsKeyDown(Scancode sc) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return input_state->keyboard_current.scancodes[sc];
+// }
 
-/**
- * @brief Check whether the given key is up now.
- *
- * @param sc Scancode of the key to be checked.
- *
- * @return true if is up, else false.
- */
-b8 inputIsKeyUp(Scancode sc) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return !input_state->keyboard_current.scancodes[sc];
-}
+// /**
+//  * @brief Check whether the given key is up now.
+//  *
+//  * @param sc Scancode of the key to be checked.
+//  *
+//  * @return true if is up, else false.
+//  */
+// b8 inputIsKeyUp(Scancode sc) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return !input_state->keyboard_current.scancodes[sc];
+// }
 
-/**
- * @brief Check whether the given key was down previously.
- *
- * @param sc Scancode of the key to be checked.
- *
- * @return true if was down, else false.
- */
-b8 inputWasKeyDown(Scancode sc) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return input_state->keyboard_previous.scancodes[sc];
-}
+// /**
+//  * @brief Check whether the given key was down previously.
+//  *
+//  * @param sc Scancode of the key to be checked.
+//  *
+//  * @return true if was down, else false.
+//  */
+// b8 inputWasKeyDown(Scancode sc) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return input_state->keyboard_previous.scancodes[sc];
+// }
 
-/**
- * @brief Check whether the given key was up previously.
- *
- * @param sc Scancode of the key to be checked.
- *
- * @return true if was up, else false.
- */
-b8 inputWasKeyUp(Scancode sc) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return !input_state->keyboard_previous.scancodes[sc];
-}
+// /**
+//  * @brief Check whether the given key was up previously.
+//  *
+//  * @param sc Scancode of the key to be checked.
+//  *
+//  * @return true if was up, else false.
+//  */
+// b8 inputWasKeyUp(Scancode sc) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return !input_state->keyboard_previous.scancodes[sc];
+// }
 
 /**
  * @brief Process the keyboard events.
@@ -121,132 +118,105 @@ b8 inputWasKeyUp(Scancode sc) {
  * @param sc Scancode of the key whose state changed
  * @param pressed Whether the key is pressed
  */
-void inputProcessKey(Scancode sc, Keycode kc, b8 pressed, b8 repeat) {
+void inputProcessKey(Scancode sc, Keycode kc, u32 mod, b8 pressed, b8 repeat) {
     sassert_msg(input_state, "Input system is not initialized.");
 
     if (repeat) {
-        fireEvent(EVENT_CODE_KEY_REPEAT, NULL,
-                  ((EventContext){
-                      .data.u32 = {[0] = sc,
-                                   [1] = kc,
-                                   [2] = input_state->keyboard_current.mod}
+        fireEvent(
+            EVENT_CODE_KEY_REPEAT, NULL,
+            ((EventContext){
+                .data.u32 = {[0] = sc, [1] = kc, [2] = mod
+                             /*[2] = input_state->keyboard_current.mod*/}
         }));
     }
 
     // If status changed, then update and fire event
+    // TODO: Track the state of the keycode not scancode (or should track both?)
     if (input_state->keyboard_current.scancodes[sc] != pressed) {
         input_state->keyboard_current.scancodes[sc] = pressed;
 
-        // TODO: The mod keys should be passed from platform layer or handled
-        // TODO: here?
-        // switch (sc) {
-        //     case SCANCODE_CAPS_LOCK:
-        //         break;
-        //     case SCANCODE_SCROLL_LOCK:
-        //         break;
-        //     case SCANCODE_NUM_LOCK:
-        //         break;
-        //     case SCANCODE_LEFT_CONTROL:
-        //         break;
-        //     case SCANCODE_LEFT_ALT:
-        //         break;
-        //     case SCANCODE_LEFT_SHIFT:
-        //         break;
-        //     case SCANCODE_LEFT_GUI:
-        //         break;
-        //     case SCANCODE_RIGHT_CONTROL:
-        //         break;
-        //     case SCANCODE_RIGHT_ALT:
-        //         break;
-        //     case SCANCODE_RIGHT_SHIFT:
-        //         break;
-        //     case SCANCODE_RIGHT_GUI:
-        //         break;
-        //     default:
-        //         break;
-        // }
+        // TODO: Logic for detecting left/right mod (if two mods are there)
 
-        fireEvent((pressed ? EVENT_CODE_KEY_PRESS : EVENT_CODE_KEY_RELEASE),
-                  NULL,
-                  (EventContext){
-                      .data.u32 = {[0] = sc,
-                                   [1] = kc,
-                                   [2] = input_state->keyboard_current.mod}
+        fireEvent(
+            (pressed ? EVENT_CODE_KEY_PRESS : EVENT_CODE_KEY_RELEASE), NULL,
+            (EventContext){
+                .data.u32 = {[0] = sc, [1] = kc, [2] = mod
+                             /*[2] = input_state->keyboard_current.mod*/}
         });
     }
 }
 
-/**
- * @brief Check whether the given button is down now.
- *
- * @param b Button to be checked.
- *
- * @return true if is down, else false.
- */
-b8 inputIsButtonDown(Button b) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return input_state->mouse_current.button_state.buttons[b];
-}
+// /**
+//  * @brief Check whether the given button is down now.
+//  *
+//  * @param b Button to be checked.
+//  *
+//  * @return true if is down, else false.
+//  */
+// b8 inputIsButtonDown(Button b) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return input_state->mouse_current.button_state.buttons[b];
+// }
 
-/**
- * @brief Check whether the given button is up now.
- *
- * @param b Button to be checked.
- *
- * @return true if is up, else false.
- */
-b8 inputIsButtonUp(Button b) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return !input_state->mouse_current.button_state.buttons[b];
-}
+// /**
+//  * @brief Check whether the given button is up now.
+//  *
+//  * @param b Button to be checked.
+//  *
+//  * @return true if is up, else false.
+//  */
+// b8 inputIsButtonUp(Button b) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return !input_state->mouse_current.button_state.buttons[b];
+// }
 
-/**
- * @brief Check whether the given button was down previously.
- *
- * @param b Button to be checked.
- *
- * @return true if was down, else false.
- */
-b8 inputWasButtonDown(Button b) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return input_state->mouse_previous.button_state.buttons[b];
-}
+// /**
+//  * @brief Check whether the given button was down previously.
+//  *
+//  * @param b Button to be checked.
+//  *
+//  * @return true if was down, else false.
+//  */
+// b8 inputWasButtonDown(Button b) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return input_state->mouse_previous.button_state.buttons[b];
+// }
 
-/**
- * @brief Check whether the given button was up previously.
- *
- * @param b Button to be checked.
- *
- * @return true if was up, else false.
- */
-b8 inputWasButtonUp(Button b) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return !input_state->mouse_previous.button_state.buttons[b];
-}
+// /**
+//  * @brief Check whether the given button was up previously.
+//  *
+//  * @param b Button to be checked.
+//  *
+//  * @return true if was up, else false.
+//  */
+// b8 inputWasButtonUp(Button b) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return !input_state->mouse_previous.button_state.buttons[b];
+// }
 
-/**
- * @brief Check whether scrolling towards given direction now.
- *
- * @param direction Scroll direction
- *
- * @return true if is, else false.
- */
-b8 inputIsScrolling(Scroll direction) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return input_state->mouse_current.scroll_state.scrolls[direction];
-}
+// /**
+//  * @brief Check whether scrolling towards given direction now.
+//  *
+//  * @param direction Scroll direction
+//  *
+//  * @return true if is, else false.
+//  */
+// b8 inputIsScrolling(Scroll direction) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return input_state->mouse_current.scroll_state.scrolls[direction];
+// }
 
-/**
- * @brief Check whether scrolling towards given direction previously.
- *
- * @param direction Scroll direction
- *
- * @return true if was, else false.
- */
-b8 inputWasScrolling(Scroll direction) {
-    sassert_msg(input_state, "Input system is not initialized.");
-    return input_state->mouse_previous.scroll_state.scrolls[direction];
-}
+// /**
+//  * @brief Check whether scrolling towards given direction previously.
+//  *
+//  * @param direction Scroll direction
+//  *
+//  * @return true if was, else false.
+//  */
+// b8 inputWasScrolling(Scroll direction) {
+//     sassert_msg(input_state, "Input system is not initialized.");
+//     return input_state->mouse_previous.scroll_state.scrolls[direction];
+// }
 
 /**
  * @brief Process the mouse button events.
@@ -256,7 +226,7 @@ b8 inputWasScrolling(Scroll direction) {
  * @param y y position
  * @param pressed Whether the button is pressed
  */
-void inputProcessButton(Button b, b8 pressed) {
+void inputProcessButton(Button b, f64 x, f64 y, b8 pressed) {
     sassert_msg(input_state, "Input system is not initialized.");
 
     if (input_state->mouse_current.button_state.buttons[b] != pressed) {
@@ -266,8 +236,10 @@ void inputProcessButton(Button b, b8 pressed) {
             (pressed ? EVENT_CODE_BUTTON_PRESS : EVENT_CODE_BUTTON_RELEASE),
             NULL,
             ((EventContext){
-                .data.u32 = {
-                             [0] = b, [1] = input_state->mouse_current.keymod}
+                .data.u32 = {[0] = b,
+                             [1] = x,
+                             [2] = y,
+                             [3] = input_state->mouse_current.keymod}
         }));
     }
 }
@@ -276,8 +248,6 @@ void inputProcessButton(Button b, b8 pressed) {
  * @brief Process the scroll events.
  *
  * @param direction Scroll direction
- * @param x x position
- * @param y y position
  */
 void inputProcessScroll(Scroll direction, u32 delta) {
     sassert_msg(input_state, "Input system is not initialized.");
@@ -296,7 +266,7 @@ void inputProcessScroll(Scroll direction, u32 delta) {
  * @param x Current x position
  * @param y Current y position
  */
-void inputProcessPointerMotion(u32 x, u32 y) {
+void inputProcessPointerMotion(f64 x, f64 y) {
     sassert_msg(input_state, "Input system is not initialized.");
 
     input_state->mouse_current.scroll_state.x = x;

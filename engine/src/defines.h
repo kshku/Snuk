@@ -56,6 +56,77 @@ typedef _Bool b8;
 // null
 #define NULL ((void *)0)
 
+// Max and min values of the types
+// signed integer types
+// 0111 1111
+#define MAX_I8 ((i8)0x7f)
+// 1000 0000 (1 << 7)
+#define MIN_I8 ((i8)0x80)
+
+// 0111 1111 1111 1111
+#define MAX_I16 ((i16)0x7fff)
+// 1000 0000 0000 0000 (1 << 15)
+#define MIN_I16 ((i16)0x8000)
+
+// 0111 1111 1111 1111 1111 1111 1111 1111
+#define MAX_I32 ((i32)0x7fffffff)
+// 1000 0000 0000 0000 0000 0000 0000 0000 (1 << 31)
+#define MIN_I32 ((i32)0x80000000)
+
+// 0111 1111 1111 1111 1111 1111 1111 1111
+// 1111 1111 1111 1111 1111 1111 1111 1111
+#define MAX_I64 ((i64)0x7fffffffffffffff)
+// 1000 0000 0000 0000 0000 0000 0000 0000
+// 0000 0000 0000 0000 0000 0000 0000 0000 (1 << 63)
+#define MIN_I64 ((i64)0x8000000000000000)
+
+// unsigned integer types
+// 1111 1111
+#define MAX_U8 ((u8)0xff)
+// 0000 0000
+#define MIN_U8 ((u16)0x00)
+
+// 1111 1111 1111 1111
+#define MAX_U16 ((u16)0xffff)
+// 0000 0000 0000 0000
+#define MIN_U16 ((u16)0x0000)
+
+// 1111 1111 1111 1111 1111 1111 1111 1111
+#define MAX_U32 ((u32)0xffffffff)
+// 0000 0000 0000 0000 0000 0000 0000 0000
+#define MIN_U32 ((u32)0x00000000)
+
+// 1111 1111 1111 1111 1111 1111 1111 1111
+// 1111 1111 1111 1111 1111 1111 1111 1111
+#define MAX_U64 ((u64)0xffffffffffffffff)
+// 0000 0000 0000 0000 0000 0000 0000 0000
+// 0000 0000 0000 0000 0000 0000 0000 0000
+#define MIN_U64 ((u64)0x0000000000000000)
+
+// floating point types
+// typedef float f32;
+// #define MAX_F32
+// #define MIN_F32
+// typedef double f64;
+// #define MAX_F64
+// #define MIN_F64
+
+// character types
+// typedef char c8;
+// #define MAX_C8 ((c8)0x7f)
+// #define MIN_C8 ((c8)0x80)
+// typedef unsigned short c16;
+// #define MAX_C16 ((c16)0xffff)
+// #define MIN_C16 ((c16)0x0000)
+
+// boolean type
+// typedef _Bool b8;
+// #define MAX_B8 ((b8)0x01)
+// #define MIN_B8 ((b8)0x00)
+
+#define true 1
+#define false 0
+
 // Static assert
 #if defined(__clang__) || defined(__GNUC__)
     #define STATIC_ASSERT _Static_assert

@@ -19,12 +19,15 @@
     #include <sys/mman.h>
     #include <unistd.h>
     #include <wayland-client.h>
+    #include <xkbcommon/xkbcommon-x11.h>
 
+    #include "../linux_input_helper.h"
     #include "core/assertions.h"
     #include "core/logger.h"
     #include "core/memory.h"
     #include "core/sstring.h"
     #include "input/input.h"
+    #include "input_helper.h"
     #include "protocols/stable/xdg-shell/xdg-shell.h"
     #include "protocols/unstable/xdg-decoration/xdg-decoration-unstable-v1.h"
 
@@ -52,6 +55,12 @@ typedef struct WaylandState {
         b8 quit;
 
         u32 width, height, stride, size;
+
+        struct xkb_context *xkb_context;
+        struct xkb_keymap *xkb_keymap;
+        struct xkb_state *xkb_state;
+
+        PointerEvent pointer_event;
 } WaylandState;
 
 static WaylandState *wayland_state;
@@ -81,8 +90,9 @@ void wlPointerButton(void *data, struct wl_pointer *wl_pointer, u32 serial,
                      u32 time, u32 button, u32 state);
 void wlPointerAxis(void *data, struct wl_pointer *wl_pointer, u32 time,
                    u32 axis, wl_fixed_t value);
-void wlPointerAxisDiscrete(void *data, struct wl_pointer *wl_pointer, u32 axis,
-                           i32 discrete);
+// void wlPointerAxisDiscrete(void *data, struct wl_pointer *wl_pointer, u32
+// axis,
+//                            i32 discrete);
 void wlPointerAxisRelativeDirection(void *data, struct wl_pointer *wl_pointer,
                                     u32 axis, u32 direction);
 void wlPointerAxisSource(void *data, struct wl_pointer *wl_pointer,
@@ -118,7 +128,7 @@ void zxdgToplevelDecorationV1Configure(
     void *data, struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration_v1,
     enum zxdg_toplevel_decoration_v1_mode zxdg_toplevel_decoration_v1_mode);
 
-struct wl_buffer *createAndDrawWlBuffer();
+struct wl_buffer *createAndDrawWlBuffer(void);
 
 void seatNameHandler(void *data, struct wl_seat *wl_seat, const c8 *name);
 
@@ -221,6 +231,9 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     xdg_wm_base_add_listener(wayland_state->xdg_wm_base, &xdg_wm_base_listener,
                              NULL);
 
+    wayland_state->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    sassert(wayland_state->xkb_context);
+
     xdg_toplevel_set_app_id(wayland_state->xdg_toplevel, config->name);
 
     c8 *app_name = sStringConcatC8(config->name, " - Wayland", 0, 11, NULL);
@@ -271,6 +284,12 @@ void shutdownPlatformWindowing(void *state) {
                 "Shutting down windowing system twice or not initialized?");
 
     if (wayland_state->title) sFree(wayland_state->title);
+
+    if (wayland_state->wl_keyboard)
+        wl_keyboard_release(wayland_state->wl_keyboard);
+
+    if (wayland_state->wl_pointer)
+        wl_pointer_release(wayland_state->wl_pointer);
 
     if (wayland_state->zxdg_toplevel_decoration_v1)
         zxdg_toplevel_decoration_v1_destroy(
@@ -547,7 +566,7 @@ void seatCapabilityHandler(void *data, struct wl_seat *wl_seat,
         wayland_state->wl_pointer = wl_seat_get_pointer(wl_seat);
         static const struct wl_pointer_listener wl_pointer_listener = {
             .axis = wlPointerAxis,
-            .axis_discrete = wlPointerAxisDiscrete,
+            // .axis_discrete = wlPointerAxisDiscrete,
             .axis_relative_direction = wlPointerAxisRelativeDirection,
             .axis_source = wlPointerAxisSource,
             .axis_stop = wlPointerAxisStop,
@@ -589,12 +608,12 @@ void wlPointerMotion(void *data, struct wl_pointer *wl_pointer, u32 time,
     UNUSED(data);
     UNUSED(wl_pointer);
     UNUSED(time);
-    UNUSED(x);
-    UNUSED(y);
     // sDebug("Pointer moved to (%f, %f)", wl_fixed_to_double(x),
     //        wl_fixed_to_double(y));
-    // TODO: Haven't implemented yet.
-    inputProcessPointerMotion(x, y);
+    // inputProcessPointerMotion(x, y);
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_MOTION;
+    wayland_state->pointer_event.motion_surface_x = wl_fixed_to_double(x);
+    wayland_state->pointer_event.motion_surface_y = wl_fixed_to_double(y);
 }
 
 /**
@@ -617,27 +636,12 @@ void wlPointerButton(void *data, struct wl_pointer *wl_pointer, u32 serial,
     //        state == WL_POINTER_BUTTON_STATE_PRESSED ? "pressed" :
     //        "released");
 
-    Button b;
+    // inputProcessButton(b, state == WL_POINTER_BUTTON_STATE_PRESSED);
 
-    // Using the linux/input-event-codes.h
-    switch (button) {
-        case BTN_LEFT:
-            b = BUTTON_LEFT;
-            break;
-        case BTN_RIGHT:
-            b = BUTTON_RIGHT;
-            break;
-        case BTN_MIDDLE:
-            b = BUTTON_MIDDLE;
-            break;
-        default:
-            b = BUTTON_NONE;
-            break;
-    }
-
-    // TODO: Either have to change how the input processing works or have to
-    // keep track of the position and pass it.
-    inputProcessButton(b, state == WL_POINTER_BUTTON_STATE_PRESSED);
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_BUTTON;
+    wayland_state->pointer_event.button = button;
+    wayland_state->pointer_event.pressed =
+        state == WL_POINTER_BUTTON_STATE_PRESSED;
 }
 
 void wlPointerAxis(void *data, struct wl_pointer *wl_pointer, u32 time,
@@ -645,32 +649,41 @@ void wlPointerAxis(void *data, struct wl_pointer *wl_pointer, u32 time,
     UNUSED(data);
     UNUSED(wl_pointer);
     UNUSED(time);
-    UNUSED(axis);
-    UNUSED(value);
-    // TODO: Similar to the inputProcessButton, need to be changed
-    if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
-        inputProcessScroll(((value < 0) ? SCROLL_UP : SCROLL_DOWN),
-                           ((value < 0) ? -value : value));
-    } else if (axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
-        inputProcessScroll(((value < 0) ? SCROLL_LEFT : SCROLL_RIGHT),
-                           ((value < 0) ? -value : value));
-    }
+
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_AXIS;
+    wayland_state->pointer_event.axes[axis].valid = true;
+    wayland_state->pointer_event.axes[axis].value = wl_fixed_to_double(value);
+
+    // if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
+    //     inputProcessScroll(((value < 0) ? SCROLL_UP : SCROLL_DOWN),
+    //                        ((value < 0) ? -value : value));
+    // } else if (axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
+    //     inputProcessScroll(((value < 0) ? SCROLL_LEFT : SCROLL_RIGHT),
+    //                        ((value < 0) ? -value : value));
+    // }
 }
 
-void wlPointerAxisDiscrete(void *data, struct wl_pointer *wl_pointer, u32 axis,
-                           i32 discrete) {
-    UNUSED(data);
-    UNUSED(wl_pointer);
-    UNUSED(axis);
-    UNUSED(discrete);
-}
+// void wlPointerAxisDiscrete(void *data, struct wl_pointer *wl_pointer, u32
+// axis,
+//                            i32 discrete) {
+//     UNUSED(data);
+//     UNUSED(wl_pointer);
+
+//     sDebug("Discrete is deprecated!");
+//     wayland_state->pointer_event.event_mask |=
+//     POINTER_EVENT_TYPE_AXIS_DISCRETE;
+//     wayland_state->pointer_event.axes[axis].valid = true;
+//     wayland_state->pointer_event.axes[axis].discrete = discrete;
+// }
 
 void wlPointerAxisRelativeDirection(void *data, struct wl_pointer *wl_pointer,
                                     u32 axis, u32 direction) {
     UNUSED(data);
     UNUSED(wl_pointer);
-    UNUSED(axis);
-    UNUSED(direction);
+    wayland_state->pointer_event.event_mask |=
+        POINTER_EVENT_TYPE_AXIS_RELATIVE_DIRECTION;
+    wayland_state->pointer_event.axes[axis].valid = true;
+    wayland_state->pointer_event.axes[axis].direction = direction;
 }
 
 void wlPointerAxisSource(void *data, struct wl_pointer *wl_pointer,
@@ -678,6 +691,7 @@ void wlPointerAxisSource(void *data, struct wl_pointer *wl_pointer,
     UNUSED(data);
     UNUSED(wl_pointer);
     UNUSED(axis_source);
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_AXIS_SOURCE;
 }
 
 void wlPointerAxisStop(void *data, struct wl_pointer *wl_pointer, u32 time,
@@ -685,15 +699,20 @@ void wlPointerAxisStop(void *data, struct wl_pointer *wl_pointer, u32 time,
     UNUSED(data);
     UNUSED(wl_pointer);
     UNUSED(time);
-    UNUSED(axis);
+    // TODO: According to the documentation
+    // Any wl_pointer.axis events with the same axis_source after this event
+    // should be considered as the start of a new axis motion.
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_AXIS_STOP;
+    wayland_state->pointer_event.axes[axis].valid = true;
 }
 
 void wlPointerAxisValue120(void *data, struct wl_pointer *wl_pointer, u32 axis,
                            i32 value120) {
     UNUSED(data);
     UNUSED(wl_pointer);
-    UNUSED(axis);
-    UNUSED(value120);
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_AXIS_VALUE120;
+    wayland_state->pointer_event.axes[axis].valid = true;
+    wayland_state->pointer_event.axes[axis].value120 = value120;
 }
 
 void wlPointerEnter(void *data, struct wl_pointer *wl_pointer, u32 serial,
@@ -703,13 +722,73 @@ void wlPointerEnter(void *data, struct wl_pointer *wl_pointer, u32 serial,
     UNUSED(wl_pointer);
     UNUSED(serial);
     UNUSED(wl_surface);
-    UNUSED(surface_x);
-    UNUSED(surface_y);
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_ENTER;
+    wayland_state->pointer_event.enter_surface_x =
+        wl_fixed_to_double(surface_x);
+    wayland_state->pointer_event.enter_surface_y =
+        wl_fixed_to_double(surface_y);
 }
 
 void wlPointerFrame(void *data, struct wl_pointer *wl_pointer) {
     UNUSED(data);
     UNUSED(wl_pointer);
+
+    PointerEvent event = wayland_state->pointer_event;
+
+    if (event.event_mask & POINTER_EVENT_TYPE_ENTER) {
+        inputProcessPointerMotion(event.enter_surface_x, event.enter_surface_y);
+        pointerEventUpdatePosition(event.enter_surface_x,
+                                   event.enter_surface_y);
+    }
+
+    // if (event.event_mask & POINTER_EVENT_TYPE_LEAVE) {
+    // }
+
+    if (event.event_mask & POINTER_EVENT_TYPE_MOTION) {
+        inputProcessPointerMotion(event.motion_surface_x,
+                                  event.motion_surface_y);
+        pointerEventUpdatePosition(event.motion_surface_x,
+                                   event.motion_surface_y);
+    }
+
+    if (event.event_mask & POINTER_EVENT_TYPE_BUTTON) {
+        Button b;
+        switch (event.button) {
+            case BTN_LEFT:
+                b = BUTTON_LEFT;
+                break;
+            case BTN_RIGHT:
+                b = BUTTON_RIGHT;
+                break;
+            case BTN_MIDDLE:
+                b = BUTTON_MIDDLE;
+                break;
+            default:
+                b = BUTTON_NONE;
+                break;
+        }
+        inputProcessButton(b, pointerEventGetPositionX(),
+                           pointerEventGetPositionY(), event.pressed);
+    }
+
+    if (event.event_mask & POINTER_EVENT_TYPE_AXIS_EVENTS) {
+        for (i32 i = 0; i < 2; ++i) {
+            if (!event.axes[i].valid) continue;
+            // vertical is 0 and horizontal is 1
+            // {UP = 1, DOWN = 2} vertical, {LEFT = 3, RIGHT = 4} horizontal
+            u32 direction_base = i * 2 + 1;
+            if (event.event_mask & POINTER_EVENT_TYPE_AXIS) {
+                b8 negetive = event.axes[i].value < 0;
+                inputProcessScroll(
+                    (negetive ? direction_base : direction_base + 1),
+                    (negetive ? -event.axes[i].value : event.axes[i].value));
+            }
+
+            // if (event.event_mask & POINTER_EVENT_TYPE_AXIS_VALUE120)
+            // ...
+        }
+    }
+    sMemZeroOut(&wayland_state->pointer_event, sizeof(PointerEvent));
 }
 
 void wlPointerLeave(void *data, struct wl_pointer *wl_pointer, u32 serial,
@@ -718,6 +797,7 @@ void wlPointerLeave(void *data, struct wl_pointer *wl_pointer, u32 serial,
     UNUSED(serial);
     UNUSED(wl_pointer);
     UNUSED(wl_surface);
+    wayland_state->pointer_event.event_mask |= POINTER_EVENT_TYPE_LEAVE;
 }
 
 /**
@@ -736,11 +816,16 @@ void wlKeyboardKey(void *data, struct wl_keyboard *wl_keyboard, u32 serial,
     UNUSED(wl_keyboard);
     UNUSED(serial);
     UNUSED(time);
-    // sDebug("Key %d %s", key,
-    //        state == WL_KEYBOARD_KEY_STATE_PRESSED ? "pressed" : "released");
-    // TODO: Translation
-    inputProcessKey(key, KEYCODE_NONE, state == WL_KEYBOARD_KEY_STATE_PRESSED,
-                    false);
+    char buf[128] = {0};
+    xkb_keysym_t keysym =
+        xkb_state_key_get_one_sym(wayland_state->xkb_state, key + 8);
+    xkb_keysym_get_name(keysym, buf, sizeof(buf));
+    sDebug("Key: '%s'", buf);
+    inputProcessKey(getScancodeFromLinuxKeycode(key),
+                    getKeycodeFromKeySym(keysym),
+                    getKeymodsFromXKBCommon(wayland_state->xkb_keymap,
+                                            wayland_state->xkb_state),
+                    state == WL_KEYBOARD_KEY_STATE_PRESSED, false);
 }
 
 void wlKeyboardEnter(void *data, struct wl_keyboard *wl_keyboard, u32 serial,
@@ -749,16 +834,46 @@ void wlKeyboardEnter(void *data, struct wl_keyboard *wl_keyboard, u32 serial,
     UNUSED(wl_keyboard);
     UNUSED(serial);
     UNUSED(wl_surface);
-    UNUSED(keys);
+
+    u32 *key;
+    wl_array_for_each(key, keys) {
+        char buf[128];
+        xkb_keysym_t keysym =
+            xkb_state_key_get_one_sym(wayland_state->xkb_state, (*key + 8));
+        xkb_keysym_get_name(keysym, buf, sizeof(buf));
+        sDebug("Key '%s'", buf);
+
+        inputProcessKey(getScancodeFromLinuxKeycode(*key),
+                        getKeycodeFromKeySym(keysym),
+                        getKeymodsFromXKBCommon(wayland_state->xkb_keymap,
+                                                wayland_state->xkb_state),
+                        true, false);
+    }
 }
 
 void wlKeyboardKeymap(void *data, struct wl_keyboard *wl_keyboard, u32 format,
                       i32 fd, u32 size) {
     UNUSED(data);
     UNUSED(wl_keyboard);
-    UNUSED(format);
-    UNUSED(fd);
-    UNUSED(size);
+
+    sassert(format == WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1);
+
+    char *map_shm = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+    sassert(map_shm != MAP_FAILED);
+
+    struct xkb_keymap *xkb_keymap = xkb_keymap_new_from_string(
+        wayland_state->xkb_context, map_shm, XKB_KEYMAP_FORMAT_TEXT_V1,
+        XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+    munmap(map_shm, size);
+    close(fd);
+
+    struct xkb_state *xkb_state = xkb_state_new(xkb_keymap);
+
+    xkb_keymap_unref(wayland_state->xkb_keymap);
+    xkb_state_unref(wayland_state->xkb_state);
+    wayland_state->xkb_keymap = xkb_keymap;
+    wayland_state->xkb_state = xkb_state;
 }
 
 void wlKeyboardLeave(void *data, struct wl_keyboard *wl_keyboard, u32 serial,
@@ -775,10 +890,9 @@ void wlKeyboardModifiers(void *data, struct wl_keyboard *wl_keyboard,
     UNUSED(data);
     UNUSED(wl_keyboard);
     UNUSED(serial);
-    UNUSED(mods_depressed);
-    UNUSED(mods_latched);
-    UNUSED(mods_locked);
-    UNUSED(group);
+
+    xkb_state_update_mask(wayland_state->xkb_state, mods_depressed,
+                          mods_latched, mods_locked, 0, 0, group);
 }
 
 void wlKeyboardRepeatInfo(void *data, struct wl_keyboard *wl_keyboard, i32 rate,
@@ -805,7 +919,7 @@ void wlBufferRelease(void *data, struct wl_buffer *wl_buffer) {
  *
  * @return Returns the wl_buffer after drawing to it.
  */
-struct wl_buffer *createAndDrawWlBuffer() {
+struct wl_buffer *createAndDrawWlBuffer(void) {
     wayland_state->stride = wayland_state->width * sizeof(u32);
     wayland_state->size = wayland_state->height * wayland_state->stride;
 

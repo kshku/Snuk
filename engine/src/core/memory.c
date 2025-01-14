@@ -51,18 +51,23 @@ void shutdownMemory(void) {
     }
 
     sTrace("Deallocating the allocated memroy in shutdown memory");
-    sLogMemState();
+    sMemLogState();
 
     if (mem_state.allocated_ptrs) {
         for (u32 i = 0; i < mem_state.index; ++i) {
             sTrace("Deallocating %ld bytes of memory",
                    mem_state.allocated_ptrs[i].size);
+            mem_state.total_allocated -= mem_state.allocated_ptrs[i].size;
             platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
         }
 
         platformDeallocateMemory(mem_state.allocated_ptrs);
         mem_state.allocated_ptrs = NULL;
     }
+
+    sTrace("After deallocation");
+    sMemLogState();
+
     mem_state.initialized = false;
 }
 
@@ -100,8 +105,11 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
     for (u32 i = 0; i < mem_state.index; ++i) {
         if (mem_state.allocated_ptrs[i].ptr == ptr) {
             *size = mem_state.allocated_ptrs[i].size;
-            for (u32 j = i + 1; j < mem_state.index; ++i, ++j)
-                mem_state.allocated_ptrs[i] = mem_state.allocated_ptrs[j];
+            sMemMove((void *)(mem_state.allocated_ptrs + i),
+                     (void *)(mem_state.allocated_ptrs + i + 1),
+                     ((mem_state.index - i - 1) * sizeof(PtrSizePair)));
+            // for (u32 j = i + 1; j < mem_state.index; ++i, ++j)
+            //     mem_state.allocated_ptrs[i] = mem_state.allocated_ptrs[j];
             --mem_state.index;
             return true;
         }
@@ -251,7 +259,7 @@ void sFree(void *ptr) {
 /**
  * @brief Log how much memory is allocated.
  */
-void sLogMemState(void) {
+void sMemLogState(void) {
     if (!mem_state.initialized) {
         sInfo("Memory subsystem is not initialized, no tracked memory "
               "allocation");

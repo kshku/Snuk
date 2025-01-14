@@ -12,7 +12,7 @@ struct InputSystem;
 
 typedef struct EngineState {
         b8 is_running;
-        Application *app_inst;
+        Application *app;
 
         struct EventSystem *event_system;
         struct WindowingSystem *windowing_system;
@@ -21,11 +21,8 @@ typedef struct EngineState {
 
 static EngineState engine_state;
 
-// TODO: Remove this temporary implementation to close the window
 /**
- * @brief Temporary solutition to quit application in windows.
- *
- * If on other platforms, we just print this function is called.
+ * @brief We can do things when app quit message is forworded.
  */
 b8 applicationQuitEvent(u16 code, void *sender, void *listener,
                         EventContext context) {
@@ -34,9 +31,6 @@ b8 applicationQuitEvent(u16 code, void *sender, void *listener,
     UNUSED(listener);
     UNUSED(context);
     sInfo("Application quit event is recieved");
-#ifdef SPLATFORM_OS_WINDOWS
-    engine_state.is_running = false;
-#endif
     // Event is handled
     return true;
 }
@@ -46,7 +40,7 @@ b8 applicationQuitEvent(u16 code, void *sender, void *listener,
  *
  * This will also initialize subsystems and will call initialize on application.
  *
- * @param app_inst Pointer to the Application instance
+ * @param app Pointer to the Application instance
  *
  * @return true if engine was initialized successfully.
  *
@@ -54,27 +48,26 @@ b8 applicationQuitEvent(u16 code, void *sender, void *listener,
  * conidered as failure to initialize engine. In such cases an error message
  * will be given and this function returns true.
  */
-b8 initializeEngine(Application *app_inst) {
+b8 initializeEngine(Application *app) {
     if (engine_state.is_running) {
         // Engine is already running, so we had initialized logger.
         sError("Engine is already running, but initializeEngine called again.");
         return false;
     }
 
-    engine_state.app_inst = app_inst;
+    engine_state.app = app;
 
-    if (!initializeMemory()) {
-        sError("Failed to initialize memory subsystem");
-    }
+    if (!initializeMemory()) sError("Failed to initialize memory subsystem");
 
-    // TODO: Make logger work such that it doesn't need to be initialized.
-    // TODO: Or Try to make independent of any systems.
-    if (!initializeLogger("log.txt")) {
-        // Even if initialize is failed, messages should be logged to the stdout
-        // or stderr
-        // TODO: Make sure above one is true
-        sError("Failed to initialize logger");
-    }
+    // // TODO: Make logger work such that it doesn't need to be initialized.
+    // // TODO: Or Try to make independent of any systems.
+    // if (!initializeLogger("log.txt")) {
+    //     // Even if initialize is failed, messages should be logged to the
+    //     stdout
+    //     // or stderr
+    //     // TODO: Make sure above one is true
+    //     sError("Failed to initialize logger");
+    // }
 
     {
         u64 size;
@@ -112,8 +105,7 @@ b8 initializeEngine(Application *app_inst) {
 
     {
         u64 size;
-        initializePlatformWindowing(&engine_state.app_inst->config, &size,
-                                    NULL);
+        initializePlatformWindowing(&engine_state.app->config, &size, NULL);
 
         engine_state.windowing_system = sMalloc(size);
         if (!engine_state.windowing_system) {
@@ -121,7 +113,7 @@ b8 initializeEngine(Application *app_inst) {
             return false;
         }
 
-        if (!initializePlatformWindowing(&engine_state.app_inst->config, &size,
+        if (!initializePlatformWindowing(&engine_state.app->config, &size,
                                          engine_state.windowing_system)) {
             sFatal("Failed to initialize the windowing system");
             return false;
@@ -131,7 +123,7 @@ b8 initializeEngine(Application *app_inst) {
     engine_state.is_running = true;
 
     // Should be called at last, i.e., after initializing subsystems
-    if (!engine_state.app_inst->initialize(engine_state.app_inst)) {
+    if (!engine_state.app->initialize(engine_state.app)) {
         sFatal("Application initialization failed!");
         return false;
     }
@@ -152,14 +144,14 @@ void shutdownEngine(void) {
         sError("Failed to unregister from application quit event");
 
     // Should be called first, i.e., before terminating subsystems
-    engine_state.app_inst->terminate(engine_state.app_inst);
+    engine_state.app->terminate(engine_state.app);
 
     // No need to deallocate memory since our memory system handles it
 
     shutdownPlatformWindowing(engine_state.windowing_system);
     shutdownInput(engine_state.input_system);
     shutdownEvent(engine_state.event_system);
-    shutdownLogger();
+    // shutdownLogger();
     shutdownMemory();
 }
 

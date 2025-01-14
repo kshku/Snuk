@@ -21,7 +21,7 @@
     #include <xcb/xkb.h>
     #include <xkbcommon/xkbcommon-x11.h>
 
-    #include "../input_helper.h"
+    #include "../../linux_input_helper.h"
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
@@ -152,17 +152,18 @@ void mapKeycodesToScancodes(void) {
     // I don't know, they have those functions so I am just using it
     // I am here just guessing things and doing it. I couldn't find
     // documentation about it.
-    mapFunctionParams params = {
-        .key_aliases =
-            (XKeyAliasNameType *)xcb_xkb_get_names_value_list_key_aliases(
-                &value_list),
-        .key_names =
-            (XKeyNameType *)xcb_xkb_get_names_value_list_key_names(&value_list),
-        .key_names_start_from_min_key_code = true,
-        .max_key_code = names_reply->maxKeyCode,
-        .min_key_code = names_reply->minKeyCode,
-        .num_key_aliases = names_reply->nKeyAliases};
-    mapXKeyCodesToScancodes(params, xcb_state->xKeyCodeToScancode);
+    // mapFunctionParams params = {
+    //     .key_aliases =
+    //         (XKeyAliasNameType *)xcb_xkb_get_names_value_list_key_aliases(
+    //             &value_list),
+    //     .key_names =
+    //         (XKeyNameType
+    //         *)xcb_xkb_get_names_value_list_key_names(&value_list),
+    //     .key_names_start_from_min_key_code = true,
+    //     .max_key_code = names_reply->maxKeyCode,
+    //     .min_key_code = names_reply->minKeyCode,
+    //     .num_key_aliases = names_reply->nKeyAliases};
+    // mapXKeyCodesToScancodes(params, xcb_state->xKeyCodeToScancode);
 
     // If I try to free value list, it gives "double free or corruption
     // (!prev)" error. So don't free(value_list)
@@ -453,7 +454,9 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 //        bpe->deviceid, bpe->detail);
                 if (bpe->detail < 4) {
                     // Left = 1, right = 3, middle = 2
-                    inputProcessButton(bpe->detail, true);
+                    inputProcessButton(bpe->detail,
+                                       (bpe->event_x / (double)MAX_U16),
+                                       (bpe->event_y / (double)MAX_U16), true);
                 } else {
                     // ? Should we do it?
                     // TODO: Peek at the next event till the next event is not
@@ -472,23 +475,18 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 // %d",
                 //        bre->deviceid, bre->detail);
                 if (bre->detail < 4) {
-                    inputProcessButton(bre->detail, false);
+                    inputProcessButton(bre->detail,
+                                       (bre->event_x / (double)MAX_U16),
+                                       (bre->event_y / (double)MAX_U16), false);
                 }
             } break;
             case XCB_INPUT_KEY_PRESS: {
                 xcb_input_key_press_event_t *kpe =
                     (xcb_input_key_press_event_t *)ge;
 
-                enum xkb_state_component changed = xkb_state_update_key(
-                    xcb_state->xkb_state, kpe->detail, XKB_KEY_DOWN);
-                UNUSED(changed);
-                // sDebug("Key press: device:%d, keycode=%d%s",
-                //        kpe->deviceid, kpe->detail,
-                //        (kpe->flags
-                //         &
-                //         XCB_INPUT_KEY_EVENT_FLAGS_KEY_REPEAT)
-                //            ? " KeyRepeat"
-                //            : "");
+                // enum xkb_state_component changed = xkb_state_update_key(
+                //     xcb_state->xkb_state, kpe->detail, XKB_KEY_DOWN);
+                // UNUSED(changed);
 
                 xkb_keysym_t keysym = xkb_state_key_get_one_sym(
                     xcb_state->xkb_state, kpe->detail);
@@ -502,30 +500,41 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 // if (kpe->flags & XCB_INPUT_KEY_EVENT_FLAGS_KEY_REPEAT
                 //     && xkb_keymap_key_repeats(xcb_state->xkb_keymap,
                 //                               kpe->detail))
-                // We can use our helper XKeySymToKeycode function since the
-                // value of keysym is same
+                // We can use our helper getKeycodeFromKeySym function since
+                // the value of keysym is same Scancode sc =
+                // xcb_state->xKeyCodeToScancode[kpe->detail];
+                Keycode kc = getKeycodeFromKeySym(keysym);
+                // Translating the X's keycode to linux's keycode by -8
+                // Might not be reliable. Yet to figure out
                 inputProcessKey(
-                    xcb_state->xKeyCodeToScancode[kpe->detail],
-                    XKeySymToKeycode(keysym), true,
-                    (kpe->flags & XCB_INPUT_KEY_EVENT_FLAGS_KEY_REPEAT));
+                    getScancodeFromLinuxKeycode(kpe->detail - 8), kc,
+                    getKeymodsFromXKBCommon(xcb_state->xkb_keymap,
+                                            xcb_state->xkb_state),
+                    true, (kpe->flags & XCB_INPUT_KEY_EVENT_FLAGS_KEY_REPEAT));
             } break;
             case XCB_INPUT_KEY_RELEASE: {
                 xcb_input_key_release_event_t *kre =
                     (xcb_input_key_release_event_t *)ge;
 
-                enum xkb_state_component changed = xkb_state_update_key(
-                    xcb_state->xkb_state, kre->detail, XKB_KEY_UP);
-                UNUSED(changed);
-                // sDebug("Key release: device:%d, keycode=%d",
-                //        kre->deviceid, kre->detail);
+                // enum xkb_state_component changed = xkb_state_update_key(
+                //     xcb_state->xkb_state, kre->detail, XKB_KEY_UP);
+                // UNUSED(changed);
 
                 xkb_keysym_t keysym = xkb_state_key_get_one_sym(
                     xcb_state->xkb_state, kre->detail);
 
-                // We can use our helper XKeySymToKeycode function since the
-                // value of keysym is same
-                inputProcessKey(xcb_state->xKeyCodeToScancode[kre->detail],
-                                XKeySymToKeycode(keysym), false, false);
+                // We can use our helper getKeycodeFromKeySym function since
+                // the value of keysym is same Scancode sc =
+                // Scancode sc = xcb_state->xKeyCodeToScancode[kre->detail];
+
+                Keycode kc = getKeycodeFromKeySym(keysym);
+                // Translating the X's keycode to linux's keycode by -8
+                // Might not be reliable. Yet to figure out
+                inputProcessKey(getScancodeFromLinuxKeycode(kre->detail - 8),
+                                kc,
+                                getKeymodsFromXKBCommon(xcb_state->xkb_keymap,
+                                                        xcb_state->xkb_state),
+                                false, false);
             } break;
             case XCB_INPUT_MOTION: {
                 xcb_input_motion_event_t *me = (xcb_input_motion_event_t *)ge;

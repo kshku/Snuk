@@ -2,6 +2,8 @@
 
 #include "defines.h"
 
+// TODO: Add familar aliases wherever required
+
 #define SCANCODE_PREFIX SCANCODE_
 #define DEFINE_SCANCODE(key, value) \
     CONCAT_EXPANDED(SCANCODE_PREFIX, key) = value
@@ -207,7 +209,7 @@ typedef enum Scancode {
     DEFINE_SCANCODE(LANG_8, 0x97),
     DEFINE_SCANCODE(LANG_9, 0x98),
 
-    DEFINE_SCANCODE(ALTERNATE_ERASE, 0x99),
+    DEFINE_SCANCODE(ALTERASE, 0x99),
     DEFINE_SCANCODE(SYSREQ, 0x9A),
     DEFINE_SCANCODE(CANCEL, 0x9B),
     DEFINE_SCANCODE(CLEAR, 0x9C),
@@ -215,7 +217,7 @@ typedef enum Scancode {
     // PageUp key is also known as Prior key but this is not PageUp key
     DEFINE_SCANCODE(PRIOR_HID, 0x9D),
     DEFINE_SCANCODE(
-        RETURN,
+        RETURN2,
         0x9E), /* defined as SDL_SCANCODE_RETURN2 in SDL implementation*/
     DEFINE_SCANCODE(SEPARATOR, 0x9F),
     DEFINE_SCANCODE(OUT, 0xA0),

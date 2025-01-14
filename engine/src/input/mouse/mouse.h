@@ -16,6 +16,8 @@ typedef enum Button {
     BUTTON_MAX_BUTTON
 } Button;
 
+// TODO: Scroll direction and scroll axis
+// Converting and renaming 'Scroll'
 typedef enum Scroll {
     DEFINE_SCROLL(NONE, 0x00),
 
@@ -25,7 +27,6 @@ typedef enum Scroll {
     DEFINE_SCROLL(RIGHT, 0x04),  // To the right of page
 
     SCROLL_MAX_SCROLL
-
 } Scroll;
 
 typedef struct ButtonState {
@@ -48,3 +49,7 @@ typedef struct MouseState {
         // PointerState pointer_state;
         Keymod keymod;
 } MouseState;
+
+// typedef enum ScrollAxis {} ScrollAxis;
+
+// void getScrollAxisAndValue()

@@ -10,6 +10,7 @@ WAYLAND := wayland-client
 
 SUBDIRS := engine testapp tests
 CLEAN_TARGETS := $(SUBDIRS:%=clean-%)
+BUILD_DIR_TARGETS := $(SUBDIRS:%=build-dir-%)
 
 export BUILD_DIR := $(CURDIR)/$(BUILD_DIR)
 export CC
@@ -21,16 +22,18 @@ export XLIB
 export XCB
 export WAYLAND
 
-all: $(BUILD_DIR) $(SUBDIRS)
+all: $(SUBDIRS)
 
 clean:
 	@echo "Cleaning everything..."
 	@rm -rf $(BUILD_DIR)
 
+build-dir: $(BUILD_DIR) $(BUILD_DIR_TARGETS)
+
 $(CLEAN_TARGETS):
 	@$(MAKE) -C $(@:clean-%=%) -f Makefile.linux.mak clean
 
-$(SUBDIRS): | $(BUILD_DIR)
+$(SUBDIRS):
 	@$(MAKE) -C $@ -f Makefile.linux.mak
 	@echo --------------------------------------------
 
@@ -38,4 +41,7 @@ $(BUILD_DIR):
 	@echo "Creating directory $(BUILD_DIR)..."
 	@mkdir -p $(BUILD_DIR)
 
-.PHONY: all clean $(SUBDIRS) $(CLEAN_TARGETS)
+$(BUILD_DIR_TARGETS):
+	@$(MAKE) -C $(@:build-dir-%=%) -f Makefile.linux.mak build-dir
+
+.PHONY: all clean $(SUBDIRS) $(CLEAN_TARGETS) $(BUILD_DIR_TARGETS)
