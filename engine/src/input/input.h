@@ -24,7 +24,7 @@ void inputProcessKey(Scancode sc, Keycode kc, u32 mod, b8 pressed, b8 repeat);
 // SAPI b8 inputIsScrolling(Scroll direction);
 // SAPI b8 inputWasScrolling(Scroll direction);
 
-void inputProcessButton(Button b, f64 x, f64 y, b8 pressed);
-void inputProcessScroll(Scroll direction, u32 delta);
+void inputProcessButton(Button b, f64 x, f64 y, u32 mod, b8 pressed);
+void inputProcessScroll(Scroll direction, u32 mod, u32 delta);
 
 void inputProcessPointerMotion(f64 x, f64 y);

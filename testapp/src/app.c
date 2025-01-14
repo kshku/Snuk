@@ -137,8 +137,9 @@ b8 button_press_logger(u16 code, void *sender, void *listener,
     u32 button = context.data.u32[0];
     u32 x = context.data.u32[1];
     u32 y = context.data.u32[2];
+    u32 mod = context.data.u32[3];
 
-    sInfo("Pressed '%d' at (%u, %u)", button, x, y);
+    sInfo("Pressed '%d' at (%u, %u), mod = %u", button, x, y, mod);
 
     return false;
 }
@@ -153,8 +154,9 @@ b8 button_release_logger(u16 code, void *sender, void *listener,
     u32 button = context.data.u32[0];
     u32 x = context.data.u32[1];
     u32 y = context.data.u32[2];
+    u32 mod = context.data.u32[3];
 
-    sInfo("Released '%d' at (%u, %u)", button, x, y);
+    sInfo("Released '%d' at (%u, %u), mod = %u", button, x, y, mod);
 
     return false;
 }
@@ -164,9 +166,11 @@ b8 scroll_logger(u16 code, void *sender, void *listener, EventContext context) {
     UNUSED(listener);
     if (code != EVENT_CODE_SCROLL) sError("Getting unregistered events!");
 
-    u16 direction = context.data.u16[0];
+    u32 direction = context.data.u32[0];
+    u32 delta = context.data.u32[1];
+    u32 mod = context.data.u32[2];
 
-    sInfo("Direction '%d'", direction);
+    sInfo("Direction '%u', delta = '%u', mod = %u", direction, delta, mod);
 
     return false;
 }

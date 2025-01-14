@@ -81,9 +81,7 @@ LRESULT CALLBACK windowProcedure(HWND hwnd, UINT u_msg, WPARAM w_param,
         case WM_CLOSE:
             // NOTE: DefWindowProc will handle this and Destroy the window
             win32_state->quit = true;
-            if (!fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL,
-                           ((EventContext){0})))
-                sError("Expected someone to handle Application quit event");
+            fireEvent(EVENT_CODE_APPLICATION_QUIT, NULL, ((EventContext){0}));
             break;
         case WM_DESTROY:
             // I know multiple times but still
@@ -101,32 +99,38 @@ LRESULT CALLBACK windowProcedure(HWND hwnd, UINT u_msg, WPARAM w_param,
             break;
         case WM_LBUTTONDOWN:
         case WM_LBUTTONUP:
-            inputProcessButton(BUTTON_LEFT, u_msg == WM_LBUTTONDOWN);
+            inputProcessButton(BUTTON_LEFT, GET_X_LPARAM(l_param),
+                               GET_Y_LPARAM(l_param), getKeymods(),
+                               u_msg == WM_LBUTTONDOWN);
             return 0;
         case WM_MBUTTONDBLCLK:
             // Dobule click right button
             break;
         case WM_MBUTTONDOWN:
         case WM_MBUTTONUP:
-            inputProcessButton(BUTTON_MIDDLE, u_msg == WM_MBUTTONDOWN);
+            inputProcessButton(BUTTON_MIDDLE, GET_X_LPARAM(l_param),
+                               GET_Y_LPARAM(l_param), getKeymods(),
+                               u_msg == WM_MBUTTONDOWN);
             return 0;
         case WM_RBUTTONDBLCLK:
             // Double click right button
             break;
         case WM_RBUTTONDOWN:
         case WM_RBUTTONUP:
-            inputProcessButton(BUTTON_RIGHT, u_msg == WM_RBUTTONDOWN);
+            inputProcessButton(BUTTON_RIGHT, GET_X_LPARAM(l_param),
+                               GET_Y_LPARAM(l_param), getKeymods(),
+                               u_msg == WM_RBUTTONDOWN);
             return 0;
         case WM_MOUSEWHEEL:
             inputProcessScroll(
                 GET_WHEEL_DELTA_WPARAM(w_param) > 0 ? SCROLL_UP : SCROLL_DOWN,
-                1);
+                getKeymods(), 1);
             return 0;
         case WM_MOUSEHWHEEL:
             inputProcessScroll(GET_WHEEL_DELTA_WPARAM(w_param) > 0
                                    ? SCROLL_RIGHT
                                    : SCROLL_LEFT,
-                               1);
+                               getKeymods(), 1);
             return 0;
 
         // Keyboard events
@@ -138,12 +142,18 @@ LRESULT CALLBACK windowProcedure(HWND hwnd, UINT u_msg, WPARAM w_param,
             WORD key_flags = HIWORD(l_param);
             BYTE scancode = LOBYTE(key_flags);
             b8 is_extended = key_flags & KF_EXTENDED;
+            b8 pressed = (u_msg == WM_KEYDOWN) || (u_msg == WM_SYSKEYDOWN);
+            u16 virtual_keycode = LOWORD(w_param);
 
+            // Update the keymod
+            updateKeymodsState(virtual_keycode, pressed);
+
+            // Don't know why but sometimes the key press event is not
+            // triggered, but release is triggered. Is it only for me?
             inputProcessKey(
                 scan1MakeToScancode(scancode, is_extended),
-                virtualKeyCodeToKeycode(LOWORD(w_param), scancode, is_extended),
-                (u_msg == WM_KEYDOWN || u_msg == WM_SYSKEYDOWN),
-                LOWORD(l_param) > 0);
+                virtualKeyCodeToKeycode(virtual_keycode, scancode, is_extended),
+                getKeymods(), pressed, (LOWORD(l_param) > 0));
         }
             return 0;
 
@@ -209,14 +219,29 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         return false;
     }
 
-    RECT boarder_rect = {0};
+    // RECT boarder_rect = {0};
+    RECT boarder_rect = {.left = config->x,
+                         .right = config->x + config->width,
+                         .top = config->y,
+                         .bottom = config->y + config->height};
 
-    AdjustWindowRectEx(&boarder_rect, WS_OVERLAPPEDWINDOW, false, 0);
+    AdjustWindowRectEx(&boarder_rect, WS_OVERLAPPEDWINDOW, false,
+                       WS_EX_APPWINDOW);
+    // AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, false, WS_EX_APPWINDOW);
 
-    u32 window_x = config->x + boarder_rect.left;
-    u32 window_y = config->y + boarder_rect.top;
-    u32 window_width = config->width + boarder_rect.right - boarder_rect.left;
-    u32 window_height = config->height + boarder_rect.top - boarder_rect.bottom;
+    // i64 window_x = config->x + boarder_rect.left;
+    // i64 window_y = config->y + boarder_rect.top;
+    // i64 window_width = config->width + boarder_rect.right -
+    // boarder_rect.left; i64 window_height = config->height +
+    // boarder_rect.bottom - boarder_rect.top; sassert(window_x == rect.left);
+    // sassert(window_y == rect.top);
+    // sassert(window_width == (rect.right - rect.left));
+    // sassert(window_height == (rect.bottom - rect.top));
+
+    i64 window_x = boarder_rect.left;
+    i64 window_y = boarder_rect.top;
+    i64 window_width = boarder_rect.right - boarder_rect.left;
+    i64 window_height = boarder_rect.bottom - boarder_rect.top;
 
     c8 *name = sStringConcatC8(config->name, " - Win32", 0, 8, NULL);
     c16 *app_name = convertToWideString(name);
@@ -238,6 +263,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     ShowWindow(win32_state->hwnd, SW_SHOWNORMAL);
 
     // hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardhook, NULL, 0);
+
+    syncKeymodsState();
 
     return true;
 }

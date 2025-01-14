@@ -326,7 +326,7 @@ Keycode virtualKeyCodeToKeycode(u16 virtual_keycode, u8 scancode,
         case VK_OEM_1:
             return KEYCODE_SEMICOLON;
         case VK_OEM_PLUS:
-            return KEYCODE_PLUS;
+            return KEYCODE_EQUALS;
         case VK_OEM_COMMA:
             return KEYCODE_COMMA;
         case VK_OEM_MINUS:
@@ -375,6 +375,99 @@ Keycode virtualKeyCodeToKeycode(u16 virtual_keycode, u8 scancode,
         return (Keycode)(KEYCODE_F13 + (virtual_keycode - VK_F13));
 
     return KEYCODE_NONE;
+}
+
+// typedef enum KeymodIndex {
+//     KEYMOD_INDEX_SHIFT = 0,
+//     KEYMOD_SHIFT_CONTROL = 1,
+//     KEYMOD_INDEX_ALT = 2,
+//     KEYMOD_INDEX_GUI = 3,
+//     KEYMOD_INDEX_NUM_LOCK = 4,
+//     KEYMOD_INDEX_CAPS_LOCK = 5,
+//     KEYMOD_INDEX_SCROLL_LOCK = 6,
+//     KEYMOD_INDEX_ALTGR = 7
+// } KeymodIndex;
+
+static u32 keymod_state;
+    #define ADD_KEYMOD(keymod) (keymod_state |= keymod)
+    #define REMOVE_KEYMOD(keymod) (keymod_state &= (~keymod))
+    #define TOGGLE_KEYMOD(keymod) \
+        (keymod_state & keymod ? REMOVE_KEYMOD(keymod) : ADD_KEYMOD(keymod))
+
+/**
+ * @brief Sync the modifiers state.
+ *
+ * Uses the GetKeyState function to get the state of the modifiers especially
+ * state of the lock keys (caps lock, num lock, etc.)
+ */
+void syncKeymodsState(void) {
+    keymod_state = 0;
+    if (GetKeyState(VK_SHIFT) & BITFLAG(15)) ADD_KEYMOD(KEYMOD_SHIFT);
+    if (GetKeyState(VK_CONTROL) & BITFLAG(15)) ADD_KEYMOD(KEYMOD_CONTROL);
+    if (GetKeyState(VK_MENU) & BITFLAG(15)) ADD_KEYMOD(KEYMOD_ALT);
+    if (GetKeyState(VK_LWIN) & BITFLAG(15)) ADD_KEYMOD(KEYMOD_LEFT_GUI);
+    if (GetKeyState(VK_RWIN) & BITFLAG(15)) ADD_KEYMOD(KEYMOD_RIGHT_GUI);
+    // ? ALTGR is not there?
+    if (GetKeyState(VK_CAPITAL) & BITFLAG(0)) ADD_KEYMOD(KEYMOD_CAPS_LOCK);
+    if (GetKeyState(VK_NUMLOCK) & BITFLAG(0)) ADD_KEYMOD(KEYMOD_NUM_LOCK);
+    if (GetKeyState(VK_SCROLL) & BITFLAG(0)) ADD_KEYMOD(KEYMOD_SCROLL_LOCK);
+}
+
+/**
+ * @brief Update the modifiers state.
+ *
+ * @param virtual_keycode The keycode whose state changed
+ * @param pressed Whether it is pressed or not
+ */
+void updateKeymodsState(u16 virtual_keycode, b8 pressed) {
+    Keymod mod = KEYMOD_NONE;
+    Keymod lock = KEYMOD_NONE;
+    switch (virtual_keycode) {
+        case VK_SHIFT:
+            mod = KEYMOD_SHIFT;
+            break;
+        case VK_CONTROL:
+            mod = KEYMOD_CONTROL;
+            break;
+        case VK_MENU:
+            mod = KEYMOD_ALT;
+            break;
+        case VK_LWIN:
+            mod = KEYMOD_LEFT_GUI;
+            break;
+        case VK_RWIN:
+            mod = KEYMOD_RIGHT_GUI;
+            break;
+        case VK_CAPITAL:
+            lock = KEYMOD_CAPS_LOCK;
+            break;
+        case VK_NUMLOCK:
+            lock = KEYMOD_NUM_LOCK;
+            break;
+        case VK_SCROLL:
+            lock = KEYMOD_SCROLL_LOCK;
+            break;
+        default:
+            mod = KEYMOD_NONE;
+            lock = KEYMOD_NONE;
+            break;
+    }
+
+    if (pressed) {
+        ADD_KEYMOD(mod);
+        TOGGLE_KEYMOD(lock);
+    } else {
+        REMOVE_KEYMOD(mod);
+    }
+}
+
+/**
+ * @brief Get the current state of the keymods.
+ *
+ * @return Active Keymods.
+ */
+u32 getKeymods(void) {
+    return keymod_state;
 }
 
 #endif

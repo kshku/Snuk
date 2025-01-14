@@ -224,9 +224,10 @@ void inputProcessKey(Scancode sc, Keycode kc, u32 mod, b8 pressed, b8 repeat) {
  * @param b Button whose state changed
  * @param x x position
  * @param y y position
+ * @param mod Modifiers state
  * @param pressed Whether the button is pressed
  */
-void inputProcessButton(Button b, f64 x, f64 y, b8 pressed) {
+void inputProcessButton(Button b, f64 x, f64 y, u32 mod, b8 pressed) {
     sassert_msg(input_state, "Input system is not initialized.");
 
     if (input_state->mouse_current.button_state.buttons[b] != pressed) {
@@ -236,10 +237,7 @@ void inputProcessButton(Button b, f64 x, f64 y, b8 pressed) {
             (pressed ? EVENT_CODE_BUTTON_PRESS : EVENT_CODE_BUTTON_RELEASE),
             NULL,
             ((EventContext){
-                .data.u32 = {[0] = b,
-                             [1] = x,
-                             [2] = y,
-                             [3] = input_state->mouse_current.keymod}
+                .data.u32 = {[0] = b, [1] = x, [2] = y, [3] = mod}
         }));
     }
 }
@@ -248,15 +246,15 @@ void inputProcessButton(Button b, f64 x, f64 y, b8 pressed) {
  * @brief Process the scroll events.
  *
  * @param direction Scroll direction
+ * @param mod Modifiers state
+ * @param delta delta :)
  */
-void inputProcessScroll(Scroll direction, u32 delta) {
+void inputProcessScroll(Scroll direction, u32 mod, u32 delta) {
     sassert_msg(input_state, "Input system is not initialized.");
 
     fireEvent(EVENT_CODE_SCROLL, NULL,
               ((EventContext){
-                  .data.u32 = {[0] = direction,
-                               [1] = delta,
-                               [2] = input_state->mouse_current.keymod}
+                  .data.u32 = {[0] = direction, [1] = delta, [2] = mod}
     }));
 }
 
