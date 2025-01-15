@@ -455,9 +455,9 @@ void updateKeymodsState(u16 virtual_keycode, b8 pressed) {
 
     if (pressed) {
         ADD_KEYMOD(mod);
-        TOGGLE_KEYMOD(lock);
     } else {
         REMOVE_KEYMOD(mod);
+        TOGGLE_KEYMOD(lock);
     }
 }
 

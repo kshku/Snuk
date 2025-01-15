@@ -454,9 +454,12 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 //        bpe->deviceid, bpe->detail);
                 if (bpe->detail < 4) {
                     // Left = 1, right = 3, middle = 2
-                    inputProcessButton(bpe->detail,
-                                       (bpe->event_x / (double)MAX_U16),
-                                       (bpe->event_y / (double)MAX_U16), true);
+                    inputProcessButton(
+                        bpe->detail, (bpe->event_x / (double)MAX_U16),
+                        (bpe->event_y / (double)MAX_U16),
+                        getKeymodsFromXKBCommon(xcb_state->xkb_keymap,
+                                                xcb_state->xkb_state),
+                        true);
                 } else {
                     // ? Should we do it?
                     // TODO: Peek at the next event till the next event is not
@@ -465,7 +468,11 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
 
                     // scroll:
                     // up = 4 down = 5 left = 6 right = 7
-                    inputProcessScroll((bpe->detail - 3), 1);
+                    inputProcessScroll(
+                        (bpe->detail - 3),
+                        getKeymodsFromXKBCommon(xcb_state->xkb_keymap,
+                                                xcb_state->xkb_state),
+                        1);
                 }
             } break;
             case XCB_INPUT_BUTTON_RELEASE: {
@@ -475,18 +482,21 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 // %d",
                 //        bre->deviceid, bre->detail);
                 if (bre->detail < 4) {
-                    inputProcessButton(bre->detail,
-                                       (bre->event_x / (double)MAX_U16),
-                                       (bre->event_y / (double)MAX_U16), false);
+                    inputProcessButton(
+                        bre->detail, (bre->event_x / (double)MAX_U16),
+                        (bre->event_y / (double)MAX_U16),
+                        getKeymodsFromXKBCommon(xcb_state->xkb_keymap,
+                                                xcb_state->xkb_state),
+                        false);
                 }
             } break;
             case XCB_INPUT_KEY_PRESS: {
                 xcb_input_key_press_event_t *kpe =
                     (xcb_input_key_press_event_t *)ge;
 
-                // enum xkb_state_component changed = xkb_state_update_key(
-                //     xcb_state->xkb_state, kpe->detail, XKB_KEY_DOWN);
-                // UNUSED(changed);
+                enum xkb_state_component changed = xkb_state_update_key(
+                    xcb_state->xkb_state, kpe->detail, XKB_KEY_DOWN);
+                UNUSED(changed);
 
                 xkb_keysym_t keysym = xkb_state_key_get_one_sym(
                     xcb_state->xkb_state, kpe->detail);
@@ -516,9 +526,9 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 xcb_input_key_release_event_t *kre =
                     (xcb_input_key_release_event_t *)ge;
 
-                // enum xkb_state_component changed = xkb_state_update_key(
-                //     xcb_state->xkb_state, kre->detail, XKB_KEY_UP);
-                // UNUSED(changed);
+                enum xkb_state_component changed = xkb_state_update_key(
+                    xcb_state->xkb_state, kre->detail, XKB_KEY_UP);
+                UNUSED(changed);
 
                 xkb_keysym_t keysym = xkb_state_key_get_one_sym(
                     xcb_state->xkb_state, kre->detail);

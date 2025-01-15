@@ -1,3 +1,5 @@
 TODO: Write tests for functions to convert keycode to scancode and scancode to keycode
 
 TODO: Write tests for checking the translations in different platforms
+
+TODO: Work on the input (The character typed, devices other than keyboard and mouse, etc.)

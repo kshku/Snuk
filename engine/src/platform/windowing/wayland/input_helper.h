@@ -49,6 +49,7 @@ void pointerEventUpdatePosition(f64 x, f64 y);
 void pointerEventGetPosition(f64 *x, f64 *y);
 
 f64 pointerEventGetPositionX(void);
+
 f64 pointerEventGetPositionY(void);
 
 #endif

@@ -20,6 +20,7 @@
     #include "core/memory.h"
     #include "core/sstring.h"
     #include "input/input.h"
+    #include "input_helper.h"
 
 typedef struct XlibState {
         Display *display;
@@ -36,8 +37,6 @@ typedef struct XlibState {
 } XlibState;
 
 static XlibState *xlib_state;
-
-u32 getKeymodsFromXIModifierState(const XIModifierState mod_state);
 
 /**
  * @brief The error handler [INTERNAL FUNCTION]
@@ -245,6 +244,9 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     // Make sure to flush so that everything will be sent to the server
     XFlush(xlib_state->display);
 
+    // Sync the modifiers state
+    syncKeymodsState(xlib_state->display);
+
     return true;
 }
 
@@ -282,9 +284,9 @@ void handleGenericEvents(XEvent *event) {
                 //        device_event->detail);
                 if (device_event->detail < 4) {
                     // Left = 1, right = 3, middle = 2
-                    inputProcessButton(device_event->detail,
-                                       device_event->event_x,
-                                       device_event->event_y, true);
+                    inputProcessButton(
+                        device_event->detail, device_event->event_x,
+                        device_event->event_y, getKeymods(), true);
                 } else {
                     // TODO: Peek at the next event till the next
                     // TODO: event is not scroll and then pass delta
@@ -293,7 +295,8 @@ void handleGenericEvents(XEvent *event) {
 
                     // scroll:
                     //  up = 4 down = 5 left = 6 right = 7
-                    inputProcessScroll((device_event->detail - 3), 1);
+                    inputProcessScroll((device_event->detail - 3), getKeymods(),
+                                       1);
                 }
             } break;
             case XI_ButtonRelease: {
@@ -302,9 +305,9 @@ void handleGenericEvents(XEvent *event) {
                 //        device_event->detail);
                 if (device_event->detail < 4) {
                     // Left = 1, right = 3, middle = 2
-                    inputProcessButton(device_event->detail,
-                                       device_event->event_x,
-                                       device_event->event_y, false);
+                    inputProcessButton(
+                        device_event->detail, device_event->event_x,
+                        device_event->event_y, getKeymods(), false);
                 }
                 // Scroll is being processed in button press event
             } break;
@@ -329,12 +332,13 @@ void handleGenericEvents(XEvent *event) {
                 // Scancode sc =
                 //     xlib_state->xKeyCode_to_Scancode[device_event->detail];
                 Keycode kc = getKeycodeFromKeySym(keysym);
+                b8 pressed = device_event->evtype == XI_KeyPress;
+                updateKeymodsState(keysym, pressed);
                 // Translating the X's keycode to linux's keycode by -8
                 // Might not be reliable. Yet to figure out
                 inputProcessKey(
                     getScancodeFromLinuxKeycode(device_event->detail - 8), kc,
-                    getKeymodsFromXIModifierState(device_event->mods),
-                    device_event->evtype == XI_KeyPress,
+                    getKeymods(), pressed,
                     (device_event->evtype == XI_KeyPress)
                         ? (device_event->flags & XIKeyRepeat)
                         : false);
@@ -486,53 +490,6 @@ c8 *platformGetWindowTitle(void) {
     }
 
     return NULL;
-}
-
-typedef enum XModMask {
-    X_SHFIT_MASK = 0,
-    X_LOCK_MASK = 1,
-    X_CONTROL_MASK = 2,
-    X_MOD_1_MASK = 3,
-    X_MOD_2_MASK = 4,
-    X_MOD_3_MASK = 5,
-    X_MOD_4_MASK = 6,
-    X_MOD_5_MASK = 7,
-    X_BUTTON_1_MASK = 8,
-    X_BUTTON_2_MASK = 9,
-    X_BUTTON_3_MASK = 10,
-    X_BUTTON_4_MASK = 11,
-    X_BUTTON_5_MASK = 12,
-    X_MOD_MASK_MAX
-} XModMask;
-
-// https://stackoverflow.com/questions/19376338/xcb-keyboard-button-masks-meaning
-// Also xmodmap -pm
-// And my memory of looking at some source code repos.
-static const Keymod xmod_keymod_map[X_MOD_MASK_MAX] = {
-    [X_SHFIT_MASK] = KEYMOD_SHIFT,     [X_LOCK_MASK] = KEYMOD_CAPS_LOCK,
-    [X_CONTROL_MASK] = KEYMOD_CONTROL, [X_MOD_1_MASK] = KEYMOD_ALT,
-    [X_MOD_2_MASK] = KEYMOD_NUM_LOCK,  [X_MOD_3_MASK] = KEYMOD_ALTGR,
-    [X_MOD_4_MASK] = KEYMOD_GUI,       [X_MOD_5_MASK] = KEYMOD_SCROLL_LOCK,
-    [X_BUTTON_1_MASK] = KEYMOD_NONE,   [X_BUTTON_2_MASK] = KEYMOD_NONE,
-    [X_BUTTON_3_MASK] = KEYMOD_NONE,   [X_BUTTON_4_MASK] = KEYMOD_NONE,
-    [X_BUTTON_5_MASK] = KEYMOD_NONE,
-};
-
-/**
- * @brief Get the keymod from the X's modifier.
- *
- * @param mod_state modifier state
- * @param kc Keycode (result of the getKeycodeFromKeySym)
- *
- * @return Bitwise or of the Keymods from the input mod_state.
- */
-u32 getKeymodsFromXIModifierState(const XIModifierState mod_state) {
-    u32 ret = 0;
-    // TODO: Use the virtual modifiers (or query to find which is what?)
-    for (u32 mod = mod_state.effective, i = 0; mod; mod >>= 1, ++i)
-        if (mod & 1) ret |= xmod_keymod_map[i];
-
-    return ret;
 }
 
 #endif

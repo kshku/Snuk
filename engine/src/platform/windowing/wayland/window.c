@@ -768,7 +768,10 @@ void wlPointerFrame(void *data, struct wl_pointer *wl_pointer) {
                 break;
         }
         inputProcessButton(b, pointerEventGetPositionX(),
-                           pointerEventGetPositionY(), event.pressed);
+                           pointerEventGetPositionY(),
+                           getKeymodsFromXKBCommon(wayland_state->xkb_keymap,
+                                                   wayland_state->xkb_state),
+                           event.pressed);
     }
 
     if (event.event_mask & POINTER_EVENT_TYPE_AXIS_EVENTS) {
@@ -781,6 +784,8 @@ void wlPointerFrame(void *data, struct wl_pointer *wl_pointer) {
                 b8 negetive = event.axes[i].value < 0;
                 inputProcessScroll(
                     (negetive ? direction_base : direction_base + 1),
+                    getKeymodsFromXKBCommon(wayland_state->xkb_keymap,
+                                            wayland_state->xkb_state),
                     (negetive ? -event.axes[i].value : event.axes[i].value));
             }
 
@@ -819,6 +824,10 @@ void wlKeyboardKey(void *data, struct wl_keyboard *wl_keyboard, u32 serial,
     char buf[128] = {0};
     xkb_keysym_t keysym =
         xkb_state_key_get_one_sym(wayland_state->xkb_state, key + 8);
+    // XKB_KEY_DOWN = 1 and XKB_KEY_UP = 0
+    // If state == WL_KEYBOARD_KEY_STATE_PRESSED 1 is passed else 0
+    xkb_state_update_key(wayland_state->xkb_state, key + 8,
+                         state == WL_KEYBOARD_KEY_STATE_PRESSED);
     xkb_keysym_get_name(keysym, buf, sizeof(buf));
     sDebug("Key: '%s'", buf);
     inputProcessKey(getScancodeFromLinuxKeycode(key),
