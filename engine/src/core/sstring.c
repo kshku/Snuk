@@ -1,6 +1,6 @@
 #include "sstring.h"
 
-#include "core/memory.h"
+#include "core/memory/memory.h"
 
 /**
  * @brief Get the length of the string (similar to strlen).

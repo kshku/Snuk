@@ -25,7 +25,7 @@
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
-    #include "core/memory.h"
+    #include "core/memory/memory.h"
     #include "core/sstring.h"
     #include "input/input.h"
 
@@ -422,13 +422,10 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
 /**
  * @brief Implementation of xcb.
- *
- * @param state Pointer to the allocated memory
  */
-void shutdownPlatformWindowing(void *state) {
+void shutdownPlatformWindowing(void) {
     sassert_msg(xcb_state,
                 "Shutting down windowing system twice or not initialized?");
-    UNUSED(state);
 
     if (xcb_state->xkb_state) xkb_state_unref(xcb_state->xkb_state);
     if (xcb_state->xkb_keymap) xkb_keymap_unref(xcb_state->xkb_keymap);

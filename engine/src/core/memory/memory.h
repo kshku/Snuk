@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arenaalloc.h"
 #include "defines.h"
 
 b8 initializeMemory(void);

@@ -1,6 +1,6 @@
 #include <core/event.h>
 #include <core/logger.h>
-#include <core/memory.h>
+#include <core/memory/memory.h>
 #include <entry.h>
 
 typedef struct AppState {

@@ -4,7 +4,7 @@
 
     #include <X11/keysym.h>
 
-    #include "core/memory.h"
+    #include "core/memory/memory.h"
     #include "input/keyboard/keycode.h"
 
 typedef enum XModMask {

@@ -46,7 +46,7 @@ typedef b8 (*fpEventCallback)(u16 code, void *sender, void *listener,
 
 b8 initializeEvent(u64 *size, void *state);
 
-void shutdownEvent(void *state);
+void shutdownEvent(void);
 
 SAPI b8 registerEventListener(u16 code, void *listener,
                               fpEventCallback callback);

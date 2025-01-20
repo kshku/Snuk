@@ -3,20 +3,13 @@
 #include "event.h"
 #include "input/input.h"
 #include "logger.h"
-#include "memory.h"
+#include "memory/memory.h"
 #include "platform/window.h"
-
-struct EventSystem;
-struct WindowingSystem;
-struct InputSystem;
 
 typedef struct EngineState {
         b8 is_running;
         Application *app;
-
-        struct EventSystem *event_system;
-        struct WindowingSystem *windowing_system;
-        struct InputSystem *input_system;
+        SArena arena;
 } EngineState;
 
 static EngineState engine_state;
@@ -55,69 +48,48 @@ b8 initializeEngine(Application *app) {
         return false;
     }
 
+    sMemZeroOut(&engine_state, sizeof(EngineState));
+
     engine_state.app = app;
 
     if (!initializeMemory()) sError("Failed to initialize memory subsystem");
 
-    // // TODO: Make logger work such that it doesn't need to be initialized.
-    // // TODO: Or Try to make independent of any systems.
-    // if (!initializeLogger("log.txt")) {
-    //     // Even if initialize is failed, messages should be logged to the
-    //     stdout
-    //     // or stderr
-    //     // TODO: Make sure above one is true
-    //     sError("Failed to initialize logger");
-    // }
+    u64 event_size, input_size, windowing_size;
 
-    {
-        u64 size;
-        initializeEvent(&size, NULL);
+    // Calculate the total memory size required for the subsystems
+    initializeEvent(&event_size, NULL);
+    engine_state.arena.size += event_size;
 
-        engine_state.event_system = sMalloc(size);
+    initializeInput(&input_size, NULL);
+    engine_state.arena.size += input_size;
 
-        if (!engine_state.event_system) {
-            sFatal("Failed to allocate memory for event system");
-            return false;
-        }
+    initializePlatformWindowing(NULL, &windowing_size, NULL);
+    engine_state.arena.size += windowing_size;
 
-        if (!initializeEvent(&size, engine_state.event_system)) {
-            sFatal("Failed to initialize event system");
-            return false;
-        }
+    // Create arena of required size
+    if (!sArenaCreate(&engine_state.arena)) {
+        sFatal("Failed to allocate memory for subsystems");
+        return false;
     }
 
-    {
-        u64 size;
-        initializeInput(&size, NULL);
-
-        engine_state.input_system = sMalloc(size);
-
-        if (!engine_state.input_system) {
-            sFatal("Failed to allocate memory for input system");
-            return false;
-        }
-
-        if (!initializeInput(&size, engine_state.input_system)) {
-            sFatal("Failed to initialize the input system");
-            return false;
-        }
+    // Initailze the subsystems
+    if (!initializeEvent(&event_size,
+                         sArenaAlloc(&engine_state.arena, event_size))) {
+        sFatal("Failed to initialize event system");
+        return false;
     }
 
-    {
-        u64 size;
-        initializePlatformWindowing(&engine_state.app->config, &size, NULL);
+    if (!initializeInput(&input_size,
+                         sArenaAlloc(&engine_state.arena, input_size))) {
+        sFatal("Failed to initialize the input system");
+        return false;
+    }
 
-        engine_state.windowing_system = sMalloc(size);
-        if (!engine_state.windowing_system) {
-            sFatal("Failed to allocate memory for event system");
-            return false;
-        }
-
-        if (!initializePlatformWindowing(&engine_state.app->config, &size,
-                                         engine_state.windowing_system)) {
-            sFatal("Failed to initialize the windowing system");
-            return false;
-        }
+    if (!initializePlatformWindowing(
+            &engine_state.app->config, &windowing_size,
+            sArenaAlloc(&engine_state.arena, windowing_size))) {
+        sFatal("Failed to initialize the windowing system");
+        return false;
     }
 
     engine_state.is_running = true;
@@ -139,6 +111,8 @@ b8 initializeEngine(Application *app) {
  * @brief Shutdown the engine.
  */
 void shutdownEngine(void) {
+    engine_state.is_running = false;
+
     if (!unregisterEventListener(EVENT_CODE_APPLICATION_QUIT, NULL,
                                  applicationQuitEvent))
         sError("Failed to unregister from application quit event");
@@ -148,10 +122,12 @@ void shutdownEngine(void) {
 
     // No need to deallocate memory since our memory system handles it
 
-    shutdownPlatformWindowing(engine_state.windowing_system);
-    shutdownInput(engine_state.input_system);
-    shutdownEvent(engine_state.event_system);
-    // shutdownLogger();
+    shutdownPlatformWindowing();
+    shutdownInput();
+    shutdownEvent();
+
+    sArenaDestroy(&engine_state.arena);
+
     shutdownMemory();
 }
 

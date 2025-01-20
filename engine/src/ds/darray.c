@@ -2,7 +2,7 @@
 
 #include "core/assertions.h"
 #include "core/logger.h"
-#include "core/memory.h"
+#include "core/memory/memory.h"
 
 #define HEADER_SIZE (DARRAY_HEADER_FIELDS_MAX * sizeof(u64))
 

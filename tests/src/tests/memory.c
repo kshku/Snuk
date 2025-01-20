@@ -1,6 +1,6 @@
 #include "memory.h"
 
-#include <core/memory.h>
+#include <core/memory/memory.h>
 
 u8 auto_deallocation(void) {
     u64 *ptr = (u64 *)sMalloc(10 * sizeof(u64));

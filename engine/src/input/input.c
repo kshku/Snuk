@@ -2,7 +2,7 @@
 
 #include "core/assertions.h"
 #include "core/event.h"
-#include "core/memory.h"
+#include "core/memory/memory.h"
 
 // TODO: How to maintain the states
 // TODO: Move the functions to the keyboard.h and mouse.h files
@@ -42,11 +42,8 @@ b8 initializeInput(u64 *size, void *state) {
 
 /**
  * @brief Shut down the input system.
- *
- * @param state Pointer to the allocated memory for the input system
  */
-void shutdownInput(void *state) {
-    UNUSED(state);
+void shutdownInput(void) {
     sassert_msg(
         input_state,
         "Input system is not initialized or calling shutdownInput twice?");

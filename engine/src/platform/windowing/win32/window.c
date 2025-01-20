@@ -16,7 +16,7 @@
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
-    #include "core/memory.h"
+    #include "core/memory/memory.h"
     #include "core/sstring.h"
     #include "input_helper.h"
 
@@ -227,16 +227,6 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     AdjustWindowRectEx(&boarder_rect, WS_OVERLAPPEDWINDOW, false,
                        WS_EX_APPWINDOW);
-    // AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, false, WS_EX_APPWINDOW);
-
-    // i64 window_x = config->x + boarder_rect.left;
-    // i64 window_y = config->y + boarder_rect.top;
-    // i64 window_width = config->width + boarder_rect.right -
-    // boarder_rect.left; i64 window_height = config->height +
-    // boarder_rect.bottom - boarder_rect.top; sassert(window_x == rect.left);
-    // sassert(window_y == rect.top);
-    // sassert(window_width == (rect.right - rect.left));
-    // sassert(window_height == (rect.bottom - rect.top));
 
     i64 window_x = boarder_rect.left;
     i64 window_y = boarder_rect.top;
@@ -271,13 +261,10 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
 /**
  * @brief Implementation of Win32.
- *
- * @param state Pointer to the allocated memory
  */
-void shutdownPlatformWindowing(void *state) {
+void shutdownPlatformWindowing(void) {
     sassert_msg(win32_state,
                 "Shutting down windowing system twice or not initialized?");
-    UNUSED(state);
 
     // UnhookWindowsHookEx(hook);
 

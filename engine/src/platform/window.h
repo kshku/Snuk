@@ -15,7 +15,7 @@
 b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                                void *state);
 
-void shutdownPlatformWindowing(void *state);
+void shutdownPlatformWindowing(void);
 
 b8 platformWindowPumpMessages(void);
 

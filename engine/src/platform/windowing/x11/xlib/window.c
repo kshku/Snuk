@@ -17,7 +17,7 @@
     #include "core/assertions.h"
     #include "core/event.h"
     #include "core/logger.h"
-    #include "core/memory.h"
+    #include "core/memory/memory.h"
     #include "core/sstring.h"
     #include "input/input.h"
     #include "input_helper.h"
@@ -252,13 +252,10 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
 /**
  * @brief Implementation of xlib.
- *
- * @param state Pointer to the allocated memory
  */
-void shutdownPlatformWindowing(void *state) {
+void shutdownPlatformWindowing(void) {
     sassert_msg(xlib_state,
                 "Shutting down windowing system twice or not initialized?");
-    UNUSED(state);
     if (xlib_state->xkb_desc) XkbFreeKeyboard(xlib_state->xkb_desc, 0, true);
     if (xlib_state->display) {
         XDestroyWindow(xlib_state->display, xlib_state->app_window);

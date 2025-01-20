@@ -6,7 +6,7 @@
 
 b8 initializeInput(u64 *size, void *state);
 
-void shutdownInput(void *state);
+void shutdownInput(void);
 
 void inputUpdate(void);
 

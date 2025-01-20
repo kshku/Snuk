@@ -2,6 +2,13 @@
 
 #include "defines.h"
 
+typedef struct SString {
+        char *str;
+        u64 size;
+} SString;
+
+SAPI void sStringCreate(SString *sstr, const char *str, u64 size);
+
 SAPI u64 sStringLengthC8(const c8 *str);
 
 SAPI c8 *sStringConcatC8(const c8 *str1, const c8 *str2, u64 l1, u64 l2,

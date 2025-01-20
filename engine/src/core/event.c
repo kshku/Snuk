@@ -3,7 +3,7 @@
 #include "assertions.h"
 #include "ds/darray.h"
 #include "logger.h"
-#include "memory.h"
+#include "memory/memory.h"
 
 #define EVENT_CODE_MAX 16384
 
@@ -45,12 +45,8 @@ b8 initializeEvent(u64 *size, void *state) {
 
 /**
  * @brief Shutdown the Event sysetem.
- *
- * @param state Pointer to the allocated memory of the event system.
  */
-void shutdownEvent(void *state) {
-    UNUSED(state);
-
+void shutdownEvent(void) {
     sassert_msg(
         event_state,
         "Shutting down event system more than once or without initializing?");

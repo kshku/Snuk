@@ -1,16 +1,18 @@
 #include "memory.h"
 
-#include "assertions.h"
-#include "core/logger.h"
+#include "../assertions.h"
+#include "../logger.h"
 #include "platform/memory.h"
 
 #define KiB 1024
 #define MiB (1024 * KiB)
 #define GiB (1024 * MiB)
 
-#define BUFFER_SIZE (512 * KiB)
+// Create one main allocator who makes call to the platformAllocator and gets
+// the memory Every other allocators will get their memory from the main
+// allocator.
 
-// TODO: Write custom allocators for different situations
+#define BUFFER_SIZE (512 * KiB)
 
 typedef struct PtrSizePair {
         u64 size;
@@ -30,30 +32,6 @@ typedef struct MemState {
 } MemState;
 
 static MemState mem_state;
-
-/**
- * @brief Reallocate the memory [INTERNAL FUNCTION].
- *
- * This function simulates the realloc's behaviour by allocating space for new
- * size of memory, copying and deallocatin old memory.
- *
- * @param ptr Pointer
- * @param new_size The new size
- * @param prev_size Previous size or current size
- *
- * @return NULL on failure and data is not modified, if successful, returns
- * pointer with new size.
- */
-static void *reallocate(void *ptr, u64 new_size, u64 prev_size) {
-    void *p = platformAllocateMemory(new_size);
-
-    if (p) {
-        sMemCopy(p, ptr, MIN(new_size, prev_size));
-        platformDeallocateMemory(ptr, prev_size);
-    }
-
-    return p;
-}
 
 /**
  * @brief Initialize the memory subsystem.
@@ -140,12 +118,13 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
     if (is_allocation) {
         if (mem_state.size == mem_state.index) {
             mem_state.size += 2;
-            void *p = reallocate(mem_state.allocated_ptrs,
-                                 mem_state.size * sizeof(PtrSizePair),
-                                 (mem_state.size - 2) * sizeof(PtrSizePair));
-            // void *p = platformReallocateMemory(
-            //     mem_state.allocated_ptrs,
-            //     (mem_state.size * sizeof(PtrSizePair)));
+            // void *p = reallocate(mem_state.allocated_ptrs,
+            //                      mem_state.size * sizeof(PtrSizePair),
+            //                      (mem_state.size - 2) * sizeof(PtrSizePair));
+            void *p = platformReallocateMemory(
+                mem_state.allocated_ptrs,
+                (mem_state.size * sizeof(PtrSizePair)),
+                (mem_state.size - 2) * sizeof(PtrSizePair));
             if (!p) {
                 sError("updateAllocatedPtrs reallocation failed");
                 mem_state.size -= 2;

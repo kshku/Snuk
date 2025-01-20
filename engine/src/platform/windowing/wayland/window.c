@@ -24,7 +24,7 @@
     #include "../linux_input_helper.h"
     #include "core/assertions.h"
     #include "core/logger.h"
-    #include "core/memory.h"
+    #include "core/memory/memory.h"
     #include "core/sstring.h"
     #include "input/input.h"
     #include "input_helper.h"
@@ -275,11 +275,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
 /**
  * @brief Implementation of wayland.
- *
- * @param state Pointer to the allocated memory
  */
-void shutdownPlatformWindowing(void *state) {
-    UNUSED(state);
+void shutdownPlatformWindowing(void) {
     sassert_msg(wayland_state,
                 "Shutting down windowing system twice or not initialized?");
 

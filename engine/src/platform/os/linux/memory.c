@@ -2,8 +2,8 @@
 
 #ifdef SPLATFORM_OS_LINUX
 
+    #define _GNU_SOURCE
     #include <string.h>
-    // #define _GNU_SOURCE
     #include <sys/mman.h>
 
     #include "core/logger.h"
@@ -34,16 +34,21 @@ void platformDeallocateMemory(void *ptr, u64 size) {
     if (munmap(ptr, size) == -1) sFatal("Failed to munmap");
 }
 
-// /**
-//  * @brief Memory reallocater implementation for Linux.
-//  *
-//  * @param ptr Pointer to the allocated memory
-//  * @param size New size
-//  *
-//  * @return Pointer to the reallocated memory.
-//  */
-// void *platformReallocateMemory(void *ptr, u64 size) {
-// }
+/**
+ * @brief Memory reallocater implementation for Linux.
+ *
+ * @param ptr Pointer to the allocated memory
+ * @param new_size New size
+ * @param old_size Old size (Current size)
+ *
+ * @return Pointer to the reallocated memory.
+ */
+void *platformReallocateMemory(void *ptr, u64 new_size, u64 old_size) {
+    // mremap(ptr, old_size, new_size, MREMAP_MAYMOVE)
+    void *p = mremap(ptr, old_size, new_size, MREMAP_MAYMOVE);
+    if (p == MAP_FAILED) return NULL;
+    return p;
+}
 
 /**
  * @brief Zero out memory implementation for Linux.
