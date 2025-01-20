@@ -51,7 +51,7 @@ typedef struct WaylandState {
 
         i32 display_fd;
 
-        c8 *title;
+        char *title;
         b8 quit;
 
         u32 width, height, stride, size;
@@ -66,7 +66,7 @@ typedef struct WaylandState {
 static WaylandState *wayland_state;
 
 void wlRegistryGlobal(void *data, struct wl_registry *wl_registry, u32 name,
-                      const c8 *interface, u32 version);
+                      const char *interface, u32 version);
 void wlRegistryGlobalRemove(void *data, struct wl_registry *wl_registry,
                             u32 name);
 
@@ -130,7 +130,7 @@ void zxdgToplevelDecorationV1Configure(
 
 struct wl_buffer *createAndDrawWlBuffer(void);
 
-void seatNameHandler(void *data, struct wl_seat *wl_seat, const c8 *name);
+void seatNameHandler(void *data, struct wl_seat *wl_seat, const char *name);
 
 void xdgToplevelWmCapabilities(void *data, struct xdg_toplevel *xdg_toplevel,
                                struct wl_array *capabilities);
@@ -236,7 +236,7 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     xdg_toplevel_set_app_id(wayland_state->xdg_toplevel, config->name);
 
-    c8 *app_name = sStringConcatC8(config->name, " - Wayland", 0, 11, NULL);
+    char *app_name = sStringConcat(config->name, " - Wayland", 0, 11, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -389,13 +389,13 @@ b8 platformSetWindowVisible(b8 visible) {
  *
  * @return Returns true if title was changed successfully.
  */
-b8 platformSetWindowTitle(const c8 *title) {
+b8 platformSetWindowTitle(const char *title) {
     sassert_msg(wayland_state, "Windowing system is not initialized?");
 
     // Keep track of the title
     // Before that free the title if it was set
     if (wayland_state->title) sFree(wayland_state->title);
-    wayland_state->title = sStringCopyC8(title, 0);
+    wayland_state->title = sStringCopy(title, 0);
 
     xdg_toplevel_set_title(wayland_state->xdg_toplevel, title);
 
@@ -407,9 +407,9 @@ b8 platformSetWindowTitle(const c8 *title) {
  *
  * @return Returns the malloced stirng, user should call sFree.
  */
-c8 *platformGetWindowTitle(void) {
+char *platformGetWindowTitle(void) {
     sassert_msg(wayland_state, "Windowing system is not initialized?");
-    return sStringCopyC8(wayland_state->title, 0);
+    return sStringCopy(wayland_state->title, 0);
 }
 
 /**
@@ -422,21 +422,21 @@ c8 *platformGetWindowTitle(void) {
  * @param version
  */
 void wlRegistryGlobal(void *data, struct wl_registry *wl_registry, u32 name,
-                      const c8 *interface, u32 version) {
+                      const char *interface, u32 version) {
     UNUSED(data);
     UNUSED(version);
     sassert_msg(wayland_state, "Windowing system is not initialized?");
 
     // TODO: Version compatibility check
-    if (sStringEqualC8(interface, wl_compositor_interface.name, 0)) {
+    if (sStringEqual(interface, wl_compositor_interface.name, 0)) {
         // sDebug("wl_compositor server version: %d", version);
         wayland_state->wl_compositor = (struct wl_compositor *)wl_registry_bind(
             wl_registry, name, &wl_compositor_interface, 6);
-    } else if (sStringEqualC8(interface, xdg_wm_base_interface.name, 0)) {
+    } else if (sStringEqual(interface, xdg_wm_base_interface.name, 0)) {
         // sDebug("xdg_wm_base server version: %d", version);
         wayland_state->xdg_wm_base = (struct xdg_wm_base *)wl_registry_bind(
             wl_registry, name, &xdg_wm_base_interface, 6);
-    } else if (sStringEqualC8(interface, wl_shm_interface.name, 0)) {
+    } else if (sStringEqual(interface, wl_shm_interface.name, 0)) {
         // sDebug("wl_shm server version: %d", version);
         wayland_state->wl_shm = (struct wl_shm *)wl_registry_bind(
             wl_registry, name, &wl_shm_interface,
@@ -445,15 +445,15 @@ void wlRegistryGlobal(void *data, struct wl_registry *wl_registry, u32 name,
         static const struct wl_shm_listener wl_shm_listener = {.format =
                                                                    wlShmFormat};
         wl_shm_add_listener(wayland_state->wl_shm, &wl_shm_listener, NULL);
-    } else if (sStringEqualC8(interface, wl_seat_interface.name, 0)) {
+    } else if (sStringEqual(interface, wl_seat_interface.name, 0)) {
         // sDebug("wl_seat server version: %d", version);
         wayland_state->wl_seat = (struct wl_seat *)wl_registry_bind(
             wl_registry, name, &wl_seat_interface, 9);
         static const struct wl_seat_listener wl_seat_listener = {
             .capabilities = seatCapabilityHandler, .name = seatNameHandler};
         wl_seat_add_listener(wayland_state->wl_seat, &wl_seat_listener, NULL);
-    } else if (sStringEqualC8(interface,
-                              zxdg_decoration_manager_v1_interface.name, 0)) {
+    } else if (sStringEqual(interface,
+                            zxdg_decoration_manager_v1_interface.name, 0)) {
         // sDebug("zxdg_decoration_manager_v1 server version: %d", version);
         wayland_state->zxdg_decoration_manager_v1 =
             (struct zxdg_decoration_manager_v1 *)wl_registry_bind(
@@ -996,7 +996,7 @@ void zxdgToplevelDecorationV1Configure(
 /**
  * @brief [INTERNAL FUNCTION].
  */
-void seatNameHandler(void *data, struct wl_seat *wl_seat, const c8 *name) {
+void seatNameHandler(void *data, struct wl_seat *wl_seat, const char *name) {
     UNUSED(data);
     UNUSED(wl_seat);
     UNUSED(name);

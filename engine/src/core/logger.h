@@ -35,11 +35,11 @@ typedef enum LogLevel {
     LOG_LEVEL_TRACE
 } LogLevel;
 
-// b8 initializeLogger(const c8 *file);
+// b8 initializeLogger(const char *file);
 
 // void shutdownLogger(void);
 
-SAPI void _logMessage(LogLevel level, const c8 *msg, ...);
+SAPI void _logMessage(LogLevel level, const char *msg, ...);
 
 /**
  * @brief Log a Fatal message

@@ -2,7 +2,7 @@
 
 #ifdef SPLATFORM_OS_WINDOWS
 
-    #include <stdlib.h>
+    #include <Windows.h>
     #include <string.h>
 
 /**
@@ -13,8 +13,7 @@
  * @return On success pointer to allocated memory, else NULL.
  */
 void *platformAllocateMemory(u64 size) {
-    // TODO: platform specific calls instead of library calls
-    return malloc(size);
+    return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
 /**
@@ -25,8 +24,7 @@ void *platformAllocateMemory(u64 size) {
  */
 void platformDeallocateMemory(void *ptr, u64 size) {
     UNUSED(size);
-    // TODO: platform specific calls instead of library calls
-    free(ptr);
+    VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
 /**
@@ -39,8 +37,17 @@ void platformDeallocateMemory(void *ptr, u64 size) {
  * @return Pointer to the reallocated memory.
  */
 void *platformReallocateMemory(void *ptr, u64 new_size, u64 old_size) {
-    // TODO: platform specific calls instead of library calls
-    return realloc(ptr, size);
+    void *p =
+        VirtualAlloc(NULL, new_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+    if (p) {
+        u64 length = MIN(new_size, old_size);
+        u8 *pc = (u8 *)p;
+        u8 *pc_old = (u8 *)ptr;
+        for (u64 i = 0; i < length; ++i, ++pc, ++pc_old) *pc = *pc_old;
+    }
+
+    return p;
 }
 
 /**

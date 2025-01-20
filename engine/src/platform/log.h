@@ -5,5 +5,5 @@
 #include "core/logger.h"
 #include "defines.h"
 
-void platformLogMessage(LogLevel level, const c8 *msg, va_list args,
-                        const c8 *prefix, ...);
+void platformLogMessage(LogLevel level, const char *msg, va_list args,
+                        const char *prefix, ...);

@@ -3,7 +3,7 @@
 #include "defines.h"
 
 typedef struct MainWindowConfig {
-        const c8 *name;
+        const char *name;
         i32 x, y;
         u32 width, height;
 } MainWindowConfig;

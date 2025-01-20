@@ -23,8 +23,6 @@
             "defines": [
                 "S_EXPORTS",
                 "S_DEBUG",
-                "UNICODE",
-                "_UNICODE"
             ],
             // "compilerPath": "C:/Program Files/LLVM/bin/clang-cl.exe",
             "cStandard": "c17",

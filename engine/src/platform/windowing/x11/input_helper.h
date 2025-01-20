@@ -10,12 +10,12 @@
         #include "input/keyboard/scancode.h"
 
 // typedef struct XKeyNameType {
-//         c8 name[4];
+//         char name[4];
 // } XKeyNameType;
 
 // typedef struct XKeyAliasNameType {
-//         c8 real[4];
-//         c8 alias[4];
+//         char real[4];
+//         char alias[4];
 // } XKeyAliasNameType;
 
 typedef struct XModState {

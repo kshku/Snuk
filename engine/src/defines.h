@@ -44,8 +44,8 @@ typedef float f32;
 typedef double f64;
 
 // character types
-typedef char c8;
-typedef unsigned short c16;
+// typedef char c8;
+// typedef unsigned short c16;
 
 // boolean type
 typedef _Bool b8;

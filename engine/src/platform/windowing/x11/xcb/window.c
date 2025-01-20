@@ -296,7 +296,7 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY | XCB_XKB_EVENT_TYPE_MAP_NOTIFY
         | XCB_XKB_EVENT_TYPE_STATE_NOTIFY | XCB_XKB_EVENT_TYPE_NAMES_NOTIFY;
     // Don't know about that map related params
-    // https://github.com/i3/i3/blob/853b0d9161a5f99c8491751590229a449e4076b6/src/main.c#L840
+    // https://github.com/i3/i3/blob/853b0d9161a5f99char491751590229a449e4076b6/src/main.c#L840
     // If affectMap and map are not set to 0xff, XCB_XKB_MAP_NOTIFY is not
     // triggered
     // How do they know how to use xcb?
@@ -392,8 +392,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                                xcb_state->wm_protocols, 1, wm_protocol_atoms);
 
     // Set class hint
-    u64 name_length = sStringLengthC8(config->name);
-    c8 *buf = sStringConcatC8(
+    u64 name_length = sStringLength(config->name);
+    char *buf = sStringConcat(
         config->name, config->name,
         name_length + 1,  // name_length + 1 to copy the NULL character
         name_length, NULL);
@@ -402,8 +402,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                            (name_length * 2 + 1), buf);
     sFree(buf);
 
-    c8 *app_name =
-        sStringConcatC8(config->name, " - X11(XCB)", name_length, 12, NULL);
+    char *app_name =
+        sStringConcat(config->name, " - X11(XCB)", name_length, 12, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -499,7 +499,7 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                     xcb_state->xkb_state, kpe->detail);
 
                 // In quick guide they used 64 bytes
-                c8 buf[64];
+                char buf[64];
                 xkb_keysym_get_name(keysym, buf, sizeof(buf));
                 sDebug("Keysym to string result = '%s'", buf);
 
@@ -693,11 +693,11 @@ b8 platformSetWindowVisible(b8 visible) {
  *
  * @return Returns true if title was changed successfully.
  */
-b8 platformSetWindowTitle(const c8 *title) {
+b8 platformSetWindowTitle(const char *title) {
     sassert_msg(xcb_state, "Windowing system is not initialized?");
 
     xcb_icccm_set_wm_name(xcb_state->connection, xcb_state->app_window,
-                          XCB_ATOM_STRING, 8, sStringLengthC8(title), title);
+                          XCB_ATOM_STRING, 8, sStringLength(title), title);
 
     return true;
 }
@@ -707,7 +707,7 @@ b8 platformSetWindowTitle(const c8 *title) {
  *
  * @return Returns the malloced stirng, user should call sFree.
  */
-c8 *platformGetWindowTitle(void) {
+char *platformGetWindowTitle(void) {
     sassert_msg(xcb_state, "Windowing system is not initialized?");
 
     xcb_get_property_cookie_t title_cookie =
@@ -716,7 +716,7 @@ c8 *platformGetWindowTitle(void) {
     xcb_icccm_get_text_property_reply_t *title_reply = NULL;
     if (xcb_icccm_get_wm_name_reply(xcb_state->connection, title_cookie,
                                     title_reply, NULL)) {
-        c8 *ret = sStringCopyC8(title_reply->name, title_reply->name_len);
+        char *ret = sStringCopy(title_reply->name, title_reply->name_len);
         free(title_reply);
         return ret;
     }

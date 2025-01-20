@@ -9,7 +9,7 @@
         #include "core/sstring.h"
 
 static const struct {
-        c8 *name;
+        char *name;
         Scancode code;
 } name_code_map[] = {
     // Look at the xev output as well as the
@@ -165,9 +165,9 @@ static const struct {
  * @return Returns the corresponding Scancode for the given key name from the
  * name_code_map
  */
-Scancode getScancodeForXKeyName(c8 *name) {
+Scancode getScancodeForXKeyName(char *name) {
     for (u32 i = 0; i < NameCodeMapLength; ++i)
-        if (sStringEqualC8(name, name_code_map[i].name, 4))
+        if (sStringEqual(name, name_code_map[i].name, 4))
             return name_code_map[i].code;
     return SCANCODE_NONE;
 }
@@ -203,7 +203,7 @@ void mapXKeyCodesToScancodes(mapFunctionParams params, Scancode *map) {
         for (u32 i = 0; i < params.num_key_aliases; ++i) {
             if (map[keycode] != SCANCODE_NONE) break;
 
-            if (!sStringEqualC8(params.key_aliases[i].real,
+            if (!sStringEqual(params.key_aliases[i].real,
                                 params.key_names[key_name_index].name, 4))
                 continue;
 

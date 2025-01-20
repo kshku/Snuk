@@ -3,7 +3,7 @@ SHELL := powershell.exe
 
 CC := clang
 CFLAGS := -Wall -Wextra -g
-DEFINES := -DS_DEBUG -DUNICODE -D_UNICODE
+DEFINES := -DS_DEBUG
 LDFLAGS := -g
 BUILD_DIR := build/windows
 

@@ -49,7 +49,7 @@ static XlibState *xlib_state;
  * @return Value is ignored (The documentation says).
  */
 i32 handleXErrors(Display *display, XErrorEvent *e) {
-    c8 buf[256];  // 256 might be sufficient
+    char buf[256];  // 256 might be sufficient
     XGetErrorText(display, e->error_code, buf, 256);
     sError("Error from X Server: Request Code: %d, Error Code: %d",
            e->request_code, e->error_code);
@@ -64,7 +64,7 @@ i32 handleXErrors(Display *display, XErrorEvent *e) {
  * @brief Map the X's KeyCodes to Scancode.
  *
  * Refering the glfw's implementation
- * https://github.com/glfw/glfw/blob/21fea01161e0d6b70c0c5c1f52dc8e7a7df14a50/src/x11_init.c
+ * https://github.com/glfw/glfw/blob/21fea01161e0d6b70c0c5c1f52dchare7a7df14a50/src/x11_init.c
  */
 void mapKeycodesToScancodes(void) {
     // TODO: Error handling
@@ -229,11 +229,11 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
                     &xlib_state->wm_delete_window, 1);
 
     // Set class hint
-    XClassHint class_hint = {.res_name = (c8 *)config->name,
-                             .res_class = (c8 *)config->name};
+    XClassHint class_hint = {.res_name = (char *)config->name,
+                             .res_class = (char *)config->name};
     XSetClassHint(xlib_state->display, xlib_state->app_window, &class_hint);
 
-    c8 *app_name = sStringConcatC8(config->name, " - X11(Xlib)", 0, 13, NULL);
+    char *app_name = sStringConcat(config->name, " - X11(Xlib)", 0, 13, NULL);
     if (!platformSetWindowTitle(app_name))
         sError("Couldn't set the window title");
     sFree(app_name);
@@ -318,7 +318,7 @@ void handleGenericEvents(XEvent *event) {
                         device_event->mods.effective, &mods, &keysym))
                     sError("Failed to translate keycode");
 
-                // c8 buf[64] = {0};
+                // char buf[64] = {0};
                 // if (XLookupString(&ke, buf, sizeof(buf), &keysym, NULL))
                 //     sDebug("XLookupString: '%s'", buf);
                 sDebug("Keysym = %ld", keysym);
@@ -466,7 +466,7 @@ b8 platformSetWindowVisible(b8 visible) {
  *
  * @return Returns true if title was changed successfully.
  */
-b8 platformSetWindowTitle(const c8 *title) {
+b8 platformSetWindowTitle(const char *title) {
     sassert_msg(xlib_state, "Windowing system is not initialized?");
     XStoreName(xlib_state->display, xlib_state->app_window, title);
     return true;
@@ -477,11 +477,11 @@ b8 platformSetWindowTitle(const c8 *title) {
  *
  * @return Returns the malloced stirng, user should call sFree.
  */
-c8 *platformGetWindowTitle(void) {
+char *platformGetWindowTitle(void) {
     sassert_msg(xlib_state, "Windowing system is not initialized?");
-    c8 *title;
+    char *title;
     if (XFetchName(xlib_state->display, xlib_state->app_window, &title)) {
-        c8 *ret = sStringCopyC8(title, 0);
+        char *ret = sStringCopy(title, 0);
         XFree(title);
         return ret;
     }

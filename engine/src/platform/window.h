@@ -25,6 +25,6 @@ void platformWindowDestroy();
 
 b8 platformSetWindowVisible(b8 visible);
 
-b8 platformSetWindowTitle(const c8 *title);
+b8 platformSetWindowTitle(const char *title);
 
-c8 *platformGetWindowTitle(void);
+char *platformGetWindowTitle(void);

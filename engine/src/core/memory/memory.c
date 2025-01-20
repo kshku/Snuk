@@ -306,7 +306,7 @@ void sMemLogState(void) {
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
     f32 allocation = 0;
-    c8 ext[4] = "XiB";
+    char ext[4] = "XiB";
 
     if (mem_state.total_allocated >= GiB) {
         ext[0] = 'G';

@@ -23,47 +23,47 @@
 typedef struct Win32State {
         HINSTANCE h_instance;
         HWND hwnd;
-        c16 *app_name;
+        // c16 *app_name;
         b8 quit;
 } Win32State;
 
 static Win32State *win32_state;
 
-/**
- * @brief Convert normal string to wide string.
- *
- * @param str String to convert
- *
- * @return Converted string.
- */
-c16 *convertToWideString(const c8 *str) {
-    u64 len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
-    c16 *converted = sMalloc(len * sizeof(c16));
-    MultiByteToWideChar(CP_UTF8, 0, str, -1, converted, len);
+// /**
+//  * @brief Convert normal string to wide string.
+//  *
+//  * @param str String to convert
+//  *
+//  * @return Converted string.
+//  */
+// c16 *convertToWideString(const char *str) {
+//     u64 len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+//     c16 *converted = sMalloc(len * sizeof(c16));
+//     MultiByteToWideChar(CP_UTF8, 0, str, -1, converted, len);
 
-    len = NormalizeString(NormalizationC, converted, -1, NULL, 0);
-    c16 *normalized = sMalloc(len * sizeof(c16));
-    NormalizeString(NormalizationC, converted, -1, normalized, len);
+//     len = NormalizeString(NormalizationC, converted, -1, NULL, 0);
+//     c16 *normalized = sMalloc(len * sizeof(c16));
+//     NormalizeString(NormalizationC, converted, -1, normalized, len);
 
-    sFree(converted);
+//     sFree(converted);
 
-    return normalized;
-}
+//     return normalized;
+// }
 
-/**
- * @brief Convert wide string to normal string.
- *
- * @param str String to convert
- *
- * @return Converted string.
- */
-c8 *convertToNormalString(const c16 *str) {
-    u64 len = WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL);
-    c8 *converted = sMalloc(len * sizeof(c8));
-    WideCharToMultiByte(CP_UTF8, 0, str, -1, converted, len, NULL, NULL);
+// /**
+//  * @brief Convert wide string to normal string.
+//  *
+//  * @param str String to convert
+//  *
+//  * @return Converted string.
+//  */
+// char *convertToNormalString(const c16 *str) {
+//     u64 len = WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL);
+//     char *converted = sMalloc(len * sizeof(char));
+//     WideCharToMultiByte(CP_UTF8, 0, str, -1, converted, len, NULL, NULL);
 
-    return converted;
-}
+//     return converted;
+// }
 
 /**
  * @brief Window procedure method (callback function) [INTERNAL FUNCTION].
@@ -207,11 +207,11 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         return false;
     }
 
-    win32_state->app_name = convertToWideString(config->name);
+    // win32_state->app_name = convertToWideString(config->name);
 
     WNDCLASS window_class = {.lpfnWndProc = windowProcedure,
                              .hInstance = win32_state->h_instance,
-                             .lpszClassName = win32_state->app_name,
+                             .lpszClassName = config->name,
                              .style = CS_DBLCLKS};
 
     if (!RegisterClass(&window_class)) {
@@ -233,15 +233,15 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     i64 window_width = boarder_rect.right - boarder_rect.left;
     i64 window_height = boarder_rect.bottom - boarder_rect.top;
 
-    c8 *name = sStringConcatC8(config->name, " - Win32", 0, 8, NULL);
-    c16 *app_name = convertToWideString(name);
+    char *name = sStringConcat(config->name, " - Win32", 0, 8, NULL);
+    // c16 *app_name = convertToWideString(name);
+
+    win32_state->hwnd =
+        CreateWindowEx(WS_EX_APPWINDOW, config->name, name, WS_OVERLAPPEDWINDOW,
+                       window_x, window_y, window_width, window_height, NULL,
+                       NULL, win32_state->h_instance, NULL);
     sFree(name);
 
-    win32_state->hwnd = CreateWindowEx(
-        WS_EX_APPWINDOW, win32_state->app_name, app_name, WS_OVERLAPPEDWINDOW,
-        window_x, window_y, window_width, window_height, NULL, NULL,
-        win32_state->h_instance, NULL);
-    sFree(app_name);
     if (!win32_state->hwnd) {
         sError("Failed to create window");
         return false;
@@ -268,7 +268,7 @@ void shutdownPlatformWindowing(void) {
 
     // UnhookWindowsHookEx(hook);
 
-    if (win32_state->app_name) sFree(win32_state->app_name);
+    // if (win32_state->app_name) sFree(win32_state->app_name);
 
     // NOTE: Window procedure itself will destroy the window
 }
@@ -323,14 +323,12 @@ b8 platformSetWindowVisible(b8 visible) {
  *
  * @return Returns true if title was changed successfully.
  */
-b8 platformSetWindowTitle(const c8 *title) {
+b8 platformSetWindowTitle(const char *title) {
     sassert_msg(win32_state, "Windowing system is not initialized?");
-    c16 *w_title = convertToWideString(title);
-    if (!SetWindowText(win32_state->hwnd, w_title)) {
-        sFree(w_title);
+    // c16 *w_title = convertToWideString(title);
+    if (!SetWindowText(win32_state->hwnd, title)) {
         return false;
     }
-    sFree(w_title);
     return true;
 }
 
@@ -339,16 +337,14 @@ b8 platformSetWindowTitle(const c8 *title) {
  *
  * @return Returns the malloced stirng, user should call sFree.
  */
-c8 *platformGetWindowTitle(void) {
+char *platformGetWindowTitle(void) {
     sassert_msg(win32_state, "Windowing system is not initialized?");
     const u64 size = GetWindowTextLength(win32_state->hwnd);
-    c16 *w_title = sMalloc(size * sizeof(c16));
-    if (!GetWindowText(win32_state->hwnd, w_title, size)) {
-        sFree(w_title);
+    char *title = sMalloc(size * sizeof(char));
+    if (!GetWindowText(win32_state->hwnd, title, size)) {
+        sFree(title);
         return NULL;
     }
-    c8 *title = convertToNormalString(w_title);
-    sFree(w_title);
     return title;
 }
 
