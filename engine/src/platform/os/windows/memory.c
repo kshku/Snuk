@@ -22,23 +22,24 @@ void *platformAllocateMemory(u64 size) {
  *
  * @param ptr Pointer to the allocated memory
  */
-void platformDeallocateMemory(void *ptr) {
+void platformDeallocateMemory(void *ptr, u64 size) {
+    UNUSED(size);
     // TODO: platform specific calls instead of library calls
     free(ptr);
 }
 
-/**
- * @brief Memory reallocater implementation for Windows.
- *
- * @param ptr Pointer to the allocated memory
- * @param size New size
- *
- * @return Pointer to the reallocated memory.
- */
-void *platformReallocateMemory(void *ptr, u64 size) {
-    // TODO: platform specific calls instead of library calls
-    return realloc(ptr, size);
-}
+// /**
+//  * @brief Memory reallocater implementation for Windows.
+//  *
+//  * @param ptr Pointer to the allocated memory
+//  * @param size New size
+//  *
+//  * @return Pointer to the reallocated memory.
+//  */
+// void *platformReallocateMemory(void *ptr, u64 size) {
+//     // TODO: platform specific calls instead of library calls
+//     return realloc(ptr, size);
+// }
 
 /**
  * @brief Zero out memory implementation for Windows.

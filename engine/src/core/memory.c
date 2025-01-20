@@ -4,6 +4,14 @@
 #include "core/logger.h"
 #include "platform/memory.h"
 
+#define KiB 1024
+#define MiB (1024 * KiB)
+#define GiB (1024 * MiB)
+
+#define BUFFER_SIZE (512 * KiB)
+
+// TODO: Write custom allocators for different situations
+
 typedef struct PtrSizePair {
         u64 size;
         void *ptr;
@@ -15,9 +23,37 @@ typedef struct MemState {
         u32 index;
         u64 size;
         PtrSizePair *allocated_ptrs;
+
+        u8 *buffer;
+        u8 *free_buffer_start;
+        u64 free_buffer_size;
 } MemState;
 
 static MemState mem_state;
+
+/**
+ * @brief Reallocate the memory [INTERNAL FUNCTION].
+ *
+ * This function simulates the realloc's behaviour by allocating space for new
+ * size of memory, copying and deallocatin old memory.
+ *
+ * @param ptr Pointer
+ * @param new_size The new size
+ * @param prev_size Previous size or current size
+ *
+ * @return NULL on failure and data is not modified, if successful, returns
+ * pointer with new size.
+ */
+static void *reallocate(void *ptr, u64 new_size, u64 prev_size) {
+    void *p = platformAllocateMemory(new_size);
+
+    if (p) {
+        sMemCopy(p, ptr, MIN(new_size, prev_size));
+        platformDeallocateMemory(ptr, prev_size);
+    }
+
+    return p;
+}
 
 /**
  * @brief Initialize the memory subsystem.
@@ -27,17 +63,31 @@ static MemState mem_state;
 b8 initializeMemory(void) {
     if (mem_state.initialized) {
         sError("Memory system is already initialized, but initializeMemory was "
+
                "called again");
         return false;
     }
 
+    sMemZeroOut(&mem_state, sizeof(MemState));
+
     mem_state.total_allocated = 0;
     mem_state.index = 0;
     mem_state.size = 1;
-    mem_state.allocated_ptrs =
-        platformAllocateMemory(mem_state.size * sizeof(PtrSizePair));
-    mem_state.initialized = true;
 
+    mem_state.allocated_ptrs = (PtrSizePair *)platformAllocateMemory(
+        mem_state.size * sizeof(PtrSizePair));
+
+    if (!mem_state.allocated_ptrs) return false;
+
+    mem_state.free_buffer_size = BUFFER_SIZE;
+    mem_state.buffer = (u8 *)platformAllocateMemory(BUFFER_SIZE);
+    if (!mem_state.buffer) {
+        platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
+        return false;
+    }
+    mem_state.free_buffer_start = mem_state.buffer;
+
+    mem_state.initialized = true;
     return true;
 }
 
@@ -58,15 +108,18 @@ void shutdownMemory(void) {
             sTrace("Deallocating %ld bytes of memory",
                    mem_state.allocated_ptrs[i].size);
             mem_state.total_allocated -= mem_state.allocated_ptrs[i].size;
-            platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
+            // platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
         }
 
-        platformDeallocateMemory(mem_state.allocated_ptrs);
+        platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
         mem_state.allocated_ptrs = NULL;
     }
 
     sTrace("After deallocation");
     sMemLogState();
+
+    platformDeallocateMemory(mem_state.buffer, BUFFER_SIZE);
+    mem_state.free_buffer_start = NULL;
 
     mem_state.initialized = false;
 }
@@ -87,9 +140,12 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
     if (is_allocation) {
         if (mem_state.size == mem_state.index) {
             mem_state.size += 2;
-            void *p = platformReallocateMemory(
-                mem_state.allocated_ptrs,
-                (mem_state.size * sizeof(PtrSizePair)));
+            void *p = reallocate(mem_state.allocated_ptrs,
+                                 mem_state.size * sizeof(PtrSizePair),
+                                 (mem_state.size - 2) * sizeof(PtrSizePair));
+            // void *p = platformReallocateMemory(
+            //     mem_state.allocated_ptrs,
+            //     (mem_state.size * sizeof(PtrSizePair)));
             if (!p) {
                 sError("updateAllocatedPtrs reallocation failed");
                 mem_state.size -= 2;
@@ -102,21 +158,19 @@ b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
         return true;
     }
 
-    for (u32 i = 0; i < mem_state.index; ++i) {
+    // for (u32 i = 0; i < mem_state.index; ++i) {
+    for (u32 i = mem_state.index - 1; i >= 0; --i) {
         if (mem_state.allocated_ptrs[i].ptr == ptr) {
             *size = mem_state.allocated_ptrs[i].size;
             sMemMove((void *)(mem_state.allocated_ptrs + i),
                      (void *)(mem_state.allocated_ptrs + i + 1),
                      ((mem_state.index - i - 1) * sizeof(PtrSizePair)));
-            // for (u32 j = i + 1; j < mem_state.index; ++i, ++j)
-            //     mem_state.allocated_ptrs[i] = mem_state.allocated_ptrs[j];
             --mem_state.index;
             return true;
         }
     }
 
-    // Might Reach here if "Memory allocation is not tracked" error is
-    // displayed
+    // Will reach here only when reallocating for the allocated_ptrs fails
     return false;
 }
 
@@ -151,15 +205,19 @@ b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
  * @return Pointer to allocated memory on success else NULL.
  */
 void *sMalloc(u64 size) {
-    void *ptr = platformAllocateMemory(size);
+    sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
-    if (!mem_state.initialized) {
-        sWarn("sMalloc called without initializing the memory, allocation will "
-              "not be tracked.");
-        return ptr;
+    if (mem_state.free_buffer_size < size) {
+        sFatal("Buffer size is not enough to allocate");
+        return NULL;
     }
 
-    if (ptr && !updatedMemoryState(size, ptr, true))
+    void *ptr = (void *)mem_state.free_buffer_start;
+    // TODO: This is temporary implementation
+    mem_state.free_buffer_start += size + KiB;
+    mem_state.free_buffer_size -= size + KiB;
+
+    if (!updatedMemoryState(size, ptr, true))
         sError("Memory allocation is not being tracked");
 
     return ptr;
@@ -174,16 +232,13 @@ void *sMalloc(u64 size) {
  * @return Pointer to allocated memory on success else NULL.
  */
 void *sCalloc(u64 nmemb, u64 size) {
+    sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
+
     u64 total_size = size * nmemb;
 
-    void *ptr = platformAllocateMemory(total_size);
+    // void *ptr = platformAllocateMemory(total_size);
+    void *ptr = sMalloc(total_size);
     if (ptr) platformZeroOutMemory(ptr, total_size);
-
-    if (!mem_state.initialized) {
-        sWarn("sCalloc called without initializing the memory, allocation will "
-              "not be tracked.");
-        return ptr;
-    }
 
     if (ptr && !updatedMemoryState(total_size, ptr, true))
         sError("Failed to track the Memory allocation");
@@ -194,16 +249,19 @@ void *sCalloc(u64 nmemb, u64 size) {
 /**
  * @brief Similar to realloc.
  *
- * If size is zero calls sFree(returns null) and if ptr is NULL calls sMalloc.
- * If ptr is NULL as well as size is zero throws error If ptr is NULL as well as
- * size is zero shows warning and returns NULL.
+ * If size is zero calls sFree(returns null) and if ptr is NULL calls
+ * sMalloc. If ptr is NULL as well as size is zero throws error If ptr is
+ * NULL as well as size is zero shows warning and returns NULL.
  *
  * @param ptr Pointer to the Allocated Memory
  * @param size New size
  *
- * @return NULL if failed else pointer to the Memory allocated with new size.
+ * @return NULL if failed else pointer to the Memory allocated with new
+ * size.
  */
 void *sRealloc(void *ptr, u64 size) {
+    sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
+
     if (!ptr && !size) {
         sError("sRealloc called with NULL pointer and 0 size");
         return ptr;
@@ -211,29 +269,24 @@ void *sRealloc(void *ptr, u64 size) {
 
     if (!size) {
         sFree(ptr);
-        return ptr;
+        return NULL;
     }
 
     if (!ptr) return sMalloc(size);
 
-    void *p = platformReallocateMemory(ptr, size);
+    // TODO: This is temporary implementation
+    // Have already left 1 KiB space empty for this temporary implementation
+    // So just return this pointer and update the state and return the given
+    // pointer
 
-    if (!mem_state.initialized) {
-        sWarn("sRealloc called without initializing the memory, allocation "
-              "will not be tracked.");
-        return p;
-    }
+    if (!updatedMemoryState(0, ptr, false))
+        sInfo("Untracked Memory allocation is being reallocated, "
+              "retracking the memory.");
 
-    if (p) {
-        if (!updatedMemoryState(0, ptr, false))
-            sInfo("Untracked Memory allocation is being reallocated, "
-                  "retracking the memory.");
+    if (!updatedMemoryState(size, ptr, true))
+        sError("Failed to track the Memory allocation");
 
-        if (!updatedMemoryState(size, p, true))
-            sError("Failed to track the Memory allocation");
-    }
-
-    return p;
+    return ptr;
 }
 
 /**
@@ -242,32 +295,36 @@ void *sRealloc(void *ptr, u64 size) {
  * @param ptr Pointer to the memory to be deallocated
  */
 void sFree(void *ptr) {
-    if (!mem_state.initialized) {
-        sError("sFree called without initializing the memory");
-        platformDeallocateMemory(ptr);
-        return;
-    }
+    sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
+
+    // TODO: This is temporary implementation
+    // b8 found = false;
+    // for (u32 i = mem_state.index - 1; i >= 0; --i) {
+    //     if (mem_state.allocated_ptrs[i].ptr == ptr) {
+    //         PtrSizePair pair = mem_state.allocated_ptrs[i];
+    //         // sMemMove(
+    //         //     pair.ptr, (void *)((u8 *)pair.ptr + pair.size),
+    //         //     (mem_state.free_buffer_start - ((u8 *)pair.ptr +
+    //         pair.size)));
+
+    //         // mem_state.free_buffer_size += pair.size + KiB;
+    //         // mem_state.free_buffer_start -= pair.size + KiB;
+
+    //         found = true;
+    //         break;
+    //     }
+    // }
+    // if (!found) sFatal("Temporary implementation is failing");
 
     if (!updatedMemoryState(0, ptr, false))
         sInfo("Untracked memory allocation is being deallocated");
-
-    // NOTE: ptr may point to somewhere else so that it can be passed to again
-    // NOTE: to free function
-    platformDeallocateMemory(ptr);
 }
 
 /**
  * @brief Log how much memory is allocated.
  */
 void sMemLogState(void) {
-    if (!mem_state.initialized) {
-        sInfo("Memory subsystem is not initialized, no tracked memory "
-              "allocation");
-    }
-
-    const u64 KiB = 1024;
-    const u64 MiB = 1024 * KiB;
-    const u64 GiB = 1024 * MiB;
+    sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
     f32 allocation = 0;
     c8 ext[4] = "XiB";
@@ -291,18 +348,6 @@ void sMemLogState(void) {
 }
 
 /**
- * @brief Zero out the memory.
- *
- * @param ptr Pointer to the memory
- * @param size Size of memory to be zeroed out
- *
- * @return Returns the given pointer.
- */
-void *sMemZeroOut(void *ptr, u64 size) {
-    return platformZeroOutMemory(ptr, size);
-}
-
-/**
  * @brief Similar to memset sets each byte in memory to given value.
  *
  * @param ptr Pointer to the memory
@@ -312,7 +357,38 @@ void *sMemZeroOut(void *ptr, u64 size) {
  * @return Returns the given pointer.
  */
 void *sMemSet(void *ptr, u64 size, u8 value) {
-    return platformMemSet(ptr, size, value);
+    // TODO: Probably should let the compiler to optimize by converting to SIMD
+    // which might be faster than this manual large block copying.
+    // I think it is better to set up SIMD things and all then come to optimize.
+
+    // u64 v64 = (value << 56) | (value << 48) | (value << 40) | (value << 32)
+    //         | (value << 24) | (value << 16) | (value << 8) | (value);
+
+    // // First 64 bits (8 bytes)
+    // u64 i = 0;
+    // u64 *p64 = (u64 *)ptr;
+    // for (; i + 8 < size; i += 8, ++p64) *p64 = v64;
+
+    // // Next is 32 bits (4 bytes)
+    // u32 *p32 = (u32 *)p64;
+    // u32 v32 = (u32)v64;
+    // for (; i + 4 < size; i += 4, ++p32) *p32 = v32;
+
+    // // Next is 16 bits (2 bytes)
+    // u16 *p16 = (u16 *)p32;
+    // u16 v16 = (u16)v64;
+    // for (; i + 2 < size; i += 2, ++p16) *p16 = v16;
+
+    // // Next is 8 bits (1 bytes)
+    // u8 *p = (u8 *)p16;
+    // for (; i < size; ++i, ++p) *p = value;
+
+    // And done
+    // return ptr;
+
+    u8 *p = (u8 *)ptr;
+    for (u64 i = 0; i < size; ++i, ++p) *p = value;
+    return ptr;
 }
 
 /**
@@ -326,8 +402,14 @@ void *sMemSet(void *ptr, u64 size, u8 value) {
  *
  * @note Source and destination should not overlap.
  */
-void *sMemCopy(void *dest, void *src, u64 size) {
-    return platformMemCopy(dest, src, size);
+void *sMemCopy(void *dest, const void *src, u64 size) {
+    if (dest == src) return dest;
+
+    u8 *d = (u8 *)dest;
+    u8 *s = (u8 *)src;
+    for (u64 i = 0; i < size; ++i, ++d, ++s) *d = *s;
+
+    return dest;
 }
 
 /**
@@ -342,20 +424,17 @@ void *sMemCopy(void *dest, void *src, u64 size) {
  * @note Source and destination may overlap.
  */
 void *sMemMove(void *dest, void *src, u64 size) {
-    return platformMemMove(dest, src, size);
-}
+    if (dest == src) return dest;
 
-// /**
-//  * @brief Set the each block to given value.
-//  *
-//  * Similar to memset, but sets each block of given size to the given value.
-//  *
-//  * @param ptr Pointer to the memory
-//  * @param block_size Size of each block
-//  * @param no_blocks Number of blocks
-//  * @param value Pointer to the value to which each block should be set
-//  *
-//  * @return Returns the given pointer.
-//  */
-// void *sMemBlockSet(void *ptr, u64 block_size, u64 no_blocks, u64 value) {
-// }
+    u8 *d = (u8 *)dest;
+    u8 *s = (u8 *)src;
+    if (dest > src) {
+        d += size;
+        s += size;
+        for (u64 i = size; i > 0; --i, --d, --s) *d = *s;
+    } else {
+        for (u64 i = 0; i < size; ++i, ++d, ++s) *d = *s;
+    }
+
+    return dest;
+}

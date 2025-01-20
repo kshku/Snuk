@@ -2,8 +2,11 @@
 
 #ifdef SPLATFORM_OS_LINUX
 
-    #include <stdlib.h>
     #include <string.h>
+    // #define _GNU_SOURCE
+    #include <sys/mman.h>
+
+    #include "core/logger.h"
 
 /**
  * @brief Memory allocater implementation for Linux.
@@ -13,32 +16,34 @@
  * @return On success pointer to allocated memory, else NULL.
  */
 void *platformAllocateMemory(u64 size) {
-    // TODO: platform specific calls instead of library calls
-    return malloc(size);
+    // return malloc(size);
+    void *ptr = mmap(NULL, size, PROT_READ | PROT_WRITE,
+                     MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    if (ptr == MAP_FAILED) sFatal("Failed to mmap");
+    return ptr == MAP_FAILED ? NULL : ptr;
 }
 
 /**
  * @brief Memory deallocater implementation for Linux.
  *
  * @param ptr Pointer to the allocated memory
+ * @param size The size of allocation
  */
-void platformDeallocateMemory(void *ptr) {
-    // TODO: platform specific calls instead of library calls
-    free(ptr);
+void platformDeallocateMemory(void *ptr, u64 size) {
+    // free(ptr);
+    if (munmap(ptr, size) == -1) sFatal("Failed to munmap");
 }
 
-/**
- * @brief Memory reallocater implementation for Linux.
- *
- * @param ptr Pointer to the allocated memory
- * @param size New size
- *
- * @return Pointer to the reallocated memory.
- */
-void *platformReallocateMemory(void *ptr, u64 size) {
-    // TODO: platform specific calls instead of library calls
-    return realloc(ptr, size);
-}
+// /**
+//  * @brief Memory reallocater implementation for Linux.
+//  *
+//  * @param ptr Pointer to the allocated memory
+//  * @param size New size
+//  *
+//  * @return Pointer to the reallocated memory.
+//  */
+// void *platformReallocateMemory(void *ptr, u64 size) {
+// }
 
 /**
  * @brief Zero out memory implementation for Linux.

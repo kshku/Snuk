@@ -192,3 +192,19 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b8 to be 1 byte");
  * @param n Number of shifts to 1
  */
 #define BITFLAG(n) (1 << n)
+
+/**
+ * @brief Min of two.
+ *
+ * @param a First
+ * @param b second
+ */
+#define MIN(a, b) (a < b ? a : b)
+
+/**
+ * @brief Max of two.
+ *
+ * @param a First
+ * @param b second
+ */
+#define MAX(a, b) (a > b ? a : b)
