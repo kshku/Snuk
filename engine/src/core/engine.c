@@ -3,6 +3,7 @@
 #include "event.h"
 #include "input/input.h"
 #include "logger.h"
+#include "memory/arenaalloc.h"
 #include "memory/memory.h"
 #include "platform/window.h"
 

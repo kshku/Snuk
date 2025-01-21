@@ -38,7 +38,8 @@ b8 initializeEvent(u64 *size, void *state) {
 
     event_state = (EventState *)state;
 
-    sMemZeroOut(event_state->entries, EVENT_CODE_MAX);
+    sMemZeroOut(event_state, *size);
+    // sMemZeroOut(event_state->entries, EVENT_CODE_MAX);
 
     return true;
 }

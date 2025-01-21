@@ -1,11 +1,18 @@
 #pragma once
 
-#include "arenaalloc.h"
 #include "defines.h"
+
+#define KiB 1024
+#define MiB (1024 * KiB)
+#define GiB (1024 * MiB)
 
 b8 initializeMemory(void);
 
 void shutdownMemory(void);
+
+SAPI u64 sMemGetPageSize(void);
+
+SAPI void *sMemAllocatePages(u64 n);
 
 SAPI void *sMalloc(u64 size);
 

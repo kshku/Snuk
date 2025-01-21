@@ -4,31 +4,37 @@
 #include "../logger.h"
 #include "platform/memory.h"
 
-#define KiB 1024
-#define MiB (1024 * KiB)
-#define GiB (1024 * MiB)
-
 // Create one main allocator who makes call to the platformAllocator and gets
 // the memory Every other allocators will get their memory from the main
 // allocator.
 
-#define BUFFER_SIZE (512 * KiB)
+// TODO: This implementation is temporary and this wastes a lot of memory
 
-typedef struct PtrSizePair {
-        u64 size;
-        void *ptr;
-} PtrSizePair;
+// TODO: Ask for a page from the OS and handle it
+// NOTE: Temporary: Taking page size too large so that our temporary
+// implementation works
+#define PAGE_SIZE (256 * KiB)
+#define HEADER_SIZE (sizeof(void *))
+
+// typedef struct PtrSizePair {
+//         u64 size;
+//         void *ptr;
+// } PtrSizePair;
 
 typedef struct MemState {
         b8 initialized;
-        u64 total_allocated;
-        u32 index;
-        u64 size;
-        PtrSizePair *allocated_ptrs;
 
-        u8 *buffer;
-        u8 *free_buffer_start;
-        u64 free_buffer_size;
+        u8 *base;
+        u8 *head;
+
+        // u64 total_allocated;
+        // u32 index;
+        // u64 size;
+        // PtrSizePair *allocated_ptrs;
+
+        // u8 *buffer;
+        // u8 *free_buffer_start;
+        // u64 free_buffer_size;
 } MemState;
 
 static MemState mem_state;
@@ -46,24 +52,38 @@ b8 initializeMemory(void) {
         return false;
     }
 
+    sInfo("Page size is %ld", platformGetPageSize());
+    sInfo("Page size returned by sMemGetPageSize = %lu", sMemGetPageSize());
+
     sMemZeroOut(&mem_state, sizeof(MemState));
 
-    mem_state.total_allocated = 0;
-    mem_state.index = 0;
-    mem_state.size = 1;
-
-    mem_state.allocated_ptrs = (PtrSizePair *)platformAllocateMemory(
-        mem_state.size * sizeof(PtrSizePair));
-
-    if (!mem_state.allocated_ptrs) return false;
-
-    mem_state.free_buffer_size = BUFFER_SIZE;
-    mem_state.buffer = (u8 *)platformAllocateMemory(BUFFER_SIZE);
-    if (!mem_state.buffer) {
-        platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
+    mem_state.base = platformAllocateMemory(PAGE_SIZE);
+    if (!mem_state.base) {
+        sFatal("Failed to allocate a page of memory");
         return false;
     }
-    mem_state.free_buffer_start = mem_state.buffer;
+
+    mem_state.head = mem_state.base + HEADER_SIZE;
+    // First base's (page's) header will have NULL
+    *(void **)mem_state.base = NULL;
+    sMemZeroOut(mem_state.base, PAGE_SIZE);
+
+    // mem_state.total_allocated = 0;
+    // mem_state.index = 0;
+    // mem_state.size = 1;
+
+    // mem_state.allocated_ptrs = (PtrSizePair *)platformAllocateMemory(
+    //     mem_state.size * sizeof(PtrSizePair));
+
+    // if (!mem_state.allocated_ptrs) return false;
+
+    // mem_state.free_buffer_size = BUFFER_SIZE;
+    // mem_state.buffer = (u8 *)platformAllocateMemory(BUFFER_SIZE);
+    // if (!mem_state.buffer) {
+    // platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
+    // return false;
+    // }
+    // mem_state.free_buffer_start = mem_state.buffer;
 
     mem_state.initialized = true;
     return true;
@@ -78,100 +98,167 @@ void shutdownMemory(void) {
         return;
     }
 
-    sTrace("Deallocating the allocated memroy in shutdown memory");
-    sMemLogState();
-
-    if (mem_state.allocated_ptrs) {
-        for (u32 i = 0; i < mem_state.index; ++i) {
-            sTrace("Deallocating %ld bytes of memory",
-                   mem_state.allocated_ptrs[i].size);
-            mem_state.total_allocated -= mem_state.allocated_ptrs[i].size;
-            // platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
-        }
-
-        platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
-        mem_state.allocated_ptrs = NULL;
+    void *cur = mem_state.base;
+    void *next;
+    while (cur) {
+        // Get the header which is pointer to another base (page)
+        next = *(void **)cur;
+        platformDeallocateMemory(cur, PAGE_SIZE);
+        cur = next;
     }
 
-    sTrace("After deallocation");
-    sMemLogState();
+    // sTrace("Deallocating the allocated memroy in shutdown memory");
+    // sMemLogState();
 
-    platformDeallocateMemory(mem_state.buffer, BUFFER_SIZE);
-    mem_state.free_buffer_start = NULL;
+    // if (mem_state.allocated_ptrs) {
+    //     for (u32 i = 0; i < mem_state.index; ++i) {
+    //         sTrace("Deallocating %ld bytes of memory",
+    //                mem_state.allocated_ptrs[i].size);
+    //         mem_state.total_allocated -= mem_state.allocated_ptrs[i].size;
+    //         // platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
+    //     }
+
+    //     platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
+    //     mem_state.allocated_ptrs = NULL;
+    // }
+
+    // sTrace("After deallocation");
+    // sMemLogState();
+
+    // platformDeallocateMemory(mem_state.buffer, BUFFER_SIZE);
+    // mem_state.free_buffer_start = NULL;
 
     mem_state.initialized = false;
 }
 
 /**
- * @brief (INTERNAL FUNCTION) update allocated_ptrs
+ * @brief Get the page size.
  *
- * @param ptr Pointer to allocate
- * @param size Allocated size if allocation, else fill the deallocation size
- * @param is_allocation true if allocation, false if deallocation
+ * Queries the platform for the size of page. If fails returns the default page
+ * size (4 * KiB which is common).
  *
- * @return true on success else false.
+ * @return Page size.
  */
-b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
-    sassert_msg(mem_state.initialized,
-                "updateAllocatedPtrs called without initializing memory");
+u64 sMemGetPageSize(void) {
+    i64 page_size = platformGetPageSize();
 
-    if (is_allocation) {
-        if (mem_state.size == mem_state.index) {
-            mem_state.size += 2;
-            // void *p = reallocate(mem_state.allocated_ptrs,
-            //                      mem_state.size * sizeof(PtrSizePair),
-            //                      (mem_state.size - 2) * sizeof(PtrSizePair));
-            void *p = platformReallocateMemory(
-                mem_state.allocated_ptrs,
-                (mem_state.size * sizeof(PtrSizePair)),
-                (mem_state.size - 2) * sizeof(PtrSizePair));
-            if (!p) {
-                sError("updateAllocatedPtrs reallocation failed");
-                mem_state.size -= 2;
-                return false;
-            }
-            mem_state.allocated_ptrs = (PtrSizePair *)p;
-        }
-        mem_state.allocated_ptrs[mem_state.index++] =
-            (PtrSizePair){.ptr = ptr, .size = (*size)};
-        return true;
-    }
-
-    // for (u32 i = 0; i < mem_state.index; ++i) {
-    for (u32 i = mem_state.index - 1; i >= 0; --i) {
-        if (mem_state.allocated_ptrs[i].ptr == ptr) {
-            *size = mem_state.allocated_ptrs[i].size;
-            sMemMove((void *)(mem_state.allocated_ptrs + i),
-                     (void *)(mem_state.allocated_ptrs + i + 1),
-                     ((mem_state.index - i - 1) * sizeof(PtrSizePair)));
-            --mem_state.index;
-            return true;
-        }
-    }
-
-    // Will reach here only when reallocating for the allocated_ptrs fails
-    return false;
+    return page_size < 1 ? (4 * KiB) : (u64)page_size;
 }
 
 /**
- * @brief (INTERNAL FUNCTION) Updates the state.
+ * @brief Get n continuous pages of memory.
  *
- * @param size Allocated size if allocation, else will be ignored
- * @param ptr Allocated pointer
- * @param is_allocation true if allocation, false if deallocation
+ * If n is zero NULL will be returned.
  *
- * @return true on success, else fasle.
+ * @param n Number of pages
+ *
+ * @return Returns the address of the page or NULL if failed.
+ *
+ * @note Get page size from sMemGetPageSize function.
  */
-b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
+void *sMemAllocatePages(u64 n) {
+    // TODO: Keep track of this too and provide function for deallocating
     sassert_msg(mem_state.initialized,
-                "updateMemoryState called without initializing the memory");
+                "Haven't initialized the memory subsystem?");
 
-    if (!updateAllocatedPtrs(ptr, &size, is_allocation)) {
+    return n ? platformAllocateMemory(n) : NULL;
+}
+
+// /**
+//  * @brief (INTERNAL FUNCTION) update allocated_ptrs
+//  *
+//  * @param ptr Pointer to allocate
+//  * @param size Allocated size if allocation, else fill the deallocation size
+//  * @param is_allocation true if allocation, false if deallocation
+//  *
+//  * @return true on success else false.
+//  */
+// b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
+//     sassert_msg(mem_state.initialized,
+//                 "updateAllocatedPtrs called without initializing memory");
+
+//     if (is_allocation) {
+//         if (mem_state.size == mem_state.index) {
+//             mem_state.size += 2;
+//             // void *p = reallocate(mem_state.allocated_ptrs,
+//             //                      mem_state.size * sizeof(PtrSizePair),
+//             //                      (mem_state.size - 2) *
+//             sizeof(PtrSizePair)); void *p = platformReallocateMemory(
+//                 mem_state.allocated_ptrs,
+//                 (mem_state.size * sizeof(PtrSizePair)),
+//                 (mem_state.size - 2) * sizeof(PtrSizePair));
+//             if (!p) {
+//                 sError("updateAllocatedPtrs reallocation failed");
+//                 mem_state.size -= 2;
+//                 return false;
+//             }
+//             mem_state.allocated_ptrs = (PtrSizePair *)p;
+//         }
+//         mem_state.allocated_ptrs[mem_state.index++] =
+//             (PtrSizePair){.ptr = ptr, .size = (*size)};
+//         return true;
+//     }
+
+//     // for (u32 i = 0; i < mem_state.index; ++i) {
+//     for (u32 i = mem_state.index - 1; i >= 0; --i) {
+//         if (mem_state.allocated_ptrs[i].ptr == ptr) {
+//             *size = mem_state.allocated_ptrs[i].size;
+//             sMemMove((void *)(mem_state.allocated_ptrs + i),
+//                      (void *)(mem_state.allocated_ptrs + i + 1),
+//                      ((mem_state.index - i - 1) * sizeof(PtrSizePair)));
+//             --mem_state.index;
+//             return true;
+//         }
+//     }
+
+//     // Will reach here only when reallocating for the allocated_ptrs fails
+//     return false;
+// }
+
+// /**
+//  * @brief (INTERNAL FUNCTION) Updates the state.
+//  *
+//  * @param size Allocated size if allocation, else will be ignored
+//  * @param ptr Allocated pointer
+//  * @param is_allocation true if allocation, false if deallocation
+//  *
+//  * @return true on success, else fasle.
+//  */
+// b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
+//     sassert_msg(mem_state.initialized,
+//                 "updateMemoryState called without initializing the memory");
+
+//     if (!updateAllocatedPtrs(ptr, &size, is_allocation)) {
+//         return false;
+//     }
+
+//     if (is_allocation) mem_state.total_allocated += size;
+//     else mem_state.total_allocated -= size;
+
+//     return true;
+// }
+
+/**
+ * @brief Get more pages [INTERNAL FUNCTION].
+ *
+ * @return Returns true if got more page else false.
+ */
+b8 getAnotherPage(void) {
+    void *ptr = platformAllocateMemory(PAGE_SIZE);
+    if (!ptr) {
+        sError("Failed to allocate more pages");
         return false;
     }
 
-    if (is_allocation) mem_state.total_allocated += size;
-    else mem_state.total_allocated -= size;
+    // Change the mem_state base to new memory pointer
+    void *prev_base = mem_state.base;
+    mem_state.base = ptr;
+
+    // Write the previous base address to the header
+    *(void **)ptr = prev_base;
+
+    // Update the head
+    mem_state.head = mem_state.base + HEADER_SIZE;
 
     return true;
 }
@@ -186,18 +273,24 @@ b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
 void *sMalloc(u64 size) {
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
-    if (mem_state.free_buffer_size < size) {
-        sFatal("Buffer size is not enough to allocate");
-        return NULL;
-    }
+    if (mem_state.head + size > mem_state.base + PAGE_SIZE)
+        if (!getAnotherPage()) return NULL;
 
-    void *ptr = (void *)mem_state.free_buffer_start;
-    // TODO: This is temporary implementation
-    mem_state.free_buffer_start += size + KiB;
-    mem_state.free_buffer_size -= size + KiB;
+    void *ptr = mem_state.head;
+    mem_state.head += size;
 
-    if (!updatedMemoryState(size, ptr, true))
-        sError("Memory allocation is not being tracked");
+    // // if (mem_state.free_buffer_size < size) {
+    // //     sFatal("Buffer size is not enough to allocate");
+    // //     return NULL;
+    // // }
+
+    // // void *ptr = (void *)mem_state.free_buffer_start;
+    // // // TODO: This is temporary implementation
+    // // mem_state.free_buffer_start += size + KiB;
+    // // mem_state.free_buffer_size -= size + KiB;
+
+    // // if (!updatedMemoryState(size, ptr, true))
+    // //     sError("Memory allocation is not being tracked");
 
     return ptr;
 }
@@ -217,10 +310,10 @@ void *sCalloc(u64 nmemb, u64 size) {
 
     // void *ptr = platformAllocateMemory(total_size);
     void *ptr = sMalloc(total_size);
-    if (ptr) platformZeroOutMemory(ptr, total_size);
+    if (ptr) sMemZeroOut(ptr, total_size);
 
-    if (ptr && !updatedMemoryState(total_size, ptr, true))
-        sError("Failed to track the Memory allocation");
+    // if (ptr && !updatedMemoryState(total_size, ptr, true))
+    //     sError("Failed to track the Memory allocation");
 
     return ptr;
 }
@@ -253,19 +346,24 @@ void *sRealloc(void *ptr, u64 size) {
 
     if (!ptr) return sMalloc(size);
 
-    // TODO: This is temporary implementation
-    // Have already left 1 KiB space empty for this temporary implementation
-    // So just return this pointer and update the state and return the given
-    // pointer
+    void *p = sMalloc(size);
+    if (!p) return NULL;
 
-    if (!updatedMemoryState(0, ptr, false))
-        sInfo("Untracked Memory allocation is being reallocated, "
-              "retracking the memory.");
+    // ERROR PRONE
+    sMemCopy(p, ptr, size);
 
-    if (!updatedMemoryState(size, ptr, true))
-        sError("Failed to track the Memory allocation");
+    sFree(ptr);
 
-    return ptr;
+    ptr = p;
+
+    return p;
+
+    // if (!updatedMemoryState(0, ptr, false))
+    //     sInfo("Untracked Memory allocation is being reallocated, "
+    //           "retracking the memory.");
+
+    // if (!updatedMemoryState(size, ptr, true))
+    //     sError("Failed to track the Memory allocation");
 }
 
 /**
@@ -274,29 +372,11 @@ void *sRealloc(void *ptr, u64 size) {
  * @param ptr Pointer to the memory to be deallocated
  */
 void sFree(void *ptr) {
+    UNUSED(ptr);
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
-    // TODO: This is temporary implementation
-    // b8 found = false;
-    // for (u32 i = mem_state.index - 1; i >= 0; --i) {
-    //     if (mem_state.allocated_ptrs[i].ptr == ptr) {
-    //         PtrSizePair pair = mem_state.allocated_ptrs[i];
-    //         // sMemMove(
-    //         //     pair.ptr, (void *)((u8 *)pair.ptr + pair.size),
-    //         //     (mem_state.free_buffer_start - ((u8 *)pair.ptr +
-    //         pair.size)));
-
-    //         // mem_state.free_buffer_size += pair.size + KiB;
-    //         // mem_state.free_buffer_start -= pair.size + KiB;
-
-    //         found = true;
-    //         break;
-    //     }
-    // }
-    // if (!found) sFatal("Temporary implementation is failing");
-
-    if (!updatedMemoryState(0, ptr, false))
-        sInfo("Untracked memory allocation is being deallocated");
+    // if (!updatedMemoryState(0, ptr, false))
+    //     sInfo("Untracked memory allocation is being deallocated");
 }
 
 /**
@@ -305,25 +385,25 @@ void sFree(void *ptr) {
 void sMemLogState(void) {
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
-    f32 allocation = 0;
-    char ext[4] = "XiB";
+    // f32 allocation = 0;
+    // char ext[4] = "XiB";
 
-    if (mem_state.total_allocated >= GiB) {
-        ext[0] = 'G';
-        allocation = (f32)mem_state.total_allocated / GiB;
-    } else if (mem_state.total_allocated >= MiB) {
-        ext[0] = 'M';
-        allocation = (f32)mem_state.total_allocated / MiB;
-    } else if (mem_state.total_allocated >= KiB) {
-        ext[0] = 'K';
-        allocation = (f32)mem_state.total_allocated / KiB;
-    } else {
-        ext[0] = 'B';
-        ext[1] = 0;
-        allocation = (f32)mem_state.total_allocated;
-    }
+    // if (mem_state.total_allocated >= GiB) {
+    //     ext[0] = 'G';
+    //     allocation = (f32)mem_state.total_allocated / GiB;
+    // } else if (mem_state.total_allocated >= MiB) {
+    //     ext[0] = 'M';
+    //     allocation = (f32)mem_state.total_allocated / MiB;
+    // } else if (mem_state.total_allocated >= KiB) {
+    //     ext[0] = 'K';
+    //     allocation = (f32)mem_state.total_allocated / KiB;
+    // } else {
+    //     ext[0] = 'B';
+    //     ext[1] = 0;
+    //     allocation = (f32)mem_state.total_allocated;
+    // }
 
-    sInfo("Total of %f %s memory is allocated", allocation, ext);
+    // sInfo("Total of %f %s memory is allocated", allocation, ext);
 }
 
 /**

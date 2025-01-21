@@ -1,12 +1,11 @@
 #include "arenaalloc.h"
 
-// TODO:
-#include "platform/memory.h"
+#include "memory.h"
 
 // TODO: For error handling
 
 b8 sArenaCreate(SArena *arena) {
-    void *memory = platformAllocateMemory(arena->size);
+    void *memory = sMalloc(arena->size);
     if (!memory) return false;
     arena->base = arena->head = (u8 *)memory;
     return true;
@@ -27,5 +26,5 @@ void sArenaClear(SArena *arena) {
 }
 
 void sArenaDestroy(SArena *arena) {
-    platformDeallocateMemory(arena->base, arena->size);
+    sFree(arena->base);
 }

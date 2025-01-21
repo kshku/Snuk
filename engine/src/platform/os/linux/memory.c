@@ -5,6 +5,7 @@
     #define _GNU_SOURCE
     #include <string.h>
     #include <sys/mman.h>
+    #include <unistd.h>
 
     #include "core/logger.h"
 
@@ -16,7 +17,6 @@
  * @return On success pointer to allocated memory, else NULL.
  */
 void *platformAllocateMemory(u64 size) {
-    // return malloc(size);
     void *ptr = mmap(NULL, size, PROT_READ | PROT_WRITE,
                      MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (ptr == MAP_FAILED) sFatal("Failed to mmap");
@@ -30,7 +30,6 @@ void *platformAllocateMemory(u64 size) {
  * @param size The size of allocation
  */
 void platformDeallocateMemory(void *ptr, u64 size) {
-    // free(ptr);
     if (munmap(ptr, size) == -1) sFatal("Failed to munmap");
 }
 
@@ -44,10 +43,18 @@ void platformDeallocateMemory(void *ptr, u64 size) {
  * @return Pointer to the reallocated memory.
  */
 void *platformReallocateMemory(void *ptr, u64 new_size, u64 old_size) {
-    // mremap(ptr, old_size, new_size, MREMAP_MAYMOVE)
     void *p = mremap(ptr, old_size, new_size, MREMAP_MAYMOVE);
     if (p == MAP_FAILED) return NULL;
     return p;
+}
+
+/**
+ * @brief Get the page size implementation for Linux.
+ *
+ * @return Page size.
+ */
+i64 platformGetPageSize(void) {
+    return sysconf(_SC_PAGE_SIZE);
 }
 
 /**

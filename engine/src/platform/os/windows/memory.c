@@ -51,6 +51,19 @@ void *platformReallocateMemory(void *ptr, u64 new_size, u64 old_size) {
 }
 
 /**
+ * @brief Get the page size implementation for Windows.
+ *
+ * @return Page size.
+ */
+i64 platformGetPageSize(void) {
+    static SYSTEM_INFO system_info;
+
+    if (!system_info.dwPageSize) GetSystemInfo(&system_info);
+
+    return system_info.dwPageSize;
+}
+
+/**
  * @brief Zero out memory implementation for Windows.
  *
  * @param ptr Pointer to the memory to zero out
