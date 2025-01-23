@@ -8,36 +8,340 @@
 // the memory Every other allocators will get their memory from the main
 // allocator.
 
-// TODO: This implementation is temporary and this wastes a lot of memory
+// TODO : Refactor the code and reuse functions and ....
+// TODO: Error handling
 
-// TODO: Ask for a page from the OS and handle it
-// NOTE: Temporary: Taking page size too large so that our temporary
-// implementation works
-#define PAGE_SIZE (256 * KiB)
-#define HEADER_SIZE (sizeof(void *))
+// I had few options in mind and finally chose this one.
+// When we allocate we also allocate 8 bytes more for header to store the size
+// of the allocation. After allocation is freed, in the 8 bytes we will have the
+// offset form that address to next free block (if offset is zero, no block is
+// free next). A lot of calculations is required, but total metadata size is
+// just 8 bytes. Minimum size of allocation is 1 byte + header size =
+// 9 bytes. After freeing the size of block is saved the next bytes after the
+// header. Size is accessed using the writeBlockSize function and readBlockSize
+// functions.
+// Previously was thinking about using the Freeblcok linked list to store the
+// pointer to the free block and store the size in the free block itself using
+// the writeBlockSize functions and when allocating, using writeBlockSize
+// function to minimize the size of header. This method would require ((2 *
+// sizeof(void *)) + header size to store the allocation size by writeBlockSize
+// function (which can easily go beyond 8 bytes)). But for the method we are
+// following we just need 8 bytes extra.
+// NOTE: Offset is always with respect to where the offset is stored
 
-// typedef struct PtrSizePair {
-//         u64 size;
-//         void *ptr;
-// } PtrSizePair;
+// typedef struct FreeBlock {
+//         void *block;
+//         struct FreeBlock *next_block;
+// } FreeBlock;
+
+typedef struct BlockHeader {
+        void *previous_block;
+        u64 block_size;
+        // Will always ponint to the first free block in the current block
+        u64 first_free_block_offset;
+} BlockHeader;
 
 typedef struct MemState {
         b8 initialized;
 
-        u8 *base;
-        u8 *head;
-
-        // u64 total_allocated;
-        // u32 index;
-        // u64 size;
-        // PtrSizePair *allocated_ptrs;
-
-        // u8 *buffer;
-        // u8 *free_buffer_start;
-        // u64 free_buffer_size;
+        // Anonymous unions/structs are from c11
+        union {
+                void *base;
+                BlockHeader *header;
+        } mem;
 } MemState;
 
 static MemState mem_state;
+
+/**
+ * @brief Get the number of bytes for writing the size.
+ *
+ * @param size Size to write
+ *
+ * @return number of bytes required.
+ */
+#define BYTES_FOR_WRITING_SIZE(size) ((size / 0x7f) + (size % 0x7f ? 1 : 0))
+
+/**
+ * @brief Write the size from given address.
+ *
+ * @param block Pointer to the block
+ * @param size Size to write into block
+ *
+ * @note This function assumes required number of bytes are there in block. Use
+ * BYTES_FOR_WRITING_SIZE macro to get the number of bytes requried.
+ */
+void writeBlockSize(void *block, u64 size) {
+    // We will have size = 1 => 1 byte atleast
+    sassert_msg(size > 0, "Size zero?");
+
+    u8 *b = (u8 *)block;
+
+    // If size > 127, we have to write remaining size in next byte (which is
+    // guaranteed to be free since size > 1).
+    // To say we have written in next bytes we will set 8th bit to 1
+    // while (size > 0x7f) {
+    //     size -= 0x7f;
+    //     *b = 0xff;
+    //     ++b;
+    // }
+    for (; size > 0x7f; size -= 0x7f, ++b) *b = 0xff;
+
+    // Write the remaining size
+    *b = size;
+}
+
+/**
+ * @brief Get the size written in the given block.
+ *
+ * @param block The block to read
+ *
+ * @return The size written in the block.
+ */
+u64 readBlockSize(void *block) {
+    u64 size = 0;
+    u8 *b = (u8 *)block;
+
+    // If 8th bit is set then we have to add the size written in next block too.
+    // while (*b & 0x80) {  // Can also write as (*b & BITFLAG(7))
+    //     ++b;
+    //     size += 0x7f;
+    // }
+    for (; *b & 0x80; ++b, size += 0x7f);
+
+    // Read the size in this byte.
+    size += *b;
+
+    return size;
+}
+
+/**
+ * @brief Offset in block
+ */
+#define OFFSET_IN_FREE_BLOCK(block) (*(u64 *)block)
+
+/**
+ * @brief Adds the free block.
+ *
+ * The block will have size atleast 9 bytes.
+ *
+ * @param pb Previous block
+ * @param b The free block
+ * @param size The size of the free blcok
+ * @param is_header_field Is the pb header field?
+ */
+void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
+    u8 *block = (u8 *)b;
+
+    u8 *previous_block = (u8 *)pb;
+    u64 previous_block_offset = OFFSET_IN_FREE_BLOCK(previous_block);
+
+    u8 *next_block =
+        previous_block_offset ? previous_block + previous_block_offset : NULL;
+    u64 next_block_offset = next_block ? OFFSET_IN_FREE_BLOCK(next_block) : 0;
+
+    // Try to merge with previous block first
+    // NOTE: We should not merge with the free block in the header field
+    if (!is_header_field) {
+        // Check whether we can merge this block to previous free block
+        u64 previous_block_size = readBlockSize(previous_block + 8);
+        if (previous_block + previous_block_size == block) {
+            // We can merge
+            // NOTE: Don't have to change the offset while merging
+            // Add this to previous block's size
+            previous_block_size += size;
+
+            // Can we also merge with next block?
+            if (previous_block + previous_block_size == next_block) {
+                // Yes we can, merge it now!
+                // We have to change the offset of previous block
+                if (next_block_offset)
+                    OFFSET_IN_FREE_BLOCK(previous_block) =
+                        previous_block_offset
+                        + OFFSET_IN_FREE_BLOCK(next_block);
+                else OFFSET_IN_FREE_BLOCK(previous_block) = 0;
+
+                // Add next block's size to previous block too
+                previous_block_size += readBlockSize(next_block + 8);
+            }
+
+            writeBlockSize((previous_block + 8), previous_block_size);
+
+            // Thats it we added free block
+            return;
+        }
+    }
+
+    // Couldn't merge. Update the previous free block's offset to here
+    OFFSET_IN_FREE_BLOCK(previous_block) = block - previous_block;
+
+    if (!next_block) {
+        // previous block was last block, now this is last block
+        OFFSET_IN_FREE_BLOCK(block) = 0;
+        writeBlockSize(block + 8, size);
+        return;
+    }
+
+    // There is a free block next to this
+
+    // Check can we merge with next free block
+    if (block + size == next_block) {
+        // We can merge with next free block and the next free block's next
+        // offset should be this block's offset
+        if (next_block_offset)
+            OFFSET_IN_FREE_BLOCK(block) =
+                next_block - block + OFFSET_IN_FREE_BLOCK(next_block);
+        else OFFSET_IN_FREE_BLOCK(block) = 0;
+
+        // Update this block's size by adding next block's size
+        size += readBlockSize(next_block + 8);
+
+        writeBlockSize(block + 8, size);
+
+        // Done with the task
+        return;
+    }
+
+    // We couldn't merge. This block is not connected to any other free block
+    // this block's offset should point to next block
+    OFFSET_IN_FREE_BLOCK(block) = next_block - block;
+    writeBlockSize(block + 8, size);
+}
+
+/**
+ * @brief Update the free block.
+ *
+ * If the remaining size is zero then removes the entry, else just moves the
+ * free block.
+ *
+ * @param pb Previous block
+ * @param b The target block
+ * @param size The previous size of block
+ * @param new_size The new size of block
+ */
+void updateFreeBlock(void *pb, void *b, u64 size, u64 new_size) {
+    sassert(size > new_size);
+
+    u8 *block = (u8 *)b;
+    u8 *previous_block = (u8 *)pb;
+    u64 block_offset = OFFSET_IN_FREE_BLOCK(block);
+    // u8 *next_block = block + OFFSET_IN_FREE_BLOCK(block);
+    u64 diff = size - new_size;
+
+    if (diff) {
+        OFFSET_IN_FREE_BLOCK(previous_block) += diff;
+        block += diff;
+
+        if (block_offset) OFFSET_IN_FREE_BLOCK(block) = block_offset - diff;
+        else OFFSET_IN_FREE_BLOCK(block) = 0;
+
+        writeBlockSize(block + 8, new_size);
+    } else {
+        if (block_offset)
+            OFFSET_IN_FREE_BLOCK(previous_block) += OFFSET_IN_FREE_BLOCK(block);
+        else OFFSET_IN_FREE_BLOCK(previous_block) = 0;
+    }
+}
+
+// /**
+//  * @brief Adds the free block.
+//  *
+//  * The block will have size atleast 9 bytes.
+//  *
+//  * @param block_header The block header
+//  * @param b The free block
+//  * @param size The size of the free blcok
+//  */
+// void addFreeBlock(BlockHeader *block_header, void *b, u64 size) {
+//     u8 *block = (u8 *)b;
+
+//     // Take the header's offset
+//     u8 *previous_block = &block_header->first_free_block_offset;
+
+//     // Find the previous free block
+//     while (previous_block < block && OFFSET_IN_FREE_BLOCK(previous_block)
+//            && (previous_block + OFFSET_IN_FREE_BLOCK(previous_block)) <
+//            block)
+//         previous_block += OFFSET_IN_FREE_BLOCK(previous_block);
+
+//     u64 previous_block_offset = OFFSET_IN_FREE_BLOCK(previous_block);
+//     u8 *next_block =
+//         previous_block_offset ? previous_block + previous_block_offset :
+//         NULL;
+//     u64 next_block_offset = next_block ? OFFSET_IN_FREE_BLOCK(next_block) :
+//     0;
+
+//     // Try to merge with previous block first
+//     // NOTE: We should not merge with the free block in the header field
+//     if (previous_block != block_header->first_free_block_offset) {
+//         // Check whether we can merge this block to previous free block
+//         u64 previous_block_size = readBlockSize(previous_block + 8);
+//         if (previous_block + previous_block_size == block) {
+//             // We can merge
+//             // NOTE: Don't have to change the offset while merging
+//             // Add this to previous block's size
+//             previous_block_size += size;
+
+//             // Can we also merge with next block?
+//             if (previous_block + previous_block_size == next_block) {
+//                 // Yes we can, merge it now!
+//                 // We have to change the offset of previous block
+//                 if (next_block_offset)
+//                     OFFSET_IN_FREE_BLOCK(previous_block) =
+//                         previous_block_offset
+//                         + OFFSET_IN_FREE_BLOCK(next_block);
+//                 else OFFSET_IN_FREE_BLOCK(previous_block) = 0;
+//                 // Add next block's size to previous block too
+//                 previous_block_size += readBlockSize(next_block + 8);
+//             }
+
+//             writeBlockSize((previous_block + 8), previous_block_size);
+
+//             // Thats it we added free block
+//             return;
+//         }
+//     }
+
+//     // Couldn't merge. Update the previous free block's offset to here
+//     OFFSET_IN_FREE_BLOCK(previous_block) = block - previous_block;
+
+//     // Either previous_block_offset = 0 or previous_block +
+//     // previous_block_offset > block It should be nearest free block to
+//     // the given block NOTE: Previous free block is not supposed to point to
+//     // this block
+//     sassert(previous_block_offset == 0
+//             || previous_block + previous_block_offset > block);
+
+//     if (previous_block_offset == 0) {
+//         // previous block was last block, now this is last block
+//         OFFSET_IN_FREE_BLOCK(block) = 0;
+//         writeBlockSize(block + 8, size);
+//         return;
+//     }
+
+//     // There is a free block next to this
+//     // Check can we merge with next free block
+//     if (block + size == next_block) {
+//         // We can merge with next free block
+//         if (next_block_offset)
+//             OFFSET_IN_FREE_BLOCK(block) =
+//                 next_block_offset + next_block - block;
+//         else OFFSET_IN_FREE_BLOCK(block) = 0;
+
+//         // Update this block's size by adding next block's size
+//         size += readBlockSize(next_block + 8);
+
+//         writeBlockSize(block + 8, size);
+
+//         // Done with the task
+//         return;
+//     }
+
+//     // We couldn't merge. This block is not connected to any other free block
+//     // this block's offset should point to next block
+//     OFFSET_IN_FREE_BLOCK(block) = next_block - block;
+//     writeBlockSize(block + 8, size);
+// }
 
 /**
  * @brief Initialize the memory subsystem.
@@ -47,43 +351,34 @@ static MemState mem_state;
 b8 initializeMemory(void) {
     if (mem_state.initialized) {
         sError("Memory system is already initialized, but initializeMemory was "
-
                "called again");
         return false;
     }
 
-    sInfo("Page size is %ld", platformGetPageSize());
-    sInfo("Page size returned by sMemGetPageSize = %lu", sMemGetPageSize());
-
     sMemZeroOut(&mem_state, sizeof(MemState));
 
-    mem_state.base = platformAllocateMemory(PAGE_SIZE);
-    if (!mem_state.base) {
-        sFatal("Failed to allocate a page of memory");
-        return false;
-    }
+    // sDebug("BYTES_FOR_WRITING_SIZE(0) = %lu", BYTES_FOR_WRITING_SIZE(0));
+    // sDebug("BYTES_FOR_WRITING_SIZE(1) = %lu", BYTES_FOR_WRITING_SIZE(1));
+    // sDebug("BYTES_FOR_WRITING_SIZE(127) = %lu", BYTES_FOR_WRITING_SIZE(127));
+    // sDebug("BYTES_FOR_WRITING_SIZE(128) = %lu", BYTES_FOR_WRITING_SIZE(128));
 
-    mem_state.head = mem_state.base + HEADER_SIZE;
-    // First base's (page's) header will have NULL
-    *(void **)mem_state.base = NULL;
-    sMemZeroOut(mem_state.base, PAGE_SIZE);
-
-    // mem_state.total_allocated = 0;
-    // mem_state.index = 0;
-    // mem_state.size = 1;
-
-    // mem_state.allocated_ptrs = (PtrSizePair *)platformAllocateMemory(
-    //     mem_state.size * sizeof(PtrSizePair));
-
-    // if (!mem_state.allocated_ptrs) return false;
-
-    // mem_state.free_buffer_size = BUFFER_SIZE;
-    // mem_state.buffer = (u8 *)platformAllocateMemory(BUFFER_SIZE);
-    // if (!mem_state.buffer) {
-    // platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
-    // return false;
+    // u64 page_size = sMemGetPageSize();
+    // mem_state.mem.base = platformAllocateMemory(page_size);
+    // if (!mem_state.mem.base) {
+    //     sFatal("Failed to allocate a page of memory");
+    //     return false;
     // }
-    // mem_state.free_buffer_start = mem_state.buffer;
+
+    // mem_state.mem.header->block_size = page_size;
+    // mem_state.mem.header->previous_block = NULL;
+    // // There is not next free block.
+    // mem_state.mem.header->first_free_block_offset = 0;
+
+    // // addFreeBlock(mem_state.mem.header, mem_state.mem.header + 1,
+    // //              mem_state.mem.header->block_size);
+    // addFreeBlock(&mem_state.mem.header->first_free_block_offset,
+    //              mem_state.mem.header + 1, mem_state.mem.header->block_size,
+    //              true);
 
     mem_state.initialized = true;
     return true;
@@ -98,35 +393,14 @@ void shutdownMemory(void) {
         return;
     }
 
-    void *cur = mem_state.base;
-    void *next;
+    BlockHeader *cur = mem_state.mem.header;
+    BlockHeader *prev;
     while (cur) {
         // Get the header which is pointer to another base (page)
-        next = *(void **)cur;
-        platformDeallocateMemory(cur, PAGE_SIZE);
-        cur = next;
+        prev = cur->previous_block;
+        platformDeallocateMemory(cur, cur->block_size);
+        cur = prev;
     }
-
-    // sTrace("Deallocating the allocated memroy in shutdown memory");
-    // sMemLogState();
-
-    // if (mem_state.allocated_ptrs) {
-    //     for (u32 i = 0; i < mem_state.index; ++i) {
-    //         sTrace("Deallocating %ld bytes of memory",
-    //                mem_state.allocated_ptrs[i].size);
-    //         mem_state.total_allocated -= mem_state.allocated_ptrs[i].size;
-    //         // platformDeallocateMemory(mem_state.allocated_ptrs[i].ptr);
-    //     }
-
-    //     platformDeallocateMemory(mem_state.allocated_ptrs, mem_state.size);
-    //     mem_state.allocated_ptrs = NULL;
-    // }
-
-    // sTrace("After deallocation");
-    // sMemLogState();
-
-    // platformDeallocateMemory(mem_state.buffer, BUFFER_SIZE);
-    // mem_state.free_buffer_start = NULL;
 
     mem_state.initialized = false;
 }
@@ -161,106 +435,93 @@ void *sMemAllocatePages(u64 n) {
     sassert_msg(mem_state.initialized,
                 "Haven't initialized the memory subsystem?");
 
-    return n ? platformAllocateMemory(n) : NULL;
+    return n ? platformAllocateMemory(n * sMemGetPageSize()) : NULL;
 }
 
-// /**
-//  * @brief (INTERNAL FUNCTION) update allocated_ptrs
-//  *
-//  * @param ptr Pointer to allocate
-//  * @param size Allocated size if allocation, else fill the deallocation size
-//  * @param is_allocation true if allocation, false if deallocation
-//  *
-//  * @return true on success else false.
-//  */
-// b8 updateAllocatedPtrs(void *ptr, u64 *size, b8 is_allocation) {
-//     sassert_msg(mem_state.initialized,
-//                 "updateAllocatedPtrs called without initializing memory");
-
-//     if (is_allocation) {
-//         if (mem_state.size == mem_state.index) {
-//             mem_state.size += 2;
-//             // void *p = reallocate(mem_state.allocated_ptrs,
-//             //                      mem_state.size * sizeof(PtrSizePair),
-//             //                      (mem_state.size - 2) *
-//             sizeof(PtrSizePair)); void *p = platformReallocateMemory(
-//                 mem_state.allocated_ptrs,
-//                 (mem_state.size * sizeof(PtrSizePair)),
-//                 (mem_state.size - 2) * sizeof(PtrSizePair));
-//             if (!p) {
-//                 sError("updateAllocatedPtrs reallocation failed");
-//                 mem_state.size -= 2;
-//                 return false;
-//             }
-//             mem_state.allocated_ptrs = (PtrSizePair *)p;
-//         }
-//         mem_state.allocated_ptrs[mem_state.index++] =
-//             (PtrSizePair){.ptr = ptr, .size = (*size)};
-//         return true;
-//     }
-
-//     // for (u32 i = 0; i < mem_state.index; ++i) {
-//     for (u32 i = mem_state.index - 1; i >= 0; --i) {
-//         if (mem_state.allocated_ptrs[i].ptr == ptr) {
-//             *size = mem_state.allocated_ptrs[i].size;
-//             sMemMove((void *)(mem_state.allocated_ptrs + i),
-//                      (void *)(mem_state.allocated_ptrs + i + 1),
-//                      ((mem_state.index - i - 1) * sizeof(PtrSizePair)));
-//             --mem_state.index;
-//             return true;
-//         }
-//     }
-
-//     // Will reach here only when reallocating for the allocated_ptrs fails
-//     return false;
-// }
-
-// /**
-//  * @brief (INTERNAL FUNCTION) Updates the state.
-//  *
-//  * @param size Allocated size if allocation, else will be ignored
-//  * @param ptr Allocated pointer
-//  * @param is_allocation true if allocation, false if deallocation
-//  *
-//  * @return true on success, else fasle.
-//  */
-// b8 updatedMemoryState(u64 size, void *ptr, b8 is_allocation) {
-//     sassert_msg(mem_state.initialized,
-//                 "updateMemoryState called without initializing the memory");
-
-//     if (!updateAllocatedPtrs(ptr, &size, is_allocation)) {
-//         return false;
-//     }
-
-//     if (is_allocation) mem_state.total_allocated += size;
-//     else mem_state.total_allocated -= size;
-
-//     return true;
-// }
-
 /**
- * @brief Get more pages [INTERNAL FUNCTION].
+ * @brief Get more memory [INTERNAL FUNCTION].
+ *
+ * @param size Minimum size(bytes) the block will have
  *
  * @return Returns true if got more page else false.
  */
-b8 getAnotherPage(void) {
-    void *ptr = platformAllocateMemory(PAGE_SIZE);
+b8 getMemoryWithAtleast(u64 size) {
+    u64 page_size = sMemGetPageSize();
+    size += sizeof(BlockHeader);
+    u64 n_pages = (size / page_size) + (size % page_size ? 1 : 0);
+    BlockHeader *ptr = (BlockHeader *)sMemAllocatePages(n_pages);
     if (!ptr) {
         sError("Failed to allocate more pages");
         return false;
     }
 
-    // Change the mem_state base to new memory pointer
-    void *prev_base = mem_state.base;
-    mem_state.base = ptr;
-
     // Write the previous base address to the header
-    *(void **)ptr = prev_base;
+    ptr->previous_block = mem_state.mem.base;
+    ptr->block_size = page_size * n_pages;
+    ptr->first_free_block_offset = 0;
 
-    // Update the head
-    mem_state.head = mem_state.base + HEADER_SIZE;
+    // addFreeBlock(ptr, ptr + 1, ptr->block_size);
+    addFreeBlock(&ptr->first_free_block_offset, ptr + 1, ptr->block_size, true);
+
+    mem_state.mem.base = (u8 *)ptr;
 
     return true;
+}
+
+/**
+ * @brief Get free block having atleast given size.
+ *
+ * @param block_header The block header in which to search
+ * @param size The size to search for
+ *
+ * @return Pointer to the block having atleast given size. If not found returns
+ * NULL.
+ */
+void *getFreeBlock(BlockHeader *block_header, u64 size) {
+    if (!block_header->first_free_block_offset) return NULL;
+    u8 *prev = (u8 *)&block_header->first_free_block_offset;
+    u8 *free_block = prev + OFFSET_IN_FREE_BLOCK(prev);
+
+    u64 free_block_size = readBlockSize(free_block + 8);
+    while (free_block_size < size) {
+        if (!OFFSET_IN_FREE_BLOCK(free_block)) return NULL;
+        prev = free_block;
+        free_block += OFFSET_IN_FREE_BLOCK(free_block);
+        free_block_size = readBlockSize(free_block + 8);
+    }
+
+    updateFreeBlock(prev, free_block, free_block_size, free_block_size - size);
+
+    return free_block;
+}
+
+/**
+ * @brief Get the free block which can hold given size of data.
+ *
+ * Me remebering the best, worst, and first fit algorithms I just learnt in
+ * OS (3rd sem) :)
+ *
+ * @param size Size required
+ *
+ * @return Pointer to the block which can hold given size of data.
+ */
+void *getBlockForSize(u64 size) {
+    BlockHeader *cur_header = mem_state.mem.header;
+    void *block = NULL;
+
+    while (!block && cur_header) {
+        block = getFreeBlock(cur_header, size);
+        cur_header = cur_header->previous_block;
+    }
+
+    // Suitable block was not found, allocate more memory
+    if (!block) {
+        if (!getMemoryWithAtleast(size)) return NULL;
+        cur_header = mem_state.mem.header;
+        block = getFreeBlock(cur_header, size);
+    }
+
+    return block;
 }
 
 /**
@@ -272,27 +533,15 @@ b8 getAnotherPage(void) {
  */
 void *sMalloc(u64 size) {
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
+    size += 8;
 
-    if (mem_state.head + size > mem_state.base + PAGE_SIZE)
-        if (!getAnotherPage()) return NULL;
+    u64 *ptr = (u64 *)getBlockForSize(size);
 
-    void *ptr = mem_state.head;
-    mem_state.head += size;
+    if (!ptr) return NULL;
 
-    // // if (mem_state.free_buffer_size < size) {
-    // //     sFatal("Buffer size is not enough to allocate");
-    // //     return NULL;
-    // // }
+    *ptr = size;
 
-    // // void *ptr = (void *)mem_state.free_buffer_start;
-    // // // TODO: This is temporary implementation
-    // // mem_state.free_buffer_start += size + KiB;
-    // // mem_state.free_buffer_size -= size + KiB;
-
-    // // if (!updatedMemoryState(size, ptr, true))
-    // //     sError("Memory allocation is not being tracked");
-
-    return ptr;
+    return (void *)(ptr + 1);
 }
 
 /**
@@ -308,12 +557,8 @@ void *sCalloc(u64 nmemb, u64 size) {
 
     u64 total_size = size * nmemb;
 
-    // void *ptr = platformAllocateMemory(total_size);
     void *ptr = sMalloc(total_size);
     if (ptr) sMemZeroOut(ptr, total_size);
-
-    // if (ptr && !updatedMemoryState(total_size, ptr, true))
-    //     sError("Failed to track the Memory allocation");
 
     return ptr;
 }
@@ -354,16 +599,7 @@ void *sRealloc(void *ptr, u64 size) {
 
     sFree(ptr);
 
-    ptr = p;
-
     return p;
-
-    // if (!updatedMemoryState(0, ptr, false))
-    //     sInfo("Untracked Memory allocation is being reallocated, "
-    //           "retracking the memory.");
-
-    // if (!updatedMemoryState(size, ptr, true))
-    //     sError("Failed to track the Memory allocation");
 }
 
 /**
@@ -372,11 +608,49 @@ void *sRealloc(void *ptr, u64 size) {
  * @param ptr Pointer to the memory to be deallocated
  */
 void sFree(void *ptr) {
-    UNUSED(ptr);
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
-    // if (!updatedMemoryState(0, ptr, false))
-    //     sInfo("Untracked memory allocation is being deallocated");
+    u64 *p = (u64 *)ptr - 1;
+
+    BlockHeader *cur_header = mem_state.mem.header;
+
+    while (cur_header) {
+        if ((u64 *)cur_header < p
+            && p < (u64 *)((u8 *)cur_header + cur_header->block_size)) {
+            u8 *previous_block = (u8 *)&cur_header->first_free_block_offset;
+            while ((u64 *)previous_block < p
+                   && (u64 *)(previous_block
+                              + OFFSET_IN_FREE_BLOCK(previous_block))
+                          < p)
+                previous_block += OFFSET_IN_FREE_BLOCK(previous_block);
+
+            addFreeBlock(
+                previous_block, p, *p,
+                previous_block == (u8 *)&cur_header->first_free_block_offset);
+            return;
+        }
+
+        cur_header = cur_header->previous_block;
+    }
+
+    sassert_msg(false, "Should not reach here");
+
+    // FreeBlock *invalid_free_block = &mem_state.mem.header->free_block;
+    // while (invalid_free_block && !invalid_free_block->valid)
+    //     invalid_free_block = invalid_free_block->next_block;
+
+    // if (!invalid_free_block) {
+    //     // Hahaha Calling malloc to free the given pointer
+    //     invalid_free_block = (FreeBlock *)sMalloc(sizeof(FreeBlock));
+    //     FreeBlock *last = &mem_state.mem.header->free_block;
+    //     while (last->next_block) last = last->next_block;
+    //     last->next_block = invalid_free_block;
+    // }
+
+    // invalid_free_block->block = p;
+    // invalid_free_block->next_block = NULL;
+    // writeFreeBlockSize(invalid_free_block->block, *p);
+    // invalid_free_block->valid = true;
 }
 
 /**

@@ -3,6 +3,7 @@
 #include "defines.h"
 
 typedef struct EventContext {
+        // Anonymous unions/structs are from c11
         union {
                 i64 i64[2];
                 u64 u64[2];

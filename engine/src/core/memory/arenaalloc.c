@@ -3,6 +3,8 @@
 #include "memory.h"
 
 // TODO: For error handling
+// ? Should Arena allocator ask for size or just dynamically allocate the
+// memory?
 
 b8 sArenaCreate(SArena *arena) {
     void *memory = sMalloc(arena->size);
