@@ -47,131 +47,6 @@ typedef struct XCBState {
 static XCBState *xcb_state;
 
 /**
- * @brief Map the X's KeyCodes to Scancode.
- */
-void mapKeycodesToScancodes(void) {
-    u32 which = XCB_XKB_NAME_DETAIL_KEY_NAMES | XCB_XKB_NAME_DETAIL_KEY_ALIASES;
-    xcb_xkb_get_names_cookie_t names_cookie = xcb_xkb_get_names(
-        xcb_state->connection, XCB_XKB_ID_USE_CORE_KBD, which);
-    xcb_xkb_get_names_reply_t *names_reply =
-        xcb_xkb_get_names_reply(xcb_state->connection, names_cookie, NULL);
-
-    // Don't ask me how I did it. Did a lot of trail and errors using the
-    // functions found in the header file. Here is the comments I wrote while I
-    // was doing so.
-
-    // void *value_list = xcb_xkb_get_names_value_list(names_reply);
-    // void *value_list_2 = xcb_xkb_get_names_value_list(names_reply);
-    // i32 ret;
-    // I was getting error "Cannot access the memory" or something.
-    // Searched for all the functions starting with xcb_xkb_get_names and
-    // found unpack and serialize functions. They return int don't know what
-    // return value is used for(Probably true or false of course). By the
-    // meaning guessing it should be called on the value list used it and
-    // seems like it works!
-
-    // Just passed parameters by guessing and didn't know what to pass for
-    // buffer and aux so passed value_list if it works then no problem.
-
-    // Even after calling serialize the names were not in order. After
-    // inspecting the memory content the return value of
-    // xcb_get_names_value_list function is not the
-    // xcb_get_names_value_list_t but really arbitary data (which is
-    // requested through which paramter). but don't know what is aux is
-    // used. But if it is NULL it will be error so creating another
-    // value_list and passing that as buffer might work
-    // ret = xcb_xkb_get_names_value_list_unpack(
-    //     value_list_2, names_reply->nTypes, names_reply->indicators,
-    //     names_reply->virtualMods, names_reply->groupNames,
-    //     names_reply->nKeys, names_reply->nKeyAliases,
-    //     names_reply->nRadioGroups, XCB_XKB_NAME_DETAIL_KEY_NAMES |
-    //     XCB_XKB_NAME_DETAIL_KEY_ALIASES, value_list);
-    // sDebug("ret = %d", ret);
-
-    // Looks like unpacking is not enough. I need to serialize it too.
-    // In Xlib we can access the names like desc->names->keys[keycode].name and
-    // it will give the names for respective keycodes. But in xcb whithout
-    // serialize function it looked like out of order. Gussing and passing
-    // parameters.
-
-    // ret = xcb_xkb_get_names_value_list_serialize(
-    //     &value_list, names_reply->nTypes, names_reply->indicators,
-    //     names_reply->virtualMods, names_reply->groupNames,
-    //     names_reply->nKeys, names_reply->nKeyAliases,
-    //     names_reply->nRadioGroups, XCB_XKB_NAME_DETAIL_KEY_NAMES |
-    //     XCB_XKB_NAME_DETAIL_KEY_ALIASES, value_list_2);
-    // sDebug("ret = %d", ret);
-    // Well after asking the questions to chatGPT and getting absolutely wrong
-    // answers, from it's explanations I got an idea. I thought in XCB some of
-    // the things are just pointer manipulation beyond the declared data types
-    // and all(Look at the  we select the events in XI or X input extension).
-    // But it is just that everywhere
-
-    xcb_xkb_get_names_value_list_t value_list;
-    // Inspected the memory, It is also just pointer manipulation. Points right
-    // after the sizeof of the xcb_xkb_get_names_reply_t structure in the
-    // names_reply
-    void *buf = xcb_xkb_get_names_value_list(names_reply);
-    // So we pass this buffer to the unpack like this? Shold we use the
-    // serialize or not(If things will work then no need to call serialize may
-    // be).
-    xcb_xkb_get_names_value_list_unpack(
-        buf, names_reply->nTypes, names_reply->indicators,
-        names_reply->virtualMods, names_reply->groupNames, names_reply->nKeys,
-        names_reply->nKeyAliases, names_reply->nRadioGroups, which,
-        &value_list);
-    // And... Yeah, the order is still not correct may be should call the
-    // serialize, but why pointer to buf?
-    // xcb_xkb_get_names_value_list_serialize(
-    //     &buf, names_reply->nTypes, names_reply->indicators,
-    //     names_reply->virtualMods, names_reply->groupNames,
-    //     names_reply->nKeys, names_reply->nKeyAliases,
-    //     names_reply->nRadioGroups, which, &value_list);
-    // Still didn't work... Oh got it. Taking pointer to the buf since it
-    // changes the order. So first call serialize then unpack, but why serialize
-    // takes value_list? Is serialize alone is enough? No it value list as
-    // constant which means it is not going to manipulate. Also if we call
-    // serialize first, it throws error.
-
-    // Finally got it. In Xlib we could get the name of keycode directly as said
-    // above in comment somewhere, since the array starts at exactly from
-    // keycode 0, even though it is not the minimum keycode, in xcb it looks
-    // like the array[0] is the name of the keycode minimum(Inspect the memory).
-    // Also I don't think we need to call the serialize function.  // Added one
-    // more parameter to the mapXKeyCodesToScancodes function. It takes a lot of
-    // parameters, so time for refactor it by creating a new struct and take it
-    // as the parameter
-
-    // Haha, finally realized that I am just mapping here and didn't use it
-    // while passing it to process the input, all those wrong mappings are due
-    // to it. But still that parameter to check whether the key names start from
-    // min keycode or from zero is required. Thanks god, went in right way. But
-    // still don't know should call serialize or not. So not calling it.
-
-    // Can't we just access it directly like value_list->keyNames?
-    // I don't know, they have those functions so I am just using it
-    // I am here just guessing things and doing it. I couldn't find
-    // documentation about it.
-    // mapFunctionParams params = {
-    //     .key_aliases =
-    //         (XKeyAliasNameType *)xcb_xkb_get_names_value_list_key_aliases(
-    //             &value_list),
-    //     .key_names =
-    //         (XKeyNameType
-    //         *)xcb_xkb_get_names_value_list_key_names(&value_list),
-    //     .key_names_start_from_min_key_code = true,
-    //     .max_key_code = names_reply->maxKeyCode,
-    //     .min_key_code = names_reply->minKeyCode,
-    //     .num_key_aliases = names_reply->nKeyAliases};
-    // mapXKeyCodesToScancodes(params, xcb_state->xKeyCodeToScancode);
-
-    // If I try to free value list, it gives "double free or corruption
-    // (!prev)" error. So don't free(value_list)
-
-    free(names_reply);
-}
-
-/**
  * @brief Implementation for xcb.
  *
  * Call with state NULL to get the size to be allocated and call once again with
@@ -196,13 +71,6 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     sMemZeroOut(xcb_state, sizeof(XCBState));
 
     // TODO: Error handling
-    // Open connection to X server
-    // if (!(xcb_state->display = XOpenDisplay(NULL))) {
-    //     sError("Faild to open connection to X server");
-    //     return false;
-    // }
-
-    // xcb_state->connection = XGetXCBConnection(xcb_state->display);
 
     i32 screen_number;
     xcb_state->connection = xcb_connect(NULL, &screen_number);
@@ -210,8 +78,6 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         sError("Faild to connect X server via xcb");
         return false;
     }
-
-    // screen_number = DefaultScreen(xcb_state->display);
 
     // Getting screen number
     xcb_screen_iterator_t iter =
@@ -224,15 +90,7 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     // Similar to XSetWindowAttributes
     u32 value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    u32 event_mask =
-        XCB_EVENT_MASK_EXPOSURE
-        | XCB_EVENT_MASK_STRUCTURE_NOTIFY;  // u32 event_mask =
-                                            // XCB_EVENT_MASK_KEY_PRESS |
-                                            // XCB_EVENT_MASK_KEY_RELEASE
-    //                | XCB_EVENT_MASK_BUTTON_PRESS |
-    //                XCB_EVENT_MASK_BUTTON_RELEASE |
-    //                XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_EXPOSURE |
-    //                XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    u32 event_mask = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
     u32 value_list[2] = {xcb_state->screen->black_pixel, event_mask};
 
@@ -266,6 +124,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
 
     free(xi_reply);
 
+    // TODO: Remove unnecessary codes
+
     // Get the xkb data
     const xcb_query_extension_reply_t *xkb_data =
         xcb_get_extension_data(xcb_state->connection, &xcb_xkb_id);
@@ -286,8 +146,6 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     }
 
     free(xkb_reply);
-
-    mapKeycodesToScancodes();
 
     // Select Xkb events
     // TODO: Register for xkb events and track the changes to the keyboard to
@@ -433,7 +291,6 @@ void shutdownPlatformWindowing(void) {
 
     xcb_destroy_window(xcb_state->connection, xcb_state->app_window);
 
-    // if (xcb_state->display) XCloseDisplay(xcb_state->display);
     xcb_disconnect(xcb_state->connection);
 }
 
@@ -577,7 +434,6 @@ b8 platformWindowPumpMessages(void) {
     b8 quit = false;
 
     xcb_generic_event_t *event;
-    // xcb_get_extension_data(xcb_state->connection)
 
     // xcb_wait_for_event (blocking) is similar to XNextEvent
     // So use xcb_poll_for_event(non-blocking)
@@ -592,22 +448,10 @@ b8 platformWindowPumpMessages(void) {
             // have 8 bit size
             switch (event->pad0) {
                 case XCB_XKB_NEW_KEYBOARD_NOTIFY: {
-                    // sDebug("XkbNewKeyboardNotify");
-                    // ? Should call this or not
-                    mapKeycodesToScancodes();
                 } break;
                 case XCB_XKB_MAP_NOTIFY: {
-                    // sDebug("XkbMapNotify");
-                    // ? Should call this or not
-                    // XkbGetUpdatedMap(xlib_state->display,
-                    //                  XkbAllMapComponentsMask,
-                    //                  xlib_state->xkb_desc);
-                    mapKeycodesToScancodes();
                 } break;
                 case XCB_XKB_NAMES_NOTIFY: {
-                    // sDebug("XkbNamesNotify");
-                    // ? Should call this or not
-                    mapKeycodesToScancodes();
                 } break;
                 case XCB_XKB_STATE_NOTIFY: {
                     xcb_xkb_state_notify_event_t *state_event =

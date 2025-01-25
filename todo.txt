@@ -3,3 +3,8 @@ TODO: Write tests for functions to convert keycode to scancode and scancode to k
 TODO: Write tests for checking the translations in different platforms
 
 TODO: Work on the input (The character typed, devices other than keyboard and mouse, etc.)
+
+TODO: The file naming, function naming, naming of structs unions etc. Totally the naming convension
+NOTE: Platform/os/* should be rearragned
+
+TODO: Use the stdint.h like headers too, switch from c99 to c11

@@ -4,6 +4,18 @@
 #include "../logger.h"
 #include "platform/memory.h"
 
+// /**
+//  * @brief Get the number of bytes for writing the size.
+//  *
+//  * @param size Size to write
+//  */
+// #define BYTES_FOR_WRITING_SIZE(size) ((size / 0x7f) + (size % 0x7f ? 1 : 0))
+
+/**
+ * @brief Offset in block
+ */
+#define OFFSET_IN_FREE_BLOCK(block) (*(u64 *)block)
+
 // Create one main allocator who makes call to the platformAllocator and gets
 // the memory Every other allocators will get their memory from the main
 // allocator.
@@ -29,38 +41,21 @@
 // following we just need 8 bytes extra.
 // NOTE: Offset is always with respect to where the offset is stored
 
-// typedef struct FreeBlock {
-//         void *block;
-//         struct FreeBlock *next_block;
-// } FreeBlock;
-
 typedef struct BlockHeader {
         void *previous_block;
         u64 block_size;
-        // Will always ponint to the first free block in the current block
+        // Will always store the offset to the first free block in the current
+        // block (if not there zero)
         u64 first_free_block_offset;
 } BlockHeader;
 
 typedef struct MemState {
         b8 initialized;
-
-        // Anonymous unions/structs are from c11
-        union {
-                void *base;
-                BlockHeader *header;
-        } mem;
+        BlockHeader *header;
+        u64 page_size;
 } MemState;
 
 static MemState mem_state;
-
-/**
- * @brief Get the number of bytes for writing the size.
- *
- * @param size Size to write
- *
- * @return number of bytes required.
- */
-#define BYTES_FOR_WRITING_SIZE(size) ((size / 0x7f) + (size % 0x7f ? 1 : 0))
 
 /**
  * @brief Write the size from given address.
@@ -85,10 +80,48 @@ void writeBlockSize(void *block, u64 size) {
     //     *b = 0xff;
     //     ++b;
     // }
-    for (; size > 0x7f; size -= 0x7f, ++b) *b = 0xff;
+    // for (; size > 0x7f; size -= 0x7f, ++b) *b = 0xff;
+
+    // u64 full_bytes = size / 0x7f;
+    // sMemSet(block, full_bytes, 0xff);
+    // *((u8 *)block + full_bytes) = size % 0x7f;
 
     // Write the remaining size
-    *b = size;
+    // *b = size;
+
+    // If storing the multiplier of 128 then the 8th should be 1 which also
+    // indicates we have to read next byte too. If 8th bit is 0 then this is the
+    // last bit and the multiplier is 1.
+
+    // All values in blocks with 8th bit 1 should be added and multiplied by 128
+    // and the result should be added with the value in the last byte (byte
+    // whose 8th bit is 0)
+
+    // This to speed up the readBlockSize a little bit. It have to read all the
+    // bytes to calculate the size. If we store the multipler it would have to
+    // read less number of bytes
+
+    // Multiplier of 128 because in the last byte we can store from 0-127. For
+    // example to represent 129 we will have first byte 1000 0001 and
+    // second(last) byte 0000 0001
+    u64 multiplier = size / 128;
+
+    // Number of bytes will have 127
+    u64 full_bytes = multiplier / 0x7f;
+
+    // Write value to those full_bytes
+    sMemSet(b, full_bytes, 0xff);
+
+    // Move right next to the byte having 0xff
+    b += full_bytes;
+
+    // Write the remaining multipliers here and since we have to read the next
+    // byte set 8th bit to 1
+    *b = 0x80 | (multiplier % 0x7f);
+
+    // Write to last byte
+    b++;
+    *b = size % 128;
 }
 
 /**
@@ -98,7 +131,7 @@ void writeBlockSize(void *block, u64 size) {
  *
  * @return The size written in the block.
  */
-u64 readBlockSize(void *block) {
+u64 readBlockSize(const void *block) {
     u64 size = 0;
     u8 *b = (u8 *)block;
 
@@ -107,18 +140,18 @@ u64 readBlockSize(void *block) {
     //     ++b;
     //     size += 0x7f;
     // }
-    for (; *b & 0x80; ++b, size += 0x7f);
+
+    // Read the multiplier
+    for (; *b & 0x80; ++b) size += ((*b) & 0x7f);
+
+    // Calculate the size from the multipler
+    size *= 128;
 
     // Read the size in this byte.
     size += *b;
 
     return size;
 }
-
-/**
- * @brief Offset in block
- */
-#define OFFSET_IN_FREE_BLOCK(block) (*(u64 *)block)
 
 /**
  * @brief Adds the free block.
@@ -225,7 +258,6 @@ void updateFreeBlock(void *pb, void *b, u64 size, u64 new_size) {
     u8 *block = (u8 *)b;
     u8 *previous_block = (u8 *)pb;
     u64 block_offset = OFFSET_IN_FREE_BLOCK(block);
-    // u8 *next_block = block + OFFSET_IN_FREE_BLOCK(block);
     u64 diff = size - new_size;
 
     if (diff) {
@@ -243,105 +275,42 @@ void updateFreeBlock(void *pb, void *b, u64 size, u64 new_size) {
     }
 }
 
-// /**
-//  * @brief Adds the free block.
-//  *
-//  * The block will have size atleast 9 bytes.
-//  *
-//  * @param block_header The block header
-//  * @param b The free block
-//  * @param size The size of the free blcok
-//  */
-// void addFreeBlock(BlockHeader *block_header, void *b, u64 size) {
-//     u8 *block = (u8 *)b;
+/**
+ * @brief Get the free block previous to the given pointer.
+ *
+ * Also fills whether the block is header block or not in is_header_field if it
+ * is not NULL. parameter.
+ *
+ * @param ptr Pointer
+ * @param is_header_filed Whether free block is header field or not
+ *
+ * @return Returns the pointer to the free block if found else returns NULL.
+ */
+void *getPreviousFreeBlock(const void *ptr, b8 *is_header_field) {
+    BlockHeader *cur_header = mem_state.header;
 
-//     // Take the header's offset
-//     u8 *previous_block = &block_header->first_free_block_offset;
+    while (cur_header) {
+        if ((void *)cur_header < ptr
+            && ptr < (void *)((u8 *)cur_header + cur_header->block_size)) {
+            u8 *previous_block = (u8 *)&cur_header->first_free_block_offset;
+            while ((void *)previous_block < ptr
+                   && (void *)(previous_block
+                               + OFFSET_IN_FREE_BLOCK(previous_block))
+                          < ptr)
+                previous_block += OFFSET_IN_FREE_BLOCK(previous_block);
 
-//     // Find the previous free block
-//     while (previous_block < block && OFFSET_IN_FREE_BLOCK(previous_block)
-//            && (previous_block + OFFSET_IN_FREE_BLOCK(previous_block)) <
-//            block)
-//         previous_block += OFFSET_IN_FREE_BLOCK(previous_block);
+            if (is_header_field)
+                *is_header_field = previous_block
+                                == (u8 *)&cur_header->first_free_block_offset;
 
-//     u64 previous_block_offset = OFFSET_IN_FREE_BLOCK(previous_block);
-//     u8 *next_block =
-//         previous_block_offset ? previous_block + previous_block_offset :
-//         NULL;
-//     u64 next_block_offset = next_block ? OFFSET_IN_FREE_BLOCK(next_block) :
-//     0;
+            return previous_block;
+        }
 
-//     // Try to merge with previous block first
-//     // NOTE: We should not merge with the free block in the header field
-//     if (previous_block != block_header->first_free_block_offset) {
-//         // Check whether we can merge this block to previous free block
-//         u64 previous_block_size = readBlockSize(previous_block + 8);
-//         if (previous_block + previous_block_size == block) {
-//             // We can merge
-//             // NOTE: Don't have to change the offset while merging
-//             // Add this to previous block's size
-//             previous_block_size += size;
+        cur_header = cur_header->previous_block;
+    }
 
-//             // Can we also merge with next block?
-//             if (previous_block + previous_block_size == next_block) {
-//                 // Yes we can, merge it now!
-//                 // We have to change the offset of previous block
-//                 if (next_block_offset)
-//                     OFFSET_IN_FREE_BLOCK(previous_block) =
-//                         previous_block_offset
-//                         + OFFSET_IN_FREE_BLOCK(next_block);
-//                 else OFFSET_IN_FREE_BLOCK(previous_block) = 0;
-//                 // Add next block's size to previous block too
-//                 previous_block_size += readBlockSize(next_block + 8);
-//             }
-
-//             writeBlockSize((previous_block + 8), previous_block_size);
-
-//             // Thats it we added free block
-//             return;
-//         }
-//     }
-
-//     // Couldn't merge. Update the previous free block's offset to here
-//     OFFSET_IN_FREE_BLOCK(previous_block) = block - previous_block;
-
-//     // Either previous_block_offset = 0 or previous_block +
-//     // previous_block_offset > block It should be nearest free block to
-//     // the given block NOTE: Previous free block is not supposed to point to
-//     // this block
-//     sassert(previous_block_offset == 0
-//             || previous_block + previous_block_offset > block);
-
-//     if (previous_block_offset == 0) {
-//         // previous block was last block, now this is last block
-//         OFFSET_IN_FREE_BLOCK(block) = 0;
-//         writeBlockSize(block + 8, size);
-//         return;
-//     }
-
-//     // There is a free block next to this
-//     // Check can we merge with next free block
-//     if (block + size == next_block) {
-//         // We can merge with next free block
-//         if (next_block_offset)
-//             OFFSET_IN_FREE_BLOCK(block) =
-//                 next_block_offset + next_block - block;
-//         else OFFSET_IN_FREE_BLOCK(block) = 0;
-
-//         // Update this block's size by adding next block's size
-//         size += readBlockSize(next_block + 8);
-
-//         writeBlockSize(block + 8, size);
-
-//         // Done with the task
-//         return;
-//     }
-
-//     // We couldn't merge. This block is not connected to any other free block
-//     // this block's offset should point to next block
-//     OFFSET_IN_FREE_BLOCK(block) = next_block - block;
-//     writeBlockSize(block + 8, size);
-// }
+    return NULL;
+}
 
 /**
  * @brief Initialize the memory subsystem.
@@ -357,28 +326,12 @@ b8 initializeMemory(void) {
 
     sMemZeroOut(&mem_state, sizeof(MemState));
 
-    // sDebug("BYTES_FOR_WRITING_SIZE(0) = %lu", BYTES_FOR_WRITING_SIZE(0));
-    // sDebug("BYTES_FOR_WRITING_SIZE(1) = %lu", BYTES_FOR_WRITING_SIZE(1));
-    // sDebug("BYTES_FOR_WRITING_SIZE(127) = %lu", BYTES_FOR_WRITING_SIZE(127));
-    // sDebug("BYTES_FOR_WRITING_SIZE(128) = %lu", BYTES_FOR_WRITING_SIZE(128));
-
-    // u64 page_size = sMemGetPageSize();
-    // mem_state.mem.base = platformAllocateMemory(page_size);
-    // if (!mem_state.mem.base) {
-    //     sFatal("Failed to allocate a page of memory");
-    //     return false;
-    // }
-
-    // mem_state.mem.header->block_size = page_size;
-    // mem_state.mem.header->previous_block = NULL;
-    // // There is not next free block.
-    // mem_state.mem.header->first_free_block_offset = 0;
-
-    // // addFreeBlock(mem_state.mem.header, mem_state.mem.header + 1,
-    // //              mem_state.mem.header->block_size);
-    // addFreeBlock(&mem_state.mem.header->first_free_block_offset,
-    //              mem_state.mem.header + 1, mem_state.mem.header->block_size,
-    //              true);
+    i64 page_size = platformGetPageSize();
+    if (page_size < 1) {
+        sFatal("Page size is less than 1");
+        return false;
+    }
+    mem_state.page_size = page_size;
 
     mem_state.initialized = true;
     return true;
@@ -393,7 +346,7 @@ void shutdownMemory(void) {
         return;
     }
 
-    BlockHeader *cur = mem_state.mem.header;
+    BlockHeader *cur = mem_state.header;
     BlockHeader *prev;
     while (cur) {
         // Get the header which is pointer to another base (page)
@@ -414,9 +367,7 @@ void shutdownMemory(void) {
  * @return Page size.
  */
 u64 sMemGetPageSize(void) {
-    i64 page_size = platformGetPageSize();
-
-    return page_size < 1 ? (4 * KiB) : (u64)page_size;
+    return mem_state.page_size;
 }
 
 /**
@@ -435,7 +386,7 @@ void *sMemAllocatePages(u64 n) {
     sassert_msg(mem_state.initialized,
                 "Haven't initialized the memory subsystem?");
 
-    return n ? platformAllocateMemory(n * sMemGetPageSize()) : NULL;
+    return n ? platformAllocateMemory(n * mem_state.page_size) : NULL;
 }
 
 /**
@@ -446,9 +397,9 @@ void *sMemAllocatePages(u64 n) {
  * @return Returns true if got more page else false.
  */
 b8 getMemoryWithAtleast(u64 size) {
-    u64 page_size = sMemGetPageSize();
     size += sizeof(BlockHeader);
-    u64 n_pages = (size / page_size) + (size % page_size ? 1 : 0);
+    u64 n_pages =
+        (size / mem_state.page_size) + (size % mem_state.page_size ? 1 : 0);
     BlockHeader *ptr = (BlockHeader *)sMemAllocatePages(n_pages);
     if (!ptr) {
         sError("Failed to allocate more pages");
@@ -456,14 +407,14 @@ b8 getMemoryWithAtleast(u64 size) {
     }
 
     // Write the previous base address to the header
-    ptr->previous_block = mem_state.mem.base;
-    ptr->block_size = page_size * n_pages;
+    ptr->previous_block = mem_state.header;
+    ptr->block_size = mem_state.page_size * n_pages;
     ptr->first_free_block_offset = 0;
 
     // addFreeBlock(ptr, ptr + 1, ptr->block_size);
     addFreeBlock(&ptr->first_free_block_offset, ptr + 1, ptr->block_size, true);
 
-    mem_state.mem.base = (u8 *)ptr;
+    mem_state.header = ptr;
 
     return true;
 }
@@ -477,8 +428,9 @@ b8 getMemoryWithAtleast(u64 size) {
  * @return Pointer to the block having atleast given size. If not found returns
  * NULL.
  */
-void *getFreeBlock(BlockHeader *block_header, u64 size) {
+void *getFreeBlock(const BlockHeader *block_header, u64 size) {
     if (!block_header->first_free_block_offset) return NULL;
+
     u8 *prev = (u8 *)&block_header->first_free_block_offset;
     u8 *free_block = prev + OFFSET_IN_FREE_BLOCK(prev);
 
@@ -498,15 +450,12 @@ void *getFreeBlock(BlockHeader *block_header, u64 size) {
 /**
  * @brief Get the free block which can hold given size of data.
  *
- * Me remebering the best, worst, and first fit algorithms I just learnt in
- * OS (3rd sem) :)
- *
  * @param size Size required
  *
  * @return Pointer to the block which can hold given size of data.
  */
 void *getBlockForSize(u64 size) {
-    BlockHeader *cur_header = mem_state.mem.header;
+    BlockHeader *cur_header = mem_state.header;
     void *block = NULL;
 
     while (!block && cur_header) {
@@ -517,7 +466,7 @@ void *getBlockForSize(u64 size) {
     // Suitable block was not found, allocate more memory
     if (!block) {
         if (!getMemoryWithAtleast(size)) return NULL;
-        cur_header = mem_state.mem.header;
+        cur_header = mem_state.header;
         block = getFreeBlock(cur_header, size);
     }
 
@@ -533,6 +482,9 @@ void *getBlockForSize(u64 size) {
  */
 void *sMalloc(u64 size) {
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
+
+    if (size == 0) return NULL;
+
     size += 8;
 
     u64 *ptr = (u64 *)getBlockForSize(size);
@@ -591,66 +543,90 @@ void *sRealloc(void *ptr, u64 size) {
 
     if (!ptr) return sMalloc(size);
 
-    void *p = sMalloc(size);
-    if (!p) return NULL;
+    u64 *p = (u64 *)ptr - 1;
 
-    // ERROR PRONE
-    sMemCopy(p, ptr, size);
+    // NOTE: both previous_size and size(parameter) doesn't have the header size
+    // included
+    u64 previous_size = *p - 8;
 
+    // new size is same as old size nothing to do
+    if (previous_size == size) return ptr;
+
+    b8 is_header_field;
+    u8 *previous_block = getPreviousFreeBlock(ptr, &is_header_field);
+
+    // If we are decresing the size then add extra size as free block
+    if (previous_size > size) {
+        addFreeBlock(previous_block, (u8 *)ptr + size, previous_size - size,
+                     is_header_field);
+
+        // Upadate the size in header
+        *p = size + 8;
+
+        // No need to change the pointer. It has required size of memory
+        return ptr;
+    }
+
+    // We are going to increase the size
+    // Check whether we have free block right next to this block and
+    // whether it's size is enough for to extend this block
+    u8 *next_block = previous_block + OFFSET_IN_FREE_BLOCK(previous_block);
+    if ((u8 *)ptr + previous_size == next_block) {
+        // Yes next block is free
+        u64 next_block_size = readBlockSize(next_block + 8);
+        u64 extra_size_to_allocate = size - previous_size;
+        if (next_block_size > extra_size_to_allocate) {
+            // We can just extend this blocks size
+            // Update the free block
+            updateFreeBlock(previous_block, next_block, next_block_size,
+                            next_block_size - extra_size_to_allocate);
+
+            // Upadate the size in header
+            *p = size + 8;
+
+            // Just return the pointer which is not changed
+            return ptr;
+        }
+    }
+
+    // We need to allocate memory somewhere else, couldn't extend this block
+    // Header is managed by the malloc we can just deal with the rest of memory
+    void *new_block = sMalloc(size);
+    if (!new_block) return NULL;
+
+    sMemCopy(new_block, ptr, previous_size);
+
+    // NOTE: The size in the header should not be manipulated
+    sassert(*p == previous_size + 8);
     sFree(ptr);
 
-    return p;
+    return new_block;
 }
 
 /**
  * @brief Similar to free.
+ *
+ * Similar to free, sFree function frees the memory space pointed by the ptr,
+ * which must be returned by previous call to malloc, calloc, or realloc
+ * functions. Otherwise, or if ptr has already been freed, undefined behaviour
+ * occurs.
  *
  * @param ptr Pointer to the memory to be deallocated
  */
 void sFree(void *ptr) {
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
+    // If ptr is null then do nothing
+    if (!ptr) return;
+
     u64 *p = (u64 *)ptr - 1;
 
-    BlockHeader *cur_header = mem_state.mem.header;
+    b8 is_header_field;
+    void *previous_block = getPreviousFreeBlock(ptr, &is_header_field);
 
-    while (cur_header) {
-        if ((u64 *)cur_header < p
-            && p < (u64 *)((u8 *)cur_header + cur_header->block_size)) {
-            u8 *previous_block = (u8 *)&cur_header->first_free_block_offset;
-            while ((u64 *)previous_block < p
-                   && (u64 *)(previous_block
-                              + OFFSET_IN_FREE_BLOCK(previous_block))
-                          < p)
-                previous_block += OFFSET_IN_FREE_BLOCK(previous_block);
+    if (!previous_block) sError("sFree called on the unallocated pointer");
 
-            addFreeBlock(
-                previous_block, p, *p,
-                previous_block == (u8 *)&cur_header->first_free_block_offset);
-            return;
-        }
-
-        cur_header = cur_header->previous_block;
-    }
-
-    sassert_msg(false, "Should not reach here");
-
-    // FreeBlock *invalid_free_block = &mem_state.mem.header->free_block;
-    // while (invalid_free_block && !invalid_free_block->valid)
-    //     invalid_free_block = invalid_free_block->next_block;
-
-    // if (!invalid_free_block) {
-    //     // Hahaha Calling malloc to free the given pointer
-    //     invalid_free_block = (FreeBlock *)sMalloc(sizeof(FreeBlock));
-    //     FreeBlock *last = &mem_state.mem.header->free_block;
-    //     while (last->next_block) last = last->next_block;
-    //     last->next_block = invalid_free_block;
-    // }
-
-    // invalid_free_block->block = p;
-    // invalid_free_block->next_block = NULL;
-    // writeFreeBlockSize(invalid_free_block->block, *p);
-    // invalid_free_block->valid = true;
+    addFreeBlock(previous_block, p, *p, is_header_field);
 }
 
 /**

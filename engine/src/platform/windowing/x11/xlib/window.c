@@ -61,37 +61,6 @@ i32 handleXErrors(Display *display, XErrorEvent *e) {
 }
 
 /**
- * @brief Map the X's KeyCodes to Scancode.
- *
- * Refering the glfw's implementation
- * https://github.com/glfw/glfw/blob/21fea01161e0d6b70c0c5c1f52dchare7a7df14a50/src/x11_init.c
- */
-void mapKeycodesToScancodes(void) {
-    // TODO: Error handling
-    sassert_msg(xlib_state, "Windowing system is not initialized?");
-
-    XkbDescPtr desc = xlib_state->xkb_desc;
-
-    u32 which = XkbKeyNamesMask | XkbKeyAliasesMask | XkbVirtualModNamesMask;
-
-    XkbGetNames(xlib_state->display, which, desc);
-
-    #if 0
-    mapXKeyCodesToScancodes(
-        (mapFunctionParams){
-            .key_aliases = (XKeyAliasNameType *)desc->names->key_aliases,
-            .key_names = (XKeyNameType *)desc->names->keys,
-            .key_names_start_from_min_key_code = false,
-            .max_key_code = desc->max_key_code,
-            .min_key_code = desc->min_key_code,
-            .num_key_aliases = desc->names->num_key_aliases},
-        xlib_state->xKeyCode_to_Scancode);
-    #endif
-
-    XkbFreeNames(desc, which, false);
-}
-
-/**
  * @brief Implementation for xlib.
  *
  * Call with state NULL to get the size to be allocated and call once again
@@ -145,7 +114,6 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     xlib_state->black_pixel =
         BlackPixel(xlib_state->display, xlib_state->screen);
 
-    // Note: Just for now to test things work
     // TODO: Handling errors
 
     // Set window attributes
@@ -153,9 +121,6 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
     u32 attrib_mask = CWEventMask | CWBackPixel;
     attribs.background_pixel = xlib_state->black_pixel;
     attribs.event_mask = ExposureMask | StructureNotifyMask;
-    // attribs.event_mask = KeyPressMask | KeyReleaseMask | ButtonPressMask
-    //                    | ButtonReleaseMask | PointerMotionMask |
-    //                    ExposureMask | StructureNotifyMask;
 
     // Create the main window
     xlib_state->app_window = XCreateWindow(
@@ -185,13 +150,8 @@ b8 initializePlatformWindowing(MainWindowConfig *config, u64 *size,
         sError("Compatible version of XKB is not found in the server");
     }
 
-    // xlib_state->xkb_desc = XkbGetKeyboard(xlib_state->display,
-    //                                       XkbAllComponentsMask,
-    //                                       XkbUseCoreKbd);
     xlib_state->xkb_desc =
         XkbGetMap(xlib_state->display, XkbAllMapComponentsMask, XkbUseCoreKbd);
-
-    mapKeycodesToScancodes();
 
     // Select Xkb events
     // TODO: Register for xkb events and track the changes to the keyboard
@@ -285,10 +245,9 @@ void handleGenericEvents(XEvent *event) {
                         device_event->detail, device_event->event_x,
                         device_event->event_y, getKeymods(), true);
                 } else {
-                    // TODO: Peek at the next event till the next
-                    // TODO: event is not scroll and then pass delta
-                    // TODO: as the number of scroll events in the
-                    // TODO: same direction
+                    // TODO: Peek at the next event till the next event is not
+                    // scroll and then pass delta as the number of scroll events
+                    // in the same direction
 
                     // scroll:
                     //  up = 4 down = 5 left = 6 right = 7
@@ -378,9 +337,6 @@ b8 platformWindowPumpMessages(void) {
         if (xkb_event.type == xlib_state->xkb_event_code) {
             switch (xkb_event.any.xkb_type) {
                 case XkbNewKeyboardNotify:
-                    // sDebug("XkbNewKeyboardNotify");
-                    // ? Should call this or not
-                    mapKeycodesToScancodes();
                     break;
                 case XkbMapNotify:
                     // sDebug("XkbMapNotify");
@@ -388,12 +344,9 @@ b8 platformWindowPumpMessages(void) {
                     XkbGetUpdatedMap(xlib_state->display,
                                      XkbAllMapComponentsMask,
                                      xlib_state->xkb_desc);
-                    mapKeycodesToScancodes();
                     break;
                 case XkbNamesNotify:
-                    // sDebug("XkbNamesNotify");
-                    // ? Should call this or not
-                    mapKeycodesToScancodes();
+                    break;
                 default:
                     sError("Event type %d from xkb is not being handled?",
                            xkb_event.any.xkb_type);

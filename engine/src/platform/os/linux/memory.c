@@ -19,7 +19,7 @@
 void *platformAllocateMemory(u64 size) {
     void *ptr = mmap(NULL, size, PROT_READ | PROT_WRITE,
                      MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-    if (ptr == MAP_FAILED) sFatal("Failed to mmap");
+    if (ptr == MAP_FAILED) sDebug("Failed to mmap");
     return ptr == MAP_FAILED ? NULL : ptr;
 }
 
@@ -30,7 +30,7 @@ void *platformAllocateMemory(u64 size) {
  * @param size The size of allocation
  */
 void platformDeallocateMemory(void *ptr, u64 size) {
-    if (munmap(ptr, size) == -1) sFatal("Failed to munmap");
+    if (munmap(ptr, size) == -1) sDebug("Failed to munmap");
 }
 
 /**
