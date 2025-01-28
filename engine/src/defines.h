@@ -27,6 +27,10 @@
     #endif
 #endif
 
+#ifdef __STDC_NO_ATOMICS__
+    #error "No atomic support"
+#endif
+
 // signed integer types
 typedef signed char i8;
 typedef signed short i16;

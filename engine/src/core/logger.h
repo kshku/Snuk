@@ -39,7 +39,7 @@ typedef enum LogLevel {
 
 // void shutdownLogger(void);
 
-SAPI void _logMessage(LogLevel level, const char *msg, ...);
+SAPI void _logMessage(LogLevel level, const char *restrict msg, ...);
 
 /**
  * @brief Log a Fatal message

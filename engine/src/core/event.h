@@ -45,7 +45,7 @@ typedef struct EventContext {
 typedef b8 (*fpEventCallback)(u16 code, void *sender, void *listener,
                               EventContext context);
 
-b8 initializeEvent(u64 *size, void *state);
+b8 initializeEvent(u64 *restrict size, void *state);
 
 void shutdownEvent(void);
 

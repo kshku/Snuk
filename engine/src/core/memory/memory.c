@@ -4,13 +4,6 @@
 #include "../logger.h"
 #include "platform/memory.h"
 
-// /**
-//  * @brief Get the number of bytes for writing the size.
-//  *
-//  * @param size Size to write
-//  */
-// #define BYTES_FOR_WRITING_SIZE(size) ((size / 0x7f) + (size % 0x7f ? 1 : 0))
-
 /**
  * @brief Offset in block
  */
@@ -53,6 +46,26 @@ typedef struct MemState {
         b8 initialized;
         BlockHeader *header;
         u64 page_size;
+
+        // number of pages allocated by calling sMemAllocatePages
+        // We may or may not have all the allocated pages for use (some one else
+        // may call sMemAllocatePages function)
+        u64 pages_allocated;
+
+        // Number of pages allocated by us
+        // Number of pages allocated by others by using sMemAllocatePages =
+        // pages_allocated - pages_allocated_main
+        u64 pages_allocated_main;
+
+        // number of bytes allocated by us (includes the header size for storing
+        // the size)
+        u64 allocation_size;
+        // Number of memory allocation that is done by calling sMalloc or
+        // similar functions
+        // Actual allocation size from user = allocation_size - (8 *
+        // allocation_count)
+        // 8 -> header size
+        u64 allocation_count;
 } MemState;
 
 static MemState mem_state;
@@ -66,28 +79,11 @@ static MemState mem_state;
  * @note This function assumes required number of bytes are there in block. Use
  * BYTES_FOR_WRITING_SIZE macro to get the number of bytes requried.
  */
-void writeBlockSize(void *block, u64 size) {
+void writeBlockSize(void *restrict block, u64 size) {
     // We will have size = 1 => 1 byte atleast
     sassert_msg(size > 0, "Size zero?");
 
     u8 *b = (u8 *)block;
-
-    // If size > 127, we have to write remaining size in next byte (which is
-    // guaranteed to be free since size > 1).
-    // To say we have written in next bytes we will set 8th bit to 1
-    // while (size > 0x7f) {
-    //     size -= 0x7f;
-    //     *b = 0xff;
-    //     ++b;
-    // }
-    // for (; size > 0x7f; size -= 0x7f, ++b) *b = 0xff;
-
-    // u64 full_bytes = size / 0x7f;
-    // sMemSet(block, full_bytes, 0xff);
-    // *((u8 *)block + full_bytes) = size % 0x7f;
-
-    // Write the remaining size
-    // *b = size;
 
     // If storing the multiplier of 128 then the 8th should be 1 which also
     // indicates we have to read next byte too. If 8th bit is 0 then this is the
@@ -131,15 +127,9 @@ void writeBlockSize(void *block, u64 size) {
  *
  * @return The size written in the block.
  */
-u64 readBlockSize(const void *block) {
+u64 readBlockSize(const void *restrict block) {
     u64 size = 0;
     u8 *b = (u8 *)block;
-
-    // If 8th bit is set then we have to add the size written in next block too.
-    // while (*b & 0x80) {  // Can also write as (*b & BITFLAG(7))
-    //     ++b;
-    //     size += 0x7f;
-    // }
 
     // Read the multiplier
     for (; *b & 0x80; ++b) size += ((*b) & 0x7f);
@@ -164,6 +154,8 @@ u64 readBlockSize(const void *block) {
  * @param is_header_field Is the pb header field?
  */
 void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
+    sassert(size > 8);
+
     u8 *block = (u8 *)b;
 
     u8 *previous_block = (u8 *)pb;
@@ -333,6 +325,11 @@ b8 initializeMemory(void) {
     }
     mem_state.page_size = page_size;
 
+    mem_state.allocation_size = 0;
+    mem_state.allocation_count = 0;
+    mem_state.pages_allocated = 0;
+    mem_state.pages_allocated_main = 0;
+
     mem_state.initialized = true;
     return true;
 }
@@ -346,14 +343,24 @@ void shutdownMemory(void) {
         return;
     }
 
+    sInfo("Just before deallocating all the memory while shutting down memory "
+          "subsystem:");
+    sMemLogState();
+
     BlockHeader *cur = mem_state.header;
     BlockHeader *prev;
     while (cur) {
         // Get the header which is pointer to another base (page)
         prev = cur->previous_block;
-        platformDeallocateMemory(cur, cur->block_size);
+        // platformDeallocateMemory(cur, cur->block_size);
+        u64 n = cur->block_size / mem_state.page_size;
+        sMemDeallocatePages(cur, n);
+        mem_state.pages_allocated_main -= n;
         cur = prev;
     }
+
+    sInfo("After deallocations:");
+    sMemLogState();
 
     mem_state.initialized = false;
 }
@@ -373,7 +380,12 @@ u64 sMemGetPageSize(void) {
 /**
  * @brief Get n continuous pages of memory.
  *
- * If n is zero NULL will be returned.
+ * If n is zero NULL will be returned. The page will not be managed by the main
+ * allocator. Main allocator only keeps track of how many pages were allocated.
+ *
+ * In some platforms (in Linux) I had read that deallocation is not required and
+ * once the process terminates the memory will be released. Still it is good
+ * practice to deallocate manually.
  *
  * @param n Number of pages
  *
@@ -382,11 +394,32 @@ u64 sMemGetPageSize(void) {
  * @note Get page size from sMemGetPageSize function.
  */
 void *sMemAllocatePages(u64 n) {
-    // TODO: Keep track of this too and provide function for deallocating
     sassert_msg(mem_state.initialized,
                 "Haven't initialized the memory subsystem?");
 
+    mem_state.pages_allocated += n;
+
     return n ? platformAllocateMemory(n * mem_state.page_size) : NULL;
+}
+
+/**
+ * @brief Deallocate the pages allocated using the sMemAllocatePages.
+ *
+ * @param ptr The pointer returned from the sMemAllocatePages
+ * @param n Number of pages (parameter n passed to sMemAllocatePages)
+ */
+void sMemDeallocatePages(void *ptr, u64 n) {
+    sassert_msg(mem_state.initialized,
+                "Haven't initialized the memory subsystem?");
+
+    if (!ptr || !n) {
+        sError("Called sMemDeallocatePages with NULL pointer or 0 size");
+        return;
+    }
+
+    mem_state.pages_allocated -= n;
+
+    platformDeallocateMemory(ptr, (n * mem_state.page_size));
 }
 
 /**
@@ -405,6 +438,8 @@ b8 getMemoryWithAtleast(u64 size) {
         sError("Failed to allocate more pages");
         return false;
     }
+
+    mem_state.pages_allocated_main += n_pages;
 
     // Write the previous base address to the header
     ptr->previous_block = mem_state.header;
@@ -493,6 +528,9 @@ void *sMalloc(u64 size) {
 
     *ptr = size;
 
+    mem_state.allocation_size += size;
+    mem_state.allocation_count++;
+
     return (void *)(ptr + 1);
 }
 
@@ -557,8 +595,17 @@ void *sRealloc(void *ptr, u64 size) {
 
     // If we are decresing the size then add extra size as free block
     if (previous_size > size) {
+        // Do nothing if the releasing size is less than 9 bytes
+        // Because if there are no free memory right next to it we might
+        // override some other allocated memory since we will be expecting
+        // atleast size of free block is 9 bytes
+        if (previous_size - size < 9) return ptr;
+
         addFreeBlock(previous_block, (u8 *)ptr + size, previous_size - size,
                      is_header_field);
+
+        // Update the mem_state
+        mem_state.allocation_size -= previous_size - size;
 
         // Upadate the size in header
         *p = size + 8;
@@ -580,6 +627,8 @@ void *sRealloc(void *ptr, u64 size) {
             // Update the free block
             updateFreeBlock(previous_block, next_block, next_block_size,
                             next_block_size - extra_size_to_allocate);
+
+            mem_state.allocation_size += extra_size_to_allocate;
 
             // Upadate the size in header
             *p = size + 8;
@@ -626,7 +675,45 @@ void sFree(void *ptr) {
 
     if (!previous_block) sError("sFree called on the unallocated pointer");
 
+    // NOTE: Do this before addFreeBlock since it will be modified
+    mem_state.allocation_count--;
+    mem_state.allocation_size -= *p;
+
     addFreeBlock(previous_block, p, *p, is_header_field);
+}
+
+/**
+ * @brief Helper function for logging state [INTERNAL FUNCTION].
+ *
+ * @param bytes Number of bytes
+ * @param ext The extension
+ *
+ * @return Number converted to one of its representation (extension is obtained
+ * from parameter).
+ */
+f32 convertBytes(u64 bytes, char ext[restrict 4]) {
+    f32 converted = 0;
+
+    ext[1] = 'i';
+    ext[2] = 'B';
+    ext[3] = 0;
+
+    if (bytes >= GiB) {
+        ext[0] = 'G';
+        converted = (f32)bytes / GiB;
+    } else if (bytes >= MiB) {
+        ext[0] = 'M';
+        converted = (f32)bytes / MiB;
+    } else if (bytes >= KiB) {
+        ext[0] = 'K';
+        converted = (f32)bytes / KiB;
+    } else {
+        ext[0] = 'B';
+        ext[1] = 0;
+        converted = (f32)bytes;
+    }
+
+    return converted;
 }
 
 /**
@@ -635,25 +722,62 @@ void sFree(void *ptr) {
 void sMemLogState(void) {
     sassert_msg(mem_state.initialized, "Memory subsystem is not initialized!");
 
-    // f32 allocation = 0;
-    // char ext[4] = "XiB";
+    char ext[4];
+    f32 converted;
 
-    // if (mem_state.total_allocated >= GiB) {
-    //     ext[0] = 'G';
-    //     allocation = (f32)mem_state.total_allocated / GiB;
-    // } else if (mem_state.total_allocated >= MiB) {
-    //     ext[0] = 'M';
-    //     allocation = (f32)mem_state.total_allocated / MiB;
-    // } else if (mem_state.total_allocated >= KiB) {
-    //     ext[0] = 'K';
-    //     allocation = (f32)mem_state.total_allocated / KiB;
-    // } else {
-    //     ext[0] = 'B';
-    //     ext[1] = 0;
-    //     allocation = (f32)mem_state.total_allocated;
-    // }
+    sInfo("******************************* Memory usage "
+          "*******************************");
+    sInfo("Size of page: %lu", mem_state.page_size);
 
-    // sInfo("Total of %f %s memory is allocated", allocation, ext);
+    converted = convertBytes(
+        (mem_state.pages_allocated_main * mem_state.page_size), ext);
+    sInfo("Main Allocator:");
+    sInfo("\tNumber of pages: %lu", mem_state.pages_allocated_main);
+    sInfo("\tTotal allocation: %f %s", converted, ext);
+
+    converted = convertBytes(
+        ((mem_state.pages_allocated - mem_state.pages_allocated_main)
+         * mem_state.page_size),
+        ext);
+    sInfo("By calling sMemAllocatePages function:");
+    sInfo("\tNumber of pages: %lu",
+          mem_state.pages_allocated - mem_state.pages_allocated_main);
+    sInfo("\tTotal allocation: %f %s", converted, ext);
+
+    converted =
+        convertBytes((mem_state.pages_allocated * mem_state.page_size), ext);
+    sInfo("Total allocation (Main allocator + sMemAllocatePages):");
+    sInfo("\tNumber of pages: %lu", mem_state.pages_allocated);
+    sInfo("\tTotal allocation: %f %s", converted, ext);
+
+    converted = convertBytes(mem_state.allocation_size, ext);
+    sInfo("Allocation from main allocator (using sMalloc and related "
+          "functions):");
+    sInfo("\tNumber of allocations: %lu", mem_state.allocation_count);
+    sInfo("\tTotal allocation: %f %s", converted, ext);
+
+    converted = convertBytes(
+        (mem_state.allocation_size - (mem_state.allocation_count * 8)), ext);
+    sInfo("\tRequested allocation (Total - extra used for header): %f %s",
+          converted, ext);
+
+    if (mem_state.allocation_count && mem_state.pages_allocated_main) {
+        converted = convertBytes(
+            (((mem_state.pages_allocated_main * mem_state.page_size)
+              - mem_state.allocation_size)
+             - sizeof(BlockHeader)),
+            ext);
+        sInfo("Remaining size of memory in main allocator: %f %s", converted,
+              ext);
+    } else if (mem_state.allocation_count && !mem_state.pages_allocated_main) {
+        sError("sFree is not called on all the allocated pointers");
+        sInfo("Actually you don't have to, We will cleanup things for you :)");
+        sInfo("But this might have caused the wrong information in previous "
+              "calls to sMemLogState");
+    }
+
+    sInfo("********************************************************************"
+          "********");
 }
 
 /**
@@ -665,7 +789,7 @@ void sMemLogState(void) {
  *
  * @return Returns the given pointer.
  */
-void *sMemSet(void *ptr, u64 size, u8 value) {
+void *sMemSet(void *restrict ptr, u64 size, u8 value) {
     // TODO: Probably should let the compiler to optimize by converting to SIMD
     // which might be faster than this manual large block copying.
     // I think it is better to set up SIMD things and all then come to optimize.
@@ -711,7 +835,7 @@ void *sMemSet(void *ptr, u64 size, u8 value) {
  *
  * @note Source and destination should not overlap.
  */
-void *sMemCopy(void *dest, const void *src, u64 size) {
+void *sMemCopy(void *restrict dest, const void *restrict src, u64 size) {
     if (dest == src) return dest;
 
     u8 *d = (u8 *)dest;

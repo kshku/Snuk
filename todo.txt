@@ -8,3 +8,9 @@ TODO: The file naming, function naming, naming of structs unions etc. Totally th
 NOTE: Platform/os/* should be rearragned
 
 TODO: Use the stdint.h like headers too, switch from c99 to c11
+
+Try to write assembly code for atomic operations and jump back to c99
+That is the only reason for switching to c11 now. But even if staying on c11
+or switching to next version try to write the assembly for context switching, atomic operations and all
+
+TODO: Use const, restrict, inline and others

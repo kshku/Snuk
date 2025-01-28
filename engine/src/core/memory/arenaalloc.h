@@ -8,10 +8,10 @@ typedef struct SArena {
         u8 *head;
 } SArena;
 
-SAPI b8 sArenaCreate(SArena *arena);
+SAPI b8 sArenaCreate(SArena *restrict arena);
 
-SAPI void *sArenaAlloc(SArena *arena, u64 size);
+SAPI void *sArenaAlloc(SArena *restrict arena, u64 size);
 
-SAPI void sArenaClear(SArena *arena);
+SAPI void sArenaClear(SArena *restrict arena);
 
-SAPI void sArenaDestroy(SArena *arena);
+SAPI void sArenaDestroy(SArena *restrict arena);

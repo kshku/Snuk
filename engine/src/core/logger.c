@@ -31,7 +31,7 @@
  * @param msg Format string message
  * @param ... Arguments for the format string
  */
-void _logMessage(LogLevel level, const char *msg, ...) {
+void _logMessage(LogLevel level, const char *restrict msg, ...) {
     static const char *log_level_strings[] = {
         "[FATAL]: ", "[ERROR]: ", "[WARN]: ",
         "[INFO]: ",  "[DEBUG]: ", "[TRACE]: "};
@@ -51,8 +51,9 @@ void _logMessage(LogLevel level, const char *msg, ...) {
  * @param file The file in which assertion failed
  * @param line Line number where the assertion failed
  */
-void _reportAssertionFailure(const char *expr, const char *msg,
-                             const char *file, const i32 line) {
+void _reportAssertionFailure(const char *restrict expr,
+                             const char *restrict msg,
+                             const char *restrict file, const i32 line) {
     sFatal("Assertion failure: '%s', message '%s' in %s:%d", expr, msg, file,
            line);
 }

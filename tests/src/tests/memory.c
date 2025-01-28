@@ -14,28 +14,33 @@ u8 realloc_test(void) {
     // Should do nothing
     if (ptr != sRealloc(ptr, 8)) return FAIL;
 
-    // Should release 4 bytes
+    // Should not release 4 bytes
     if (ptr != sRealloc(ptr, 4)) return FAIL;
+    if (*((u64 *)ptr - 1) != 16) return FAIL;
 
-    // Should use the released 4 bytes
+    sRealloc(ptr, 0);
+
+    // Should use released memory
     void *new_ptr = sMalloc(4);
-    if ((u8 *)new_ptr != (u8 *)ptr + 4 + 8) return FAIL;
-
-    // Should allocate new memory
-    ptr = sRealloc(ptr, 8);
-    if ((u8 *)ptr == (u8 *)new_ptr - 4 - 8) return FAIL;
+    if (new_ptr != ptr) return FAIL;
 
     sFree(new_ptr);
 
-    if ((u8 *)new_ptr - 4 - 8 != (u8 *)sMalloc(8)) return FAIL;
+    return PASS;
+}
 
-    sFree((u8 *)new_ptr - 4 - 8);
+u8 allocate_pages(void) {
+    void *ptr = sMemAllocatePages(1);
+    if (!ptr) return FAIL;
+    sMemLogState();
+    sMemDeallocatePages(ptr, 1);
+    sMemLogState();
 
-    ptr = (u64 *)sRealloc(ptr, 0);
     return PASS;
 }
 
 Test *core_memory_register_tests(Test *tests) {
     tests = testManagerRegister(tests, realloc_test, "realloc test");
+    tests = testManagerRegister(tests, allocate_pages, "allocate pages");
     return tests;
 }

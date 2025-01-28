@@ -11,9 +11,13 @@ u8 darray_create(void) {
     if (darrayLength(arr) != 0) return FAIL;
     if (darrayLength(arr2) != 0) return FAIL;
 
-    if (_darrayGetHeaderField(arr, DARRAY_STRIDE) != sizeof(int)) return FAIL;
-    if (_darrayGetHeaderField(arr2, DARRAY_STRIDE) != sizeof(float))
+    if (darrayGetHeaderFieldImpl(arr, DARRAY_STRIDE) != sizeof(int))
         return FAIL;
+    if (darrayGetHeaderFieldImpl(arr2, DARRAY_STRIDE) != sizeof(float))
+        return FAIL;
+
+    darrayDestroy(arr);
+    darrayDestroy(arr2);
 
     return PASS;
 }

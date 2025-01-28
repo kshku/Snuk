@@ -17,24 +17,24 @@ typedef enum DarrayHeaderField {
     DARRAY_HEADER_FIELDS_MAX
 } DarrayHeaderField;
 
-SAPI void *_darrayCreate(const u64 capacity, const u64 stride);
+SAPI void *darrayCreateImpl(const u64 capacity, const u64 stride);
 
-SAPI void _darrayDestroy(void *arr);
+SAPI void darrayDestroyImpl(void *arr);
 
-SAPI b8 _darrayResize(void **arr, const u64 capacity);
+SAPI b8 darrayResizeImpl(void **arr, const u64 capacity);
 
-SAPI u64 _darrayGetHeaderField(void *arr, const DarrayHeaderField field);
+SAPI u64 darrayGetHeaderFieldImpl(void *arr, const DarrayHeaderField field);
 
-SAPI void _darraySetHeaderField(void *arr, const DarrayHeaderField field,
-                                const u64 value);
+SAPI void darraySetHeaderFieldImpl(void *arr, const DarrayHeaderField field,
+                                   const u64 value);
 
-SAPI void _darrayPush(void **arr, void *element);
+SAPI void darrayPushImpl(void **arr, void *element);
 
-SAPI void _darrayPop(void *arr, void *element);
+SAPI void darrayPopImpl(void *arr, void *element);
 
-SAPI void _darrayPushAt(void **arr, const u32 index, void *element);
+SAPI void darrayPushAtImpl(void **arr, const u32 index, void *element);
 
-SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
+SAPI void darrayPopAtImpl(void *arr, const u32 index, void *element);
 
 /**
  * @brief Create a darray with given initial capacity.
@@ -45,7 +45,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  * @return Typecasted pointer to the array.
  */
 #define darrayCreateWithSize(type, capacity) \
-    (type *)_darrayCreate(capacity, sizeof(type))
+    (type *)darrayCreateImpl(capacity, sizeof(type))
 
 /**
  * @brief Create a darray with default initial capacity.
@@ -61,7 +61,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  *
  * @param arr Pointer to the array
  */
-#define darrayDestroy(arr) _darrayDestroy(arr)
+#define darrayDestroy(arr) darrayDestroyImpl(arr)
 
 /**
  * @brief Clear the array.
@@ -70,7 +70,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  *
  * @param arr Pointer to the array
  */
-#define darrayClear(arr) _darraySetHeaderField(arr, DARRAY_LENGTH, 0)
+#define darrayClear(arr) darraySetHeaderFieldImpl(arr, DARRAY_LENGTH, 0)
 
 /**
  * @brief Resize array to given capacity.
@@ -83,7 +83,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  *
  * @return Returns true if resize was successfull, else false.
  */
-#define darrayResize(arr, capacity) _darrayResize(&arr, capacity)
+#define darrayResize(arr, capacity) darrayResizeImpl(&arr, capacity)
 
 /**
  * @brief Get number of elements in the array.
@@ -92,7 +92,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  *
  * @return The length of the array.
  */
-#define darrayLength(arr) _darrayGetHeaderField(arr, DARRAY_LENGTH)
+#define darrayLength(arr) darrayGetHeaderFieldImpl(arr, DARRAY_LENGTH)
 
 /**
  * @brief Get the capacity of the array.
@@ -101,7 +101,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  *
  * @return The size of the memroy allocation to the array in bytes.
  */
-#define darrayCapacity(arr) _darrayGetHeaderField(arr, DARRAY_CAPACITY)
+#define darrayCapacity(arr) darrayGetHeaderFieldImpl(arr, DARRAY_CAPACITY)
 
 /**
  * @brief Get the stride of the array.
@@ -110,7 +110,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  *
  * @return Returns the size of stride in bytes.
  */
-#define darrayStride(arr) _darrayGetHeaderField(arr, DARRAY_STRIDE)
+#define darrayStride(arr) darrayGetHeaderFieldImpl(arr, DARRAY_STRIDE)
 
 /**
  * @brief Push the element to end of the array.
@@ -118,10 +118,10 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  * @param arr Pointer to the array
  * @param element The element to be pushed
  */
-#define darrayPush(arr, element)             \
-    do {                                     \
-        typeof(element) temp = element;      \
-        _darrayPush((void **)(&arr), &temp); \
+#define darrayPush(arr, element)                \
+    do {                                        \
+        typeof(element) temp = element;         \
+        darrayPushImpl((void **)(&arr), &temp); \
     } while (0)
 
 /**
@@ -130,7 +130,7 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  * @param arr Pointer to the array
  * @param element If not null poped element will be stored in this
  */
-#define darrayPop(arr, element) _darrayPop(arr, element)
+#define darrayPop(arr, element) darrayPopImpl(arr, element)
 
 /**
  * @brief Push the element to the given index of array.
@@ -139,10 +139,10 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  * @param index Index position to insert the element
  * @param element The element to be pushed
  */
-#define darrayPushAt(arr, index, element)             \
-    do {                                              \
-        typeof(element) temp = element;               \
-        _darrayPushAt((void **)(&arr), index, &temp); \
+#define darrayPushAt(arr, index, element)                \
+    do {                                                 \
+        typeof(element) temp = element;                  \
+        darrayPushAtImpl((void **)(&arr), index, &temp); \
     } while (0)
 
 /**
@@ -152,4 +152,4 @@ SAPI void _darrayPopAt(void *arr, const u32 index, void *element);
  * @param index Index position to pop the element
  * @param element If not null poped element will be stored in this
  */
-#define darrayPopAt(arr, index, element) _darrayPopAt(arr, index, element)
+#define darrayPopAt(arr, index, element) darrayPopAtImpl(arr, index, element)

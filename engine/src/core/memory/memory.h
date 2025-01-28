@@ -14,6 +14,8 @@ SAPI u64 sMemGetPageSize(void);
 
 SAPI void *sMemAllocatePages(u64 n);
 
+SAPI void sMemDeallocatePages(void *ptr, u64 n);
+
 SAPI void *sMalloc(u64 size);
 
 SAPI void *sCalloc(u64 nmemb, u64 size);
@@ -24,9 +26,7 @@ SAPI void sFree(void *ptr);
 
 SAPI void sMemLogState(void);
 
-SAPI void *sMemZeroOut(void *ptr, u64 size);
-
-SAPI void *sMemSet(void *ptr, u64 size, u8 value);
+SAPI void *sMemSet(void *restrict ptr, u64 size, u8 value);
 
 /**
  * @brief Zero out the memory.
@@ -38,6 +38,6 @@ SAPI void *sMemSet(void *ptr, u64 size, u8 value);
  */
 #define sMemZeroOut(ptr, size) sMemSet(ptr, size, 0)
 
-SAPI void *sMemCopy(void *dest, const void *src, u64 size);
+SAPI void *sMemCopy(void *restrict dest, const void *restrict src, u64 size);
 
 SAPI void *sMemMove(void *dest, void *src, u64 size);

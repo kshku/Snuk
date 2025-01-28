@@ -10,8 +10,9 @@
     #define ASSERTIONS_ENABLED 0
 #endif
 
-SAPI void _reportAssertionFailure(const char *expr, const char *msg,
-                                  const char *file, const i32 line);
+SAPI void _reportAssertionFailure(const char *restrict expr,
+                                  const char *restrict msg,
+                                  const char *restrict file, const i32 line);
 
 #if ASSERTIONS_ENABLED == 1
 

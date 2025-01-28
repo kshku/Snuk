@@ -43,6 +43,9 @@ b8 applicationQuitEvent(u16 code, void *sender, void *listener,
  * will be given and this function returns true.
  */
 b8 initializeEngine(Application *app) {
+    // TODO: Can we use restrict here? The app might be global too what about
+    // having restric while declaring instance of App in main
+
     if (engine_state.is_running) {
         // Engine is already running, so we had initialized logger.
         sError("Engine is already running, but initializeEngine called again.");
@@ -120,8 +123,6 @@ void shutdownEngine(void) {
 
     // Should be called first, i.e., before terminating subsystems
     engine_state.app->terminate(engine_state.app);
-
-    // No need to deallocate memory since our memory system handles it
 
     shutdownPlatformWindowing();
     shutdownInput();

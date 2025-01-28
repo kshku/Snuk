@@ -9,14 +9,14 @@ typedef struct SString {
 
 SAPI void sStringCreate(SString *sstr, const char *str, u64 size);
 
-SAPI u64 sStringLength(const char *str);
+SAPI u64 sStringLength(const char *restrict str);
 
 SAPI char *sStringConcat(const char *str1, const char *str2, u64 l1, u64 l2,
-                         u64 *length);
+                         u64 *restrict length);
 
 SAPI b8 sStringEqual(const char *str1, const char *str2, u64 len);
 
-SAPI char *sStringCopy(const char *str, u64 len);
+SAPI char *sStringCopy(const char *restrict str, u64 len);
 
 // SAPI u64 sStringLengthC16(const c16 *str);
 

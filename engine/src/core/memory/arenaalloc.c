@@ -11,7 +11,7 @@
  *
  * @return true if succeeds, false otherwise.
  */
-b8 sArenaCreate(SArena *arena) {
+b8 sArenaCreate(SArena *restrict arena) {
     void *memory = sMalloc(arena->size);
     if (!memory) return false;
     arena->base = arena->head = (u8 *)memory;
@@ -27,7 +27,7 @@ b8 sArenaCreate(SArena *arena) {
  * @return If arena was not allocated or the size requested is greater than size
  * available returns NULL, else poitner to allocated memory.
  */
-void *sArenaAlloc(SArena *arena, u64 size) {
+void *sArenaAlloc(SArena *restrict arena, u64 size) {
     if (!arena->base) return NULL;
 
     if (arena->head + size <= arena->base + arena->size) {
@@ -42,7 +42,7 @@ void *sArenaAlloc(SArena *arena, u64 size) {
 /**
  * @brief Clear all the allocations from the arena.
  */
-void sArenaClear(SArena *arena) {
+void sArenaClear(SArena *restrict arena) {
     arena->head = arena->base;
 }
 
@@ -53,6 +53,6 @@ void sArenaClear(SArena *arena) {
  *
  * @param arena The pointer to arena
  */
-void sArenaDestroy(SArena *arena) {
+void sArenaDestroy(SArena *restrict arena) {
     if (arena->base) sFree(arena->base);
 }

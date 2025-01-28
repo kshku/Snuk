@@ -9,7 +9,7 @@
  *
  * @return Returns the size of the stirng.
  */
-u64 sStringLength(const char *str) {
+u64 sStringLength(const char *restrict str) {
     u64 len = 0;
     while (str[len]) ++len;
     return len;
@@ -30,7 +30,7 @@ u64 sStringLength(const char *str) {
  * @return Returns the malloced string, user needs to call sFree once done.
  */
 char *sStringConcat(const char *str1, const char *str2, u64 l1, u64 l2,
-                    u64 *length) {
+                    u64 *restrict length) {
     if (!l1) l1 = sStringLength(str1);
     if (!l2) l2 = sStringLength(str2);
 
@@ -79,7 +79,7 @@ b8 sStringEqual(const char *str1, const char *str2, u64 len) {
  *
  * @return Returns the malloced copied string, user should call sFree.
  */
-char *sStringCopy(const char *str, u64 len) {
+char *sStringCopy(const char *restrict str, u64 len) {
     if (!len) len = sStringLength(str);
 
     char *s = (char *)sCalloc((len + 1), sizeof(char));

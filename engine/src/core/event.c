@@ -29,7 +29,9 @@ static EventState *event_state;
  *
  * @return Returns true if was initialized successfully.
  */
-b8 initializeEvent(u64 *size, void *state) {
+b8 initializeEvent(u64 *restrict size, void *state) {
+    // TODO: Can we have restrict for state
+
     sassert_msg(!event_state, "Initializing the evnet system more than once?");
 
     *size = sizeof(EventState);
