@@ -12,9 +12,9 @@
  * @return true if succeeds, false otherwise.
  */
 b8 sArenaCreate(SArena *restrict arena) {
-    void *memory = sMalloc(arena->size);
+    uptr memory = (uptr)sMalloc(arena->size);
     if (!memory) return false;
-    arena->base = arena->head = (u8 *)memory;
+    arena->base = arena->head = memory;
     return true;
 }
 
@@ -31,7 +31,7 @@ void *sArenaAlloc(SArena *restrict arena, u64 size) {
     if (!arena->base) return NULL;
 
     if (arena->head + size <= arena->base + arena->size) {
-        void *ptr = arena->head;
+        void *ptr = (void *)arena->head;
         arena->head += size;
         return ptr;
     }
@@ -54,5 +54,5 @@ void sArenaClear(SArena *restrict arena) {
  * @param arena The pointer to arena
  */
 void sArenaDestroy(SArena *restrict arena) {
-    if (arena->base) sFree(arena->base);
+    if (arena->base) sFree((void *)arena->base);
 }

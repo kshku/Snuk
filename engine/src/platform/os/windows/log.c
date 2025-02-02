@@ -1,4 +1,4 @@
-#include "../../log.h"
+#include "platform/log.h"
 
 #ifdef SPLATFORM_OS_WINDOWS
 

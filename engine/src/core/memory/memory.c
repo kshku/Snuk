@@ -1,7 +1,10 @@
 #include "memory.h"
 
-#include "../assertions.h"
-#include "../logger.h"
+#include <stdatomic.h>
+
+#include "core/assertions.h"
+#include "core/logger.h"
+#include "core/sync/mutex/mutex.h"
 #include "platform/memory.h"
 
 /**
@@ -15,6 +18,7 @@
 
 // TODO : Refactor the code and reuse functions and ....
 // TODO: Error handling
+// TODO: Thread safety
 
 // I had few options in mind and finally chose this one.
 // When we allocate we also allocate 8 bytes more for header to store the size
@@ -35,7 +39,7 @@
 // NOTE: Offset is always with respect to where the offset is stored
 
 typedef struct BlockHeader {
-        void *previous_block;
+        struct BlockHeader *previous_block;
         u64 block_size;
         // Will always store the offset to the first free block in the current
         // block (if not there zero)
@@ -66,6 +70,8 @@ typedef struct MemState {
         // allocation_count)
         // 8 -> header size
         u64 allocation_count;
+
+        smutex global_mutex;
 } MemState;
 
 static MemState mem_state;
@@ -156,20 +162,25 @@ u64 readBlockSize(const void *restrict block) {
 void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
     sassert(size > 8);
 
-    u8 *block = (u8 *)b;
+    // u8 *block = (u8 *)b;
+    uptr block = (uptr)b;
 
-    u8 *previous_block = (u8 *)pb;
+    // u8 *previous_block = (u8 *)pb;
+    uptr previous_block = (uptr)pb;
     u64 previous_block_offset = OFFSET_IN_FREE_BLOCK(previous_block);
 
-    u8 *next_block =
-        previous_block_offset ? previous_block + previous_block_offset : NULL;
+    // u8 *next_block =
+    //     previous_block_offset ? previous_block + previous_block_offset :
+    //     NULL;
+    uptr next_block =
+        previous_block_offset ? previous_block + previous_block_offset : 0;
     u64 next_block_offset = next_block ? OFFSET_IN_FREE_BLOCK(next_block) : 0;
 
     // Try to merge with previous block first
     // NOTE: We should not merge with the free block in the header field
     if (!is_header_field) {
         // Check whether we can merge this block to previous free block
-        u64 previous_block_size = readBlockSize(previous_block + 8);
+        u64 previous_block_size = readBlockSize((void *)(previous_block + 8));
         if (previous_block + previous_block_size == block) {
             // We can merge
             // NOTE: Don't have to change the offset while merging
@@ -187,10 +198,10 @@ void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
                 else OFFSET_IN_FREE_BLOCK(previous_block) = 0;
 
                 // Add next block's size to previous block too
-                previous_block_size += readBlockSize(next_block + 8);
+                previous_block_size += readBlockSize((void *)(next_block + 8));
             }
 
-            writeBlockSize((previous_block + 8), previous_block_size);
+            writeBlockSize((void *)(previous_block + 8), previous_block_size);
 
             // Thats it we added free block
             return;
@@ -203,7 +214,7 @@ void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
     if (!next_block) {
         // previous block was last block, now this is last block
         OFFSET_IN_FREE_BLOCK(block) = 0;
-        writeBlockSize(block + 8, size);
+        writeBlockSize((void *)(block + 8), size);
         return;
     }
 
@@ -219,9 +230,9 @@ void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
         else OFFSET_IN_FREE_BLOCK(block) = 0;
 
         // Update this block's size by adding next block's size
-        size += readBlockSize(next_block + 8);
+        size += readBlockSize((void *)(next_block + 8));
 
-        writeBlockSize(block + 8, size);
+        writeBlockSize((void *)(block + 8), size);
 
         // Done with the task
         return;
@@ -230,7 +241,7 @@ void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
     // We couldn't merge. This block is not connected to any other free block
     // this block's offset should point to next block
     OFFSET_IN_FREE_BLOCK(block) = next_block - block;
-    writeBlockSize(block + 8, size);
+    writeBlockSize((void *)(block + 8), size);
 }
 
 /**
@@ -247,8 +258,8 @@ void addFreeBlock(void *pb, void *b, u64 size, b8 is_header_field) {
 void updateFreeBlock(void *pb, void *b, u64 size, u64 new_size) {
     sassert(size > new_size);
 
-    u8 *block = (u8 *)b;
-    u8 *previous_block = (u8 *)pb;
+    uptr block = (uptr)b;
+    uptr previous_block = (uptr)pb;
     u64 block_offset = OFFSET_IN_FREE_BLOCK(block);
     u64 diff = size - new_size;
 
@@ -259,7 +270,7 @@ void updateFreeBlock(void *pb, void *b, u64 size, u64 new_size) {
         if (block_offset) OFFSET_IN_FREE_BLOCK(block) = block_offset - diff;
         else OFFSET_IN_FREE_BLOCK(block) = 0;
 
-        writeBlockSize(block + 8, new_size);
+        writeBlockSize((void *)(block + 8), new_size);
     } else {
         if (block_offset)
             OFFSET_IN_FREE_BLOCK(previous_block) += OFFSET_IN_FREE_BLOCK(block);
@@ -279,26 +290,28 @@ void updateFreeBlock(void *pb, void *b, u64 size, u64 new_size) {
  * @return Returns the pointer to the free block if found else returns NULL.
  */
 void *getPreviousFreeBlock(const void *ptr, b8 *is_header_field) {
-    BlockHeader *cur_header = mem_state.header;
+    uptr cur_header = (uptr)mem_state.header;
+    uptr p = (uptr)ptr;
 
     while (cur_header) {
-        if ((void *)cur_header < ptr
-            && ptr < (void *)((u8 *)cur_header + cur_header->block_size)) {
-            u8 *previous_block = (u8 *)&cur_header->first_free_block_offset;
-            while ((void *)previous_block < ptr
-                   && (void *)(previous_block
-                               + OFFSET_IN_FREE_BLOCK(previous_block))
-                          < ptr)
+        if (cur_header < p
+            && p < (cur_header + ((BlockHeader *)cur_header)->block_size)) {
+            uptr previous_block =
+                (uptr)(&((BlockHeader *)cur_header)->first_free_block_offset);
+            while (previous_block < p
+                   && (previous_block + OFFSET_IN_FREE_BLOCK(previous_block))
+                          < p)
                 previous_block += OFFSET_IN_FREE_BLOCK(previous_block);
 
             if (is_header_field)
                 *is_header_field = previous_block
-                                == (u8 *)&cur_header->first_free_block_offset;
+                                == (uptr)(&((BlockHeader *)cur_header)
+                                               ->first_free_block_offset);
 
-            return previous_block;
+            return (void *)previous_block;
         }
 
-        cur_header = cur_header->previous_block;
+        cur_header = (uptr)(&((BlockHeader *)cur_header)->previous_block);
     }
 
     return NULL;
@@ -325,10 +338,7 @@ b8 initializeMemory(void) {
     }
     mem_state.page_size = page_size;
 
-    mem_state.allocation_size = 0;
-    mem_state.allocation_count = 0;
-    mem_state.pages_allocated = 0;
-    mem_state.pages_allocated_main = 0;
+    sMutexInit(&mem_state.global_mutex);
 
     mem_state.initialized = true;
     return true;
@@ -352,7 +362,6 @@ void shutdownMemory(void) {
     while (cur) {
         // Get the header which is pointer to another base (page)
         prev = cur->previous_block;
-        // platformDeallocateMemory(cur, cur->block_size);
         u64 n = cur->block_size / mem_state.page_size;
         sMemDeallocatePages(cur, n);
         mem_state.pages_allocated_main -= n;
@@ -446,7 +455,6 @@ b8 getMemoryWithAtleast(u64 size) {
     ptr->block_size = mem_state.page_size * n_pages;
     ptr->first_free_block_offset = 0;
 
-    // addFreeBlock(ptr, ptr + 1, ptr->block_size);
     addFreeBlock(&ptr->first_free_block_offset, ptr + 1, ptr->block_size, true);
 
     mem_state.header = ptr;
@@ -466,20 +474,21 @@ b8 getMemoryWithAtleast(u64 size) {
 void *getFreeBlock(const BlockHeader *block_header, u64 size) {
     if (!block_header->first_free_block_offset) return NULL;
 
-    u8 *prev = (u8 *)&block_header->first_free_block_offset;
-    u8 *free_block = prev + OFFSET_IN_FREE_BLOCK(prev);
+    uptr prev = (uptr)&block_header->first_free_block_offset;
+    uptr free_block = prev + OFFSET_IN_FREE_BLOCK(prev);
 
-    u64 free_block_size = readBlockSize(free_block + 8);
+    u64 free_block_size = readBlockSize((void *)(free_block + 8));
     while (free_block_size < size) {
-        if (!OFFSET_IN_FREE_BLOCK(free_block)) return NULL;
         prev = free_block;
         free_block += OFFSET_IN_FREE_BLOCK(free_block);
-        free_block_size = readBlockSize(free_block + 8);
+        free_block_size = readBlockSize((void *)(free_block + 8));
+        if (!OFFSET_IN_FREE_BLOCK(free_block)) return NULL;
     }
 
-    updateFreeBlock(prev, free_block, free_block_size, free_block_size - size);
+    updateFreeBlock((void *)prev, (void *)free_block, free_block_size,
+                    free_block_size - size);
 
-    return free_block;
+    return (void *)free_block;
 }
 
 /**

@@ -12,7 +12,6 @@
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
-            "cppStandard": "c++17",
             "intelliSenseMode": "linux-clang-x64"
         },
         {
@@ -22,11 +21,10 @@
             ],
             "defines": [
                 "S_EXPORTS",
-                "S_DEBUG",
+                "S_DEBUG"
             ],
             // "compilerPath": "C:/Program Files/LLVM/bin/clang-cl.exe",
             "cStandard": "c17",
-            "cppStandard": "c++17",
             "intelliSenseMode": "windows-clang-x64"
         }
     ],

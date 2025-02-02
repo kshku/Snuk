@@ -1,4 +1,4 @@
-#include "../../window.h"
+#include "platform/window.h"
 
 // TODO: UNICODE and ASCII things
 // Check which one and use functions (mainly in setting window tiltes and all)

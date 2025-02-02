@@ -1,13 +1,12 @@
 #pragma once
 
-#include "../window.h"
+#include "defines.h"
 
 #if defined(SPLATFORM_WINDOWING_X11_XLIB)  \
     | defined(SPLATFORM_WINDOWING_X11_XCB) \
     | defined(SPLATFORM_WINDOWING_WAYLAND)
     #include <xkbcommon/xkbcommon.h>
 
-    #include "defines.h"
     #include "input/keyboard/keycode.h"
     #include "input/keyboard/scancode.h"
 

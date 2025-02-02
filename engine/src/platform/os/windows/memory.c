@@ -1,4 +1,4 @@
-#include "../../memory.h"
+#include "platform/memory.h"
 
 #ifdef SPLATFORM_OS_WINDOWS
 
@@ -27,28 +27,29 @@ void platformDeallocateMemory(void *ptr, u64 size) {
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
-/**
- * @brief Memory reallocater implementation for Windows.
- *
- * @param ptr Pointer to the allocated memory
- * @param new_size New size
- * @param old_size Old size (Current size)
- *
- * @return Pointer to the reallocated memory.
- */
-void *platformReallocateMemory(void *ptr, u64 new_size, u64 old_size) {
-    void *p =
-        VirtualAlloc(NULL, new_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+// /**
+//  * @brief Memory reallocater implementation for Windows.
+//  *
+//  * @param ptr Pointer to the allocated memory
+//  * @param new_size New size
+//  * @param old_size Old size (Current size)
+//  *
+//  * @return Pointer to the reallocated memory.
+//  */
+// void *platformReallocateMemory(void *ptr, u64 new_size, u64 old_size) {
+//     void *p =
+//         VirtualAlloc(NULL, new_size, MEM_COMMIT | MEM_RESERVE,
+//         PAGE_READWRITE);
 
-    if (p) {
-        u64 length = MIN(new_size, old_size);
-        u8 *pc = (u8 *)p;
-        u8 *pc_old = (u8 *)ptr;
-        for (u64 i = 0; i < length; ++i, ++pc, ++pc_old) *pc = *pc_old;
-    }
+//     if (p) {
+//         u64 length = MIN(new_size, old_size);
+//         u8 *pc = (u8 *)p;
+//         u8 *pc_old = (u8 *)ptr;
+//         for (u64 i = 0; i < length; ++i, ++pc, ++pc_old) *pc = *pc_old;
+//     }
 
-    return p;
-}
+//     return p;
+// }
 
 /**
  * @brief Get the page size implementation for Windows.

@@ -120,7 +120,7 @@ SAPI void darrayPopAtImpl(void *arr, const u32 index, void *element);
  */
 #define darrayPush(arr, element)                \
     do {                                        \
-        typeof(element) temp = element;         \
+        __typeof__(element) temp = element;     \
         darrayPushImpl((void **)(&arr), &temp); \
     } while (0)
 

@@ -1,4 +1,4 @@
-#include "../../window.h"
+#include "platform/window.h"
 
 #ifdef SPLATFORM_WINDOWING_WAYLAND
 // Documentation used

@@ -1,5 +1,19 @@
 #pragma once
 
+// Predefined macros
+// https://sourceforge.net/p/predef/wiki
+
+// Compiler detection
+#if defined(__clang__)
+    #define SCOMPILER_CLANG
+#elif defined(__GNUC__)
+    #define SCOMPILER_GCC
+#elif defined(_MSC_VER)
+    #define SCOMPILER_MSVC
+#else
+    #error "Compiler is not supported"
+#endif
+
 // Platform detection
 #if defined(__WIN32__) || defined(_WIN32)
     #define SPLATFORM_OS_WINDOWS
@@ -9,7 +23,25 @@
 #elif defined(__linux__) || defined(__gnu_linux__)
     #define SPLATFORM_OS_LINUX
 #else
-    #error "Platform not supported"
+    #error "OS not supported"
+#endif
+
+// Architecture detection
+#if defined(__amd64__) | defined(__amd64) | defined(__x86_64__) \
+    | defined(__x86_64) | defined(_M_X64) | defined(_M_AMD64)
+    #define SPLATFORM_ARCH_X86_64
+#else
+    #error "Architecture not supported"
+#endif
+
+// Windowing System
+#if defined(SPLATFORM_OS_LINUX)
+// TODO: to decide between
+// #define SPLATFORM_WINDOWING_X11_XLIB
+    #define SPLATFORM_WINDOWING_X11_XCB
+// #define SPLATFORM_WINDOWING_WAYLAND
+#elif defined(SPLATFORM_OS_WINDOWS)
+    #define SPLATFORM_WINDOWING_WIN32
 #endif
 
 // SAPI for exporting and importing
@@ -27,21 +59,51 @@
     #endif
 #endif
 
-#ifdef __STDC_NO_ATOMICS__
-    #error "No atomic support"
-#endif
+// ? Use size_t and ptrdiff_t?
+#include <stddef.h>
+#include <stdint.h>
 
 // signed integer types
-typedef signed char i8;
-typedef signed short i16;
-typedef signed int i32;
-typedef signed long long i64;
+// Exact
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+// Fastest
+typedef int_fast8_t if8;
+typedef int_fast16_t if16;
+typedef int_fast32_t if32;
+typedef int_fast64_t if64;
+// Smallest
+typedef int_least8_t il8;
+typedef int_least16_t il16;
+typedef int_least32_t il32;
+typedef int_least64_t il64;
+// Maximum width
+typedef intmax_t imax;
+// Type capable of holding a pointer
+typedef intptr_t iptr;
 
 // unsigned integer types
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
+// Exact
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+// Fastest
+typedef uint_fast8_t uf8;
+typedef uint_fast16_t uf16;
+typedef uint_fast32_t uf32;
+typedef uint_fast64_t uf64;
+// Smallest
+typedef uint_least8_t ul8;
+typedef uint_least16_t ul16;
+typedef uint_least32_t ul32;
+typedef uint_least64_t ul64;
+// Maximum width
+typedef uintmax_t umax;
+// Type capable of holding a pointer
+typedef uintptr_t uptr;
 
 // floating point types
 typedef float f32;
@@ -53,80 +115,6 @@ typedef double f64;
 
 // boolean type
 typedef _Bool b8;
-
-#define true 1
-#define false 0
-
-// null
-#define NULL ((void *)0)
-
-// Max and min values of the types
-// signed integer types
-// 0111 1111
-#define MAX_I8 ((i8)0x7f)
-// 1000 0000 (1 << 7)
-#define MIN_I8 ((i8)0x80)
-
-// 0111 1111 1111 1111
-#define MAX_I16 ((i16)0x7fff)
-// 1000 0000 0000 0000 (1 << 15)
-#define MIN_I16 ((i16)0x8000)
-
-// 0111 1111 1111 1111 1111 1111 1111 1111
-#define MAX_I32 ((i32)0x7fffffff)
-// 1000 0000 0000 0000 0000 0000 0000 0000 (1 << 31)
-#define MIN_I32 ((i32)0x80000000)
-
-// 0111 1111 1111 1111 1111 1111 1111 1111
-// 1111 1111 1111 1111 1111 1111 1111 1111
-#define MAX_I64 ((i64)0x7fffffffffffffff)
-// 1000 0000 0000 0000 0000 0000 0000 0000
-// 0000 0000 0000 0000 0000 0000 0000 0000 (1 << 63)
-#define MIN_I64 ((i64)0x8000000000000000)
-
-// unsigned integer types
-// 1111 1111
-#define MAX_U8 ((u8)0xff)
-// 0000 0000
-#define MIN_U8 ((u16)0x00)
-
-// 1111 1111 1111 1111
-#define MAX_U16 ((u16)0xffff)
-// 0000 0000 0000 0000
-#define MIN_U16 ((u16)0x0000)
-
-// 1111 1111 1111 1111 1111 1111 1111 1111
-#define MAX_U32 ((u32)0xffffffff)
-// 0000 0000 0000 0000 0000 0000 0000 0000
-#define MIN_U32 ((u32)0x00000000)
-
-// 1111 1111 1111 1111 1111 1111 1111 1111
-// 1111 1111 1111 1111 1111 1111 1111 1111
-#define MAX_U64 ((u64)0xffffffffffffffff)
-// 0000 0000 0000 0000 0000 0000 0000 0000
-// 0000 0000 0000 0000 0000 0000 0000 0000
-#define MIN_U64 ((u64)0x0000000000000000)
-
-// floating point types
-// typedef float f32;
-// #define MAX_F32
-// #define MIN_F32
-// typedef double f64;
-// #define MAX_F64
-// #define MIN_F64
-
-// character types
-// typedef char c8;
-// #define MAX_C8 ((c8)0x7f)
-// #define MIN_C8 ((c8)0x80)
-// typedef unsigned short c16;
-// #define MAX_C16 ((c16)0xffff)
-// #define MIN_C16 ((c16)0x0000)
-
-// boolean type
-// typedef _Bool b8;
-// #define MAX_B8 ((b8)0x01)
-// #define MIN_B8 ((b8)0x00)
 
 #define true 1
 #define false 0
@@ -149,10 +137,19 @@ STATIC_ASSERT(sizeof(u16) == 2, "Expected u16 to be 2 bytes");
 STATIC_ASSERT(sizeof(u32) == 4, "Expected u32 to be 4 bytes");
 STATIC_ASSERT(sizeof(u64) == 8, "Expected u64 to be 8 bytes");
 
+// These are guaranteed right?
 STATIC_ASSERT(sizeof(f32) == 4, "Expected f32 to be 4 bytes");
 STATIC_ASSERT(sizeof(f64) == 8, "Expected f64 to be 8 bytes");
 
+// _Bool is not required to be 1 byte but most commonly 1 byte
+// Typecasting to bool is different from typecasting to integers
+// (bool)0.5 is true where as (int)0.5 is 0
+// TODO: Don't want to stop compiling and running just because boolean is not 8
+// bits. Doing this only becasue in event Context we have b8 array with 16 size.
+// May be just don't let the user pass boolean values through Context
 STATIC_ASSERT(sizeof(b8) == 1, "Expected b8 to be 1 byte");
+
+STATIC_ASSERT(sizeof(size_t) <= 8, "size_t > 8 bytes!");
 
 /**
  * @brief Mark variables, return values as unused
@@ -180,6 +177,15 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b8 to be 1 byte");
 #define CONCAT(x, y) x##y
 
 /**
+ * @brief Join three inputs.
+ *
+ * @param x first one
+ * @param y second one
+ * @param z third one
+ */
+#define CONCAT3(x, y, z) x##y##z
+
+/**
  * @brief Expands and then joins.
  *
  * Usefull when we are passing macro as an argument and we want the macro to be
@@ -189,6 +195,18 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b8 to be 1 byte");
  * @param y second one
  */
 #define CONCAT_EXPANDED(x, y) CONCAT(x, y)
+
+/**
+ * @brief Expands and then joins.
+ *
+ * Usefull when we are passing macro as an argument and we want the macro to be
+ * expanded before the concatenation.
+ *
+ * @param x first one
+ * @param y second one
+ * @param z third one
+ */
+#define CONCAT_EXPANDED3(x, y, z) CONCAT3(x, y, z)
 
 /**
  * @brief Bit flags.

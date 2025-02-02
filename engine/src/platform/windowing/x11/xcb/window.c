@@ -1,4 +1,4 @@
-#include "../../../window.h"
+#include "platform/window.h"
 
 #ifdef SPLATFORM_WINDOWING_X11_XCB
 // NOTE: Just go to /usr/include/xcb and read header files to know what are
@@ -309,8 +309,8 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 if (bpe->detail < 4) {
                     // Left = 1, right = 3, middle = 2
                     inputProcessButton(
-                        bpe->detail, (bpe->event_x / (double)MAX_U16),
-                        (bpe->event_y / (double)MAX_U16),
+                        bpe->detail, (bpe->event_x / (double)UINT16_MAX),
+                        (bpe->event_y / (double)UINT16_MAX),
                         getKeymodsFromXKBCommon(xcb_state->xkb_keymap,
                                                 xcb_state->xkb_state),
                         true);
@@ -337,8 +337,8 @@ void handleGenericEvents(xcb_ge_generic_event_t *ge) {
                 //        bre->deviceid, bre->detail);
                 if (bre->detail < 4) {
                     inputProcessButton(
-                        bre->detail, (bre->event_x / (double)MAX_U16),
-                        (bre->event_y / (double)MAX_U16),
+                        bre->detail, (bre->event_x / (double)UINT16_MAX),
+                        (bre->event_y / (double)UINT16_MAX),
                         getKeymodsFromXKBCommon(xcb_state->xkb_keymap,
                                                 xcb_state->xkb_state),
                         false);

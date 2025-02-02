@@ -2,7 +2,7 @@ SHELL := powershell.exe
 .SHELLFLAGS := -NoProfile -NoInteractive -Command
 
 CC := clang
-CFLAGS := -Wall -Wextra -g
+CFLAGS := -Wall -Wextra -g -std=c17
 DEFINES := -DS_DEBUG
 LDFLAGS := -g
 BUILD_DIR := build/windows

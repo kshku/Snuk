@@ -5,6 +5,7 @@
 #include "test_manager.h"
 
 // NOTE: Include headers for tests here
+#include "tests/atomic.h"
 #include "tests/darray.h"
 #include "tests/memory.h"
 #include "tests/sstring.h"
@@ -19,7 +20,11 @@ b8 tests_init(Application *app_inst) {
     app_inst->data = core_memory_register_tests(app_inst->data);
     app_inst->data = ds_darray_register_tests(app_inst->data);
     app_inst->data = core_sstring_register_tests(app_inst->data);
+    app_inst->data = atomic_tests(app_inst->data);
     // -------------------
+
+    // Manual break point test
+    // DEBUG_BREAK;
 
     sInfo("After registering tests");
     sMemLogState();

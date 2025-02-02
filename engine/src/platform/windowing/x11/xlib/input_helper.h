@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../../window.h"
 #include "defines.h"
 
 #ifdef SPLATFORM_WINDOWING_X11_XLIB

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../../window.h"
+#include "defines.h"
 
 #ifdef SPLATFORM_WINDOWING_WIN32
-    #include "defines.h"
     #include "input/keyboard/keycode.h"
     #include "input/keyboard/scancode.h"
 

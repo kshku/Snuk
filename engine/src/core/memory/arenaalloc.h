@@ -4,8 +4,8 @@
 
 typedef struct SArena {
         u64 size;
-        u8 *base;
-        u8 *head;
+        uptr base;
+        uptr head;
 } SArena;
 
 SAPI b8 sArenaCreate(SArena *restrict arena);

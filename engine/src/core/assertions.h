@@ -16,23 +16,31 @@ SAPI void _reportAssertionFailure(const char *restrict expr,
 
 #if ASSERTIONS_ENABLED == 1
 
-    #ifdef _MSC_VER
-        #include <intrin.h>
+    #ifdef SPLATFORM_ARCH_X86_64
         /**
          * @brief Put a debug break point to stop execution.
          */
-        #define DEBUG_BREAK __debugbreak()
+        #define DEBUG_BREAK \
+            __asm__ volatile(".byte 0xCC") /* __asm__("int $3") */
     #else
-        #if __has_builtin(__builtin_debugtrap)
+        #ifdef _MSC_VER
+            #include <intrin.h>
             /**
              * @brief Put a debug break point to stop execution.
              */
-            #define DEBUG_BREAK __builtin_debugtrap()
+            #define DEBUG_BREAK __debugbreak()
         #else
-            /**
-             * @brief Put a illegal statement to stop execution.
-             */
-            #define DEBUG_BREAK __builtin_trap()
+            #if __has_builtin(__builtin_debugtrap)
+                /**
+                 * @brief Put a debug break point to stop execution.
+                 */
+                #define DEBUG_BREAK __builtin_debugtrap()
+            #else
+                /**
+                 * @brief Put a illegal statement to stop execution.
+                 */
+                #define DEBUG_BREAK __builtin_trap()
+            #endif
         #endif
     #endif
 
