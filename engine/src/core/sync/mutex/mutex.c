@@ -4,6 +4,10 @@
 
 #include "core/logger.h"
 
+#ifdef __STDC_NO_ATOMICS__
+    #error "No support for atomic instructions"
+#endif
+
 void sMutexInit(smutex *mutex) {
     atomic_store_explicit(&mutex->mutex, false, memory_order_release);
 }

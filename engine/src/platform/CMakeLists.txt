@@ -2,7 +2,8 @@ set(SRCS
     atomic.h
     log.h
     memory.h
-    threads.h
+    sthreads.c
+    sthreads.h
     window.h
 )
 

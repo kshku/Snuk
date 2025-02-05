@@ -60,11 +60,15 @@
 #endif
 
 // ? Use size_t and ptrdiff_t?
+// #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
 
 // signed integer types
 // Exact
+// #define aligned_type(type, align) type __attribute__((aligned(align)))
+// typedef aligned_type(int8_t, 8) i8;
+// typedef int16_t __attribute__((aligned(16))) i16;
 typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;

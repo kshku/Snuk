@@ -6,7 +6,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         message(WARNING "wayland-scanner is not found! If you are not building for wayland ignore this")
     endif()
 
-    add_library(protocols STATIC)
+    set(TARGET_NAME "protocols")
+
+    add_library("${TARGET_NAME}" STATIC)
+
     set(SUBDIRS stable unstable)
 
     foreach(directory IN LISTS SUBDIRS)

@@ -1,10 +1,11 @@
 #include "atomic.h"
 
 #include <core/assertions.h>
+#include <core/logger.h>
 #include <platform/atomic.h>
+#include <platform/sthreads.h>
 
 u8 atomic_test(void) {
-    DEBUG_BREAK;
     satomic_i32 ai = SATOMIC_CREATE(0);
     SATOMIC_STORE(&ai, 1000);
 
@@ -20,7 +21,39 @@ u8 atomic_test(void) {
     return PASS;
 }
 
+satomic_i32 test = SATOMIC_CREATE(0);
+
+// i32 test = 0;
+
+i32 print_now(void *data) {
+    sDebug("Now the value is %d", SATOMIC_LOAD((satomic_i32 *)data));
+    return 0;
+}
+
+i32 f(void *data) {
+    UNUSED(data);
+    for (u32 i = 0; i < 1000; ++i) SATOMIC_FETCH_ADD(&test, 1);
+
+    sthread t;
+    sThreadCreate(&t, print_now, &test);
+
+    return 0;
+}
+
+u8 thread_test(void) {
+    sthread threads[10];
+
+    for (u32 i = 0; i < 10; ++i) sThreadCreate(&threads[i], f, NULL);
+    for (u32 i = 0; i < 10; ++i) sThreadJoin(threads[i]);
+
+    if (SATOMIC_LOAD(&test) == 10000) return PASS;
+    // sDebug("Total is %d", test);
+    // if (test == 10000) return PASS;
+    return FAIL;
+}
+
 Test *atomic_tests(Test *tests) {
     testManagerRegister(tests, atomic_test, "atomic tests");
+    testManagerRegister(tests, thread_test, "thread tests");
     return tests;
 }

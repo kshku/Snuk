@@ -363,6 +363,12 @@ void shutdownMemory(void) {
         // Get the header which is pointer to another base (page)
         prev = cur->previous_block;
         u64 n = cur->block_size / mem_state.page_size;
+        // Since we are calling free on all the allocation if this
+        // implementation is correct then only header free list should be there
+        // with the size of entire buffer - Header size
+        sassert_msg(readBlockSize((void *)((uptr)(cur + 1) + 8))
+                        == cur->block_size - sizeof(BlockHeader),
+                    "Something is wrong with the memory subsystem");
         sMemDeallocatePages(cur, n);
         mem_state.pages_allocated_main -= n;
         cur = prev;
@@ -383,6 +389,9 @@ void shutdownMemory(void) {
  * @return Page size.
  */
 u64 sMemGetPageSize(void) {
+    sassert_msg(mem_state.initialized, "Memory subsystem is not initialized");
+    // This is just reading, so no data race since nothing else will write to
+    // this
     return mem_state.page_size;
 }
 
@@ -406,9 +415,15 @@ void *sMemAllocatePages(u64 n) {
     sassert_msg(mem_state.initialized,
                 "Haven't initialized the memory subsystem?");
 
+    sMutexLock(&mem_state.global_mutex);
+
     mem_state.pages_allocated += n;
 
-    return n ? platformAllocateMemory(n * mem_state.page_size) : NULL;
+    void *ptr = n ? platformAllocateMemory(n * mem_state.page_size) : NULL;
+
+    sMutexUnlock(&mem_state.global_mutex);
+
+    return ptr;
 }
 
 /**
@@ -426,9 +441,13 @@ void sMemDeallocatePages(void *ptr, u64 n) {
         return;
     }
 
+    sMutexLock(&mem_state.global_mutex);
+
     mem_state.pages_allocated -= n;
 
     platformDeallocateMemory(ptr, (n * mem_state.page_size));
+
+    sMutexUnlock(&mem_state.global_mutex);
 }
 
 /**
@@ -442,7 +461,13 @@ b8 getMemoryWithAtleast(u64 size) {
     size += sizeof(BlockHeader);
     u64 n_pages =
         (size / mem_state.page_size) + (size % mem_state.page_size ? 1 : 0);
+
+    sMutexUnlock(&mem_state.global_mutex);
+
     BlockHeader *ptr = (BlockHeader *)sMemAllocatePages(n_pages);
+
+    sMutexLock(&mem_state.global_mutex);
+
     if (!ptr) {
         sError("Failed to allocate more pages");
         return false;
@@ -455,7 +480,8 @@ b8 getMemoryWithAtleast(u64 size) {
     ptr->block_size = mem_state.page_size * n_pages;
     ptr->first_free_block_offset = 0;
 
-    addFreeBlock(&ptr->first_free_block_offset, ptr + 1, ptr->block_size, true);
+    addFreeBlock(&ptr->first_free_block_offset, ptr + 1,
+                 ptr->block_size - sizeof(BlockHeader), true);
 
     mem_state.header = ptr;
 
@@ -531,14 +557,18 @@ void *sMalloc(u64 size) {
 
     size += 8;
 
+    sMutexLock(&mem_state.global_mutex);
+
     u64 *ptr = (u64 *)getBlockForSize(size);
 
     if (!ptr) return NULL;
 
-    *ptr = size;
-
     mem_state.allocation_size += size;
     mem_state.allocation_count++;
+
+    sMutexUnlock(&mem_state.global_mutex);
+
+    *ptr = size;
 
     return (void *)(ptr + 1);
 }
@@ -556,6 +586,7 @@ void *sCalloc(u64 nmemb, u64 size) {
 
     u64 total_size = size * nmemb;
 
+    // Malloc will deal with the lock
     void *ptr = sMalloc(total_size);
     if (ptr) sMemZeroOut(ptr, total_size);
 
@@ -588,6 +619,7 @@ void *sRealloc(void *ptr, u64 size) {
         return NULL;
     }
 
+    // Malloc will deal with lock
     if (!ptr) return sMalloc(size);
 
     u64 *p = (u64 *)ptr - 1;
@@ -599,6 +631,8 @@ void *sRealloc(void *ptr, u64 size) {
     // new size is same as old size nothing to do
     if (previous_size == size) return ptr;
 
+    sMutexLock(&mem_state.global_mutex);
+
     b8 is_header_field;
     u8 *previous_block = getPreviousFreeBlock(ptr, &is_header_field);
 
@@ -608,13 +642,18 @@ void *sRealloc(void *ptr, u64 size) {
         // Because if there are no free memory right next to it we might
         // override some other allocated memory since we will be expecting
         // atleast size of free block is 9 bytes
-        if (previous_size - size < 9) return ptr;
+        if (previous_size - size < 9) {
+            sMutexUnlock(&mem_state.global_mutex);
+            return ptr;
+        }
 
         addFreeBlock(previous_block, (u8 *)ptr + size, previous_size - size,
                      is_header_field);
 
         // Update the mem_state
         mem_state.allocation_size -= previous_size - size;
+
+        sMutexUnlock(&mem_state.global_mutex);
 
         // Upadate the size in header
         *p = size + 8;
@@ -639,6 +678,8 @@ void *sRealloc(void *ptr, u64 size) {
 
             mem_state.allocation_size += extra_size_to_allocate;
 
+            sMutexUnlock(&mem_state.global_mutex);
+
             // Upadate the size in header
             *p = size + 8;
 
@@ -646,6 +687,9 @@ void *sRealloc(void *ptr, u64 size) {
             return ptr;
         }
     }
+
+    sMutexUnlock(&mem_state.global_mutex);
+    // Malloc will handle mutex
 
     // We need to allocate memory somewhere else, couldn't extend this block
     // Header is managed by the malloc we can just deal with the rest of memory
@@ -656,6 +700,8 @@ void *sRealloc(void *ptr, u64 size) {
 
     // NOTE: The size in the header should not be manipulated
     sassert(*p == previous_size + 8);
+
+    // Free will handle the lock
     sFree(ptr);
 
     return new_block;
@@ -679,6 +725,8 @@ void sFree(void *ptr) {
 
     u64 *p = (u64 *)ptr - 1;
 
+    sMutexLock(&mem_state.global_mutex);
+
     b8 is_header_field;
     void *previous_block = getPreviousFreeBlock(ptr, &is_header_field);
 
@@ -689,6 +737,8 @@ void sFree(void *ptr) {
     mem_state.allocation_size -= *p;
 
     addFreeBlock(previous_block, p, *p, is_header_field);
+
+    sMutexUnlock(&mem_state.global_mutex);
 }
 
 /**
