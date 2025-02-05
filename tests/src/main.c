@@ -7,6 +7,7 @@
 // NOTE: Include headers for tests here
 #include "tests/atomic.h"
 #include "tests/darray.h"
+#include "tests/log.h"
 #include "tests/memory.h"
 #include "tests/sstring.h"
 
@@ -17,6 +18,7 @@ b8 tests_init(Application *app_inst) {
     sMemLogState();
 
     // NOTE: Register tests here
+    app_inst->data = log_register_tests(app_inst->data);
     app_inst->data = core_memory_register_tests(app_inst->data);
     app_inst->data = ds_darray_register_tests(app_inst->data);
     app_inst->data = core_sstring_register_tests(app_inst->data);

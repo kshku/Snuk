@@ -90,17 +90,21 @@ SAPI void _logMessage(LogLevel level, const char *restrict msg, ...);
 #define sTrace(msg, ...) _logMessage(LOG_LEVEL_TRACE, msg, ##__VA_ARGS__)
 
 #if LOG_WARN_ENABLED == 0
+    #undef sWarn
     #define sWarn(msg, ...)
 #endif
 
 #if LOG_INFO_ENABLED == 0
+    #undef sInfo
     #define sInfo(msg, ...)
 #endif
 
 #if !defined(S_DEBUG) || LOG_DEBUG_ENABLED == 0
+    #undef sDebug
     #define sDebug(msg, ...)
 #endif
 
 #if LOG_TRACE_ENABLED == 0
+    #undef sTrace
     #define sTrace(msg, ...)
 #endif
