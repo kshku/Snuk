@@ -25,23 +25,23 @@ satomic_i32 test = SATOMIC_CREATE(0);
 
 // i32 test = 0;
 
-i32 print_now(void *data) {
+u64 print_now(void *data) {
     sDebug("Now the value is %d", SATOMIC_LOAD((satomic_i32 *)data));
     return 0;
 }
 
-i32 f(void *data) {
+u64 f(void *data) {
     UNUSED(data);
     for (u32 i = 0; i < 1000; ++i) SATOMIC_FETCH_ADD(&test, 1);
 
-    sthread t;
+    sThread t;
     sThreadCreate(&t, print_now, &test);
 
     return 0;
 }
 
 u8 thread_test(void) {
-    sthread threads[10];
+    sThread threads[10];
 
     for (u32 i = 0; i < 10; ++i) sThreadCreate(&threads[i], f, NULL);
     for (u32 i = 0; i < 10; ++i) sThreadJoin(threads[i]);

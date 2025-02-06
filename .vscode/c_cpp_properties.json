@@ -7,8 +7,7 @@
             ],
             "defines": [
                 "S_EXPORTS",
-                "S_DEBUG",
-                "_GNU_SOURCE"
+                "S_DEBUG"
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
@@ -23,9 +22,9 @@
                 "S_EXPORTS",
                 "S_DEBUG"
             ],
-            // "compilerPath": "C:/Program Files/LLVM/bin/clang-cl.exe",
             "cStandard": "c17",
-            "intelliSenseMode": "windows-clang-x64"
+            "intelliSenseMode": "windows-clang-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4

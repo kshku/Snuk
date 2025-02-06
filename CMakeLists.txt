@@ -11,9 +11,11 @@ target_compile_features(snuk_flags INTERFACE c_std_17)
 
 target_compile_definitions(snuk_flags INTERFACE S_DEBUG)
 
-target_link_libraries(snuk_flags INTERFACE X11 Xi)
-target_link_libraries(snuk_flags INTERFACE xcb xcb-icccm xcb-xinput xcb-xkb xkbcommon-x11 xkbcommon)
-target_link_libraries(snuk_flags INTERFACE wayland-client)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(snuk_flags INTERFACE X11 Xi)
+    target_link_libraries(snuk_flags INTERFACE xcb xcb-icccm xcb-xinput xcb-xkb xkbcommon-x11 xkbcommon)
+    target_link_libraries(snuk_flags INTERFACE wayland-client)
+endif()
 
 set(SUBDIRS engine testapp tests)
 

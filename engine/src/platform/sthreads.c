@@ -5,7 +5,9 @@
 
 // Just for fun
 
-b8 sThreadCreate(sthread *thread, thread_func_t func, void *arg) {
+#ifdef SPLATFORM_THREADS_PTHREAD
+
+b8 sThreadCreate(sThread *thread, thread_func_t func, void *arg) {
     if (thrd_create(&thread->id, func, arg) != thrd_success) {
         sError("Failed to create thread");
         return false;
@@ -14,12 +16,12 @@ b8 sThreadCreate(sthread *thread, thread_func_t func, void *arg) {
     return true;
 }
 
-b8 sThreadEqual(sthread t1, sthread t2) {
+b8 sThreadEqual(sThread t1, sThread t2) {
     return thrd_equal(t1.id, t2.id);
 }
 
-sthread sThreadCurrent(void) {
-    return (sthread){.id = thrd_current()};
+sThread sThreadCurrent(void) {
+    return (sThread){.id = thrd_current()};
 }
 
 void sThreadSleep(stime time) {
@@ -36,12 +38,14 @@ void sThreadExit(i32 ret) {
     thrd_exit(ret);
 }
 
-void sThreadDetach(sthread thread) {
+void sThreadDetach(sThread thread) {
     thrd_detach(thread.id);
 }
 
-i32 sThreadJoin(sthread thread) {
+i32 sThreadJoin(sThread thread) {
     i32 ret;
     thrd_join(thread.id, &ret);
     return ret;
 }
+
+#endif

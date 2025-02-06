@@ -3,6 +3,7 @@
 #include <stdarg.h>
 
 #include "assertions.h"
+#include "core/sync/mutex/mutex.h"
 #include "platform/log.h"
 
 /**
@@ -14,7 +15,7 @@
  */
 // b8 initializeLogger(const char *file) {
 //     UNUSED(file);
-// TODO: Logging to file, aynchronous logging, etc.
+// // TODO: Logging to file, aynchronous logging, etc.
 //     return true;
 // }
 
@@ -23,6 +24,9 @@
  */
 // void shutdownLogger(void) {
 // }
+
+static smutex log_mutex;
+static b8 initialized_log_mutex = false;
 
 /**
  * @brief Logs a message.
@@ -36,10 +40,21 @@ void _logMessage(LogLevel level, const char *restrict msg, ...) {
         "[FATAL]: ", "[ERROR]: ", "[WARN]: ",
         "[INFO]: ",  "[DEBUG]: ", "[TRACE]: "};
 
+    if (!initialized_log_mutex) {
+        sMutexInit(&log_mutex);
+        initialized_log_mutex = true;
+    }
+
     // TODO: Log to file, timestamp, etc.
     va_list args;
     va_start(args, msg);
+
+    sMutexLock(&log_mutex);
+
     platformLogMessage(level, msg, args, log_level_strings[level]);
+
+    sMutexUnlock(&log_mutex);
+
     va_end(args);
 }
 

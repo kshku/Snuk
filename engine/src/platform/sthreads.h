@@ -1,44 +1,31 @@
 #pragma once
 
-#include <threads.h>
-
 #include "defines.h"
 
 #if defined(SPLATFORM_OS_LINUX)
     #define SPLATFORM_THREADS_PTHREAD
-    #undef SPLATFORM_THREADS_PTHREAD
 #elif defined(SPLATFORM_OS_WINDOWS)
     #define SPLATFORM_THREADS_WINDOWS
-    #undef SPLATFORM_THREADS_WINDOWS
 #endif
 
-#ifdef __STDC_NO_THREADS__
-    #error "No support for threads"
-#endif
+typedef struct sThread {
+        void *handle;
+} sThread;
 
-typedef struct sthread {
-        thrd_t id;
-} sthread;
+typedef u64 (*sThread_func)(void *data);
 
-typedef struct stime {
-        u64 seconds;
-        u64 nanoseconds;
-} stime;
+SAPI u64 sThreadSize(void);
 
-typedef i32 (*thread_func_t)(void *);
+SAPI b8 sThreadCreate(sThread *thread, sThread_func func, void *data);
 
-SAPI b8 sThreadCreate(sthread *thread, thread_func_t func, void *arg);
+SAPI u64 sThreadJoin(sThread thread);
 
-SAPI b8 sThreadEqual(sthread t1, sthread t2);
+SAPI void sThreadExit(u64 exitcode);
 
-SAPI sthread sThreadCurrent(void);
+SAPI sThread sThreadCurrent(void);
 
-SAPI void sThreadSleep(stime time);
+SAPI void sThreadSleep(u64 ms);
 
 SAPI void sThreadYield(void);
 
-SAPI void sThreadExit(i32 ret);
-
-SAPI void sThreadDetach(sthread thread);
-
-SAPI i32 sThreadJoin(sthread thread);
+SAPI b8 sThreadTerminate(sThread thread, u64 exitcode);
