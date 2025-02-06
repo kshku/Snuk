@@ -2,49 +2,58 @@
 
 #if defined(SPLATFORM_THREADS_WINDOWS)
 
-    #include <Windows.h>
-
 /**
- * @brief Get the size of sThread.
+ * @brief Windows thread calling function wrapper.
  *
- * @return Size of sThread
+ * @param wrap The array containing actual function as well as the arg
+ *
+ * @return The return value of function casted to DWORD.
  */
-u64 sThreadSize(void) {
-    return sizeof(sThread);
+static DWORD sThreadWrapper(void wrap[2]) {
+    sThread_func func = ((sThread_func *)wrap)[0];
+    void *data = ((void **)wrap)[1];
+    return (DWORD)(uptr)func(data);
 }
 
 /**
  * @brief Create and start a new thread.
  *
- * To get the size of sThread use sThreadSize function.
- *
- * @param thread Pointer to the thread
+ * @param thread Pointer to the sThread
  * @param func The function that thread runs
  * @param data The data passed as paramter to the function
  *
  * @return Returns true on success, else false.
  */
 b8 sThreadCreate(sThread *thread, sThread_func func, void *data) {
-    *thread =
-        (sThread){.handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func,
-                                         data, 0, NULL)};
-    return thread->handle ? true : false;
+    void *wrap[2] = {(void *)func, data};
+    *thread = CreateThread(NULL, 0, sThreadWrapper, wrap, 0, NULL);
+    return thread ? true : false;
 }
 
 /**
  * @brief Wait till the given thread completes.
  *
  * @param thread The thread to join
+ * @param ret The value returned by the thread (can be NULL)
  *
  * @return Returns the exit code (return value) of thread.
  */
-u64 sThreadJoin(sThread thread) {
-    WaitForSingleObject(thread.handle, INFINITE);
-    u64 exitcode;
-    if (!GetExitCodeThread(thread.handle, (DWORD *)&exitcode)) exitcode = -1;
-    CloseHandle(thread.handle);
-    thread.handle = NULL;
-    return exitcode;
+b8 sThreadJoin(sThread thread, void **ret) {
+    if (ret) *ret = NULL;
+
+    if (!WaitForSingleObject(thread, INFINITE)) return false;
+
+    if (ret) {
+        DWORD exitcode;
+        if (GetExitCodeThread(thread, &exitcode))
+            *ret = (void *)(utpr)(exitcode);
+    }
+
+    CloseHandle(thread);
+
+    thread = NULL;
+
+    return true;
 }
 
 /**
@@ -54,8 +63,8 @@ u64 sThreadJoin(sThread thread) {
  *
  * @param exitcode The exit code
  */
-void sThreadExit(u64 exitcode) {
-    ExitThread(exitcode);
+void sThreadExit(void *ret) {
+    ExitThread((DWORD)(uptr)ret);
 }
 
 /**
@@ -64,7 +73,7 @@ void sThreadExit(u64 exitcode) {
  * @return Current sThread
  */
 sThread sThreadCurrent(void) {
-    return (sThread){.handle = GetCurrentThread()};
+    return GetCurrentThread();
 }
 
 /**
@@ -97,7 +106,9 @@ void sThreadYield(void) {
  * @return Returns true if thread is terminated else false.
  */
 b8 sThreadTerminate(sThread thread, u64 exitcode) {
-    return TerminateThread(thread.handle, exitcode);
+    // TODO: Do something similar to the pthread_cancel instead of forcefull
+    // termination
+    return TerminateThread(thread, exitcode);
 }
 
 #endif
