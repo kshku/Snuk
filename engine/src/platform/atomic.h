@@ -69,33 +69,52 @@
     SAPI DECLARE_ATOMIC_FETCH_AND(type)
 
 CREATE_ATOMIC_TYPE(i32);
+CREATE_ATOMIC_TYPE(b8);
 
 #define SATOMIC_CREATE(value) {value}
 
-#define SATOMIC_LOAD(obj) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(Load, i32))(obj)
+#define SATOMIC_LOAD(obj)                            \
+    _Generic((obj),                                  \
+        satomic_i32 *: GET_FUNCTION_NAME(Load, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(Load, b8))(obj)
 
-#define SATOMIC_STORE(obj, value) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(Store, i32))(obj, value)
+#define SATOMIC_STORE(obj, value)                     \
+    _Generic((obj),                                   \
+        satomic_i32 *: GET_FUNCTION_NAME(Store, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(Store, b8))(obj, value)
 
-#define SATOMIC_EXCHANGE(obj, value) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(Exchange, i32))(obj, value)
+#define SATOMIC_EXCHANGE(obj, value)                     \
+    _Generic((obj),                                      \
+        satomic_i32 *: GET_FUNCTION_NAME(Exchange, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(Exchange, b8))(obj, value)
 
-#define SATOMIC_COMPARE_EXCHANGE(obj, expect, new)                           \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(CompareExchange, i32))( \
-        obj, expect, new)
+#define SATOMIC_COMPARE_EXCHANGE(obj, expect, new)                         \
+    _Generic((obj),                                                        \
+        satomic_i32 *: GET_FUNCTION_NAME(CompareExchange, i32),            \
+        satomic_b8 *: GET_FUNCTION_NAME(CompareExchange, b8))(obj, expect, \
+                                                              new)
 
-#define SATOMIC_FETCH_ADD(obj, value) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(FetchAdd, i32))(obj, value)
+#define SATOMIC_FETCH_ADD(obj, value)                    \
+    _Generic((obj),                                      \
+        satomic_i32 *: GET_FUNCTION_NAME(FetchAdd, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(FetchAdd, b8))(obj, value)
 
-#define SATOMIC_FETCH_SUB(obj, value) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(FetchSub, i32))(obj, value)
+#define SATOMIC_FETCH_SUB(obj, value)                    \
+    _Generic((obj),                                      \
+        satomic_i32 *: GET_FUNCTION_NAME(FetchSub, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(FetchSub, b8))(obj, value)
 
-#define SATOMIC_FETCH_OR(obj, value) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(FetchOr, i32))(obj, value)
+#define SATOMIC_FETCH_OR(obj, value)                    \
+    _Generic((obj),                                     \
+        satomic_i32 *: GET_FUNCTION_NAME(FetchOr, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(FetchOr, b8))(obj, value)
 
-#define SATOMIC_FETCH_XOR(obj, value) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(FetchXor, i32))(obj, value)
+#define SATOMIC_FETCH_XOR(obj, value)                    \
+    _Generic((obj),                                      \
+        satomic_i32 *: GET_FUNCTION_NAME(FetchXor, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(FetchXor, b8))(obj, value)
 
-#define SATOMIC_FETCH_AND(obj, value) \
-    _Generic((obj), satomic_i32 *: GET_FUNCTION_NAME(FetchAnd, i32))(obj, value)
+#define SATOMIC_FETCH_AND(obj, value)                    \
+    _Generic((obj),                                      \
+        satomic_i32 *: GET_FUNCTION_NAME(FetchAnd, i32), \
+        satomic_b8 *: GET_FUNCTION_NAME(FetchAnd, b8))(obj, value)

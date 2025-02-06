@@ -2,17 +2,28 @@
 
 #if defined(SPLATFORM_THREADS_WINDOWS)
 
+    #include "core/sync/mutex/mutex.h"
+
+typedef struct Wrap {
+        sThread_func func;
+        smutex mutex;
+        b8 initialized_mutex;
+} Wrap;
+
+static Wrap global_wrap = {0};
+
 /**
  * @brief Windows thread calling function wrapper.
  *
- * @param wrap The array containing actual function as well as the arg
+ * @param data The data to be passed to the function
  *
  * @return The return value of function casted to DWORD.
  */
-static DWORD sThreadWrapper(void wrap[2]) {
-    sThread_func func = ((sThread_func *)wrap)[0];
-    void *data = ((void **)wrap)[1];
-    return (DWORD)(uptr)func(data);
+static DWORD WINAPI sThreadWrapper(void *data) {
+    sThread_func func = global_wrap.func;
+    sMutexUnlock(&global_wrap.mutex);
+
+    return (DWORD)(uptr)(func(data));
 }
 
 /**
@@ -25,9 +36,19 @@ static DWORD sThreadWrapper(void wrap[2]) {
  * @return Returns true on success, else false.
  */
 b8 sThreadCreate(sThread *thread, sThread_func func, void *data) {
-    void *wrap[2] = {(void *)func, data};
-    *thread = CreateThread(NULL, 0, sThreadWrapper, wrap, 0, NULL);
-    return thread ? true : false;
+    if (!global_wrap.initialized_mutex) {
+        global_wrap.initialized_mutex = true;
+        sMutexInit(&global_wrap.mutex);
+    }
+
+    sMutexLock(&global_wrap.mutex);
+    global_wrap.func = func;
+
+    *thread = CreateThread(NULL, 0, sThreadWrapper, data, 0, NULL);
+
+    if (!*thread) sMutexUnlock(&global_wrap.mutex);
+
+    return *thread ? true : false;
 }
 
 /**
@@ -46,7 +67,7 @@ b8 sThreadJoin(sThread thread, void **ret) {
     if (ret) {
         DWORD exitcode;
         if (GetExitCodeThread(thread, &exitcode))
-            *ret = (void *)(utpr)(exitcode);
+            *ret = (void *)(uptr)(exitcode);
     }
 
     CloseHandle(thread);

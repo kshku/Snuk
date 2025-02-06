@@ -44,7 +44,9 @@ u8 thread_test(void) {
     sThread threads[10];
 
     for (u32 i = 0; i < 10; ++i) sThreadCreate(&threads[i], f, NULL);
+
     void *ret;
+
     for (u32 i = 0; i < 10; ++i) sThreadJoin(threads[i], &ret);
 
     if (SATOMIC_LOAD(&test) == 10000) return PASS;
