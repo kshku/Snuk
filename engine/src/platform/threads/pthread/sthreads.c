@@ -84,9 +84,12 @@ void sThreadYield(void) {
  * @return Returns true if thread is terminated else false.
  */
 b8 sThreadTerminate(sThread thread, u64 exitcode) {
+    UNUSED(thread);
+    UNUSED(exitcode);
     // // TODO: Do something similar to the pthread_cancel instead of forcefull
     // // termination
     // return TerminateThread(thread, exitcode);
+    return false;
 }
 
 #endif

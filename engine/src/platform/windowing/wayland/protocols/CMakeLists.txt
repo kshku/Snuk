@@ -10,6 +10,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     add_library("${TARGET_NAME}" STATIC)
 
+    target_compile_options("${TARGET_NAME}" PRIVATE -fvisibility=hidden)
+
     set(SUBDIRS stable unstable)
 
     foreach(directory IN LISTS SUBDIRS)

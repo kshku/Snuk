@@ -1,5 +1,6 @@
 #include "memory.h"
 
+#include <core/logger.h>
 #include <core/memory/memory.h>
 
 u8 realloc_test(void) {
@@ -33,6 +34,7 @@ u8 allocate_pages(void) {
     void *ptr = sMemAllocatePages(1);
     if (!ptr) return FAIL;
     sMemLogState();
+    sDebug("%p", ptr);
     sMemDeallocatePages(ptr, 1);
     sMemLogState();
 

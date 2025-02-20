@@ -1,7 +1,7 @@
 CC := clang
-CFLAGS := -Wall -Wextra -g -std=c17
+CFLAGS := -Wall -Wextra -g -std=gnu17
 DEFINES := -DS_DEBUG
-LDFLAGS := -g
+LDFLAGS :=
 BUILD_DIR := build/linux
 
 XLIB := x11 xi
