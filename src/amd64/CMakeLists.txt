@@ -1,5 +1,4 @@
 set(SRCS
-    atomic.h
     atomic.c
 )
 
@@ -10,5 +9,6 @@ if(MSVC)
 
     list(APPEND SRCS ${ASM_SRCS})
 endif()
+
 
 target_sources(snuk-test PRIVATE ${SRCS})

@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
-#include "src/amd64/atomic.h"
+#include "atomic.h"
 #include "src/defines.h"
 
 #define MAX_THREADS 50

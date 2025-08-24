@@ -1,5 +1,6 @@
 set(SRCS
     defines.h
+    atomic.h
 )
 
 target_sources(snuk-test PRIVATE ${SRCS})

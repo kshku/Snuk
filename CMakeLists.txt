@@ -14,4 +14,6 @@ set(SRCS
 
 target_sources(snuk-test PRIVATE ${SRCS})
 
+target_include_directories(snuk-test PUBLIC src)
+
 add_subdirectory(src)
