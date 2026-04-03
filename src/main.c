@@ -1,5 +1,9 @@
-#include <stdio.h>
+#include "logger.h"
 
 int main(void) {
-    printf("Hello, World\n");
+    snuk_logger_init();
+
+    log_info("Hello, World!");
+
+    snuk_logger_deinit();
 }

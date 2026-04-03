@@ -16,7 +16,6 @@ set(gcc_clang_comp "$<COMPILE_LANG_AND_ID:C,Clang,GNU>")
 set(msvc_comp "$<COMPILE_LANG_AND_ID:C,MSVC>")
 
 target_compile_options(snuk_configs INTERFACE "$<${gcc_clang_comp}:-Wall;-Wextra;-Wformat;-Wuninitialized;-Wpedantic>")
-
 target_compile_options(snuk_configs INTERFACE "$<${gcc_clang_comp}:-fvisibility=hidden>")
 
 target_compile_definitions(snuk_configs INTERFACE
