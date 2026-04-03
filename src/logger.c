@@ -28,17 +28,16 @@ static void stdout_stderr_sink_flush(void *data);
 static snStaticLogger sl;
 static char log_buffer[LOGGER_BUFFER_SIZE];
 static stdout_stderr_sink sink_data;
+static snSink sinks[] = {
+    (snSink){
+        .open = stdout_stderr_sink_open,
+        .flush = stdout_stderr_sink_flush,
+        .write = stdout_stderr_sink_write,
+        .data = &sink_data
+    }
+};
 
 void snuk_logger_init(void) {
-    snSink sinks[] = {
-        (snSink){
-            .open = stdout_stderr_sink_open,
-            .flush = stdout_stderr_sink_flush,
-            .write = stdout_stderr_sink_write,
-            .data = &sink_data
-        }
-    };
-
     sn_static_logger_init(&sl, log_buffer, LOGGER_BUFFER_SIZE, sinks, ARRAY_LEN(sinks));
 }
 
