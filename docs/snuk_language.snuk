@@ -1,0 +1,232 @@
+// ─────────────────────────────────────────────────────────────
+//  SNUK LANGUAGE SYNTAX  —  standalone reference
+//  No canvas, no editor, no GUI. Just the language.
+//  Run with:  snuk myfile.snuk
+// ─────────────────────────────────────────────────────────────
+
+
+// ── 1. COMMENTS ──────────────────────────────────────────────
+
+// single line comment
+
+/*
+   multi line comment
+*/
+
+
+// ── 2. VARIABLES ─────────────────────────────────────────────
+
+var x                    // declared, value is null
+var count = 0            // inferred as int
+var name = "snuk"        // inferred as string
+var ratio = 3.14         // inferred as float
+var visible = true       // inferred as bool
+var nothing = null       // null
+
+var speed: float = 2.5   // explicit type
+var label: string = "hi" // explicit type
+
+// assignment — var only on first declaration
+count = count + 1
+name = "world"
+
+// constants — cannot be reassigned
+const MAX = 100
+const APP = "snuk"
+
+
+// ── 3. BUILT-IN TYPES ────────────────────────────────────────
+
+// int      42, -7, 0
+// float    3.14, -0.5, 0.0
+// bool     true, false
+// string   "hello", ""
+// null     null
+
+
+// ── 4. OPERATORS ─────────────────────────────────────────────
+
+// arithmetic
+var a = 10 + 3    // 13
+var b = 10 - 3    // 7
+var c = 10 * 3    // 30
+var d = 10 / 3    // 3.333...
+var e = 10 % 3    // 1
+
+// comparison — always produces bool
+var eq  = a == b
+var neq = a != b
+var gt  = a > b
+var lt  = a < b
+var gte = a >= b
+var lte = a <= b
+
+// logical
+var both    = true and false   // false
+var either  = true or false    // true
+var flipped = not true         // false
+
+// string joining with +
+var greeting = "hello" + " " + "world"
+
+
+// ── 5. CONTROL FLOW ──────────────────────────────────────────
+
+// if / else if / else
+if count > 10 {
+    print "big"
+} else if count > 5 {
+    print "medium"
+} else {
+    print "small"
+}
+
+// while
+while count < 100 {
+    count = count + 1
+}
+
+// do / while  (runs at least once)
+do {
+    count = count - 1
+} while count > 0
+
+// for  (C-style)
+for i = 0; i < 10; i = i + 1 {
+    print i
+}
+
+// loop  (infinite — use break to exit)
+loop {
+    count = count + 1
+    if count >= 100 {
+        break
+    }
+}
+
+// break    — exit current loop
+// continue — skip to next iteration
+
+
+// ── 6. FUNCTIONS ─────────────────────────────────────────────
+
+// basic
+fn greet() {
+    print "hello"
+}
+
+// parameters
+fn add(a, b) {
+    return a + b
+}
+
+// typed parameters and return type
+fn multiply(a: int, b: int) -> int {
+    return a * b
+}
+
+// default parameter values
+fn move(x, y, speed = 1.0) {
+    print x + y * speed
+}
+
+// calling
+greet()
+var result = add(3, 4)
+move(10, 20)          // speed defaults to 1.0
+move(10, 20, 2.5)     // speed is 2.5
+
+// functions are values
+var do_thing = greet
+do_thing()            // same as greet()
+
+
+// ── 7. TYPES ─────────────────────────────────────────────────
+
+// A type is a blueprint for creating objects.
+// Fields have optional types and optional default values.
+// Methods use self to refer to the current instance.
+
+type Point {
+    var x: float = 0.0
+    var y: float = 0.0
+
+    fn distance_to(other: Point) -> float {
+        var dx = self.x - other.x
+        var dy = self.y - other.y
+        return dx * dx + dy * dy
+    }
+
+    fn to_string() -> string {
+        return "(" + self.x + ", " + self.y + ")"
+    }
+}
+
+// instantiation — named fields, any order
+// fields with defaults can be omitted
+var origin = Point {}                   // x=0.0, y=0.0 (defaults)
+var p = Point { x: 3.0, y: 4.0 }
+
+// field access and method calls
+print p.x
+print p.to_string()
+var d = p.distance_to(origin)
+
+// mutation
+p.x = 10.0
+
+
+// ── 8. PRINT ─────────────────────────────────────────────────
+
+// print outputs to the terminal
+print "hello"
+print 42
+print true
+print p.to_string()
+
+
+// ── 9. A COMPLETE EXAMPLE ────────────────────────────────────
+
+// Compute fibonacci numbers and print them.
+
+fn fib(n: int) -> int {
+    if n <= 1 {
+        return n
+    }
+    return fib(n - 1) + fib(n - 2)
+}
+
+for i = 0; i < 10; i = i + 1 {
+    print fib(i)
+}
+
+// ─────────────────────────────────────────────────────────────
+
+// Model a simple bank account using a type.
+
+type Account {
+    var owner: string = ""
+    var balance: float = 0.0
+
+    fn deposit(amount: float) {
+        self.balance = self.balance + amount
+    }
+
+    fn withdraw(amount: float) -> bool {
+        if amount > self.balance {
+            print "insufficient funds"
+            return false
+        }
+        self.balance = self.balance - amount
+        return true
+    }
+
+    fn to_string() -> string {
+        return self.owner + ": " + self.balance
+    }
+}
+
+var acc = Account { owner: "alice", balance: 100.0 }
+acc.deposit(50.0)
+acc.withdraw(30.0)
+print acc.to_string()     // alice: 120.0
