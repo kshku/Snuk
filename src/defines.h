@@ -14,3 +14,5 @@
 #else
 #define SNUK_ASSERT(cond, msg)
 #endif
+
+#define SNUK_INLINE static inline
