@@ -7,6 +7,10 @@ int main(void) {
 
     log_info("Hello, World!");
 
+    // Reset the linear allocator.
+    // Should we use frame allocator instead?
+    snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
+
     snuk_memory_deinit();
     snuk_logger_deinit();
 

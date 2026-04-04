@@ -1,6 +1,8 @@
 #include "memory.h"
+#include "logger.h"
 
 #include <snmemory/snmemory.h>
+#include <stdlib.h>
 
 #define KIB(x) ((x) * 1024)
 #define MIB(x) (KIB((x) * 1024))
@@ -37,6 +39,8 @@ bool snuk_memory_init(void) {
     if (!sn_freelist_allocator_init(&fa, base + offset, SNUK_FREELIST_SIZE)) goto fail;
     offset += SNUK_FREELIST_SIZE;
 
+    // TODO: object allocator
+
     return true;
 
 fail:
@@ -45,6 +49,7 @@ fail:
 }
 
 void snuk_memory_deinit(void) {
+    // TODO: object allocator
     sn_freelist_allocator_deinit(&fa);
     sn_stack_allocator_deinit(&sa);
     sn_linear_allocator_deinit(&la);
@@ -56,23 +61,29 @@ void snuk_memory_deinit(void) {
 void *snuk_alloc(SnukAllocKind kind, uint64_t size, uint64_t align) {
     void *mem = NULL;
     switch (kind) {
-        case SNUK_ALLOC_KIND_TEMP:
+        case SNUK_ALLOC_KIND_LINEAR:
             mem = sn_linear_allocator_allocate(&la, size, align);
             break;
 
-        case SNUK_ALLOC_KIND_FRAME:
+        case SNUK_ALLOC_KIND_STACK:
             mem = sn_stack_allocator_allocate(&sa, size, align);
             break;
 
-        case SNUK_ALLOC_KIND_STRING:
+        case SNUK_ALLOC_KIND_FREELIST:
             mem = sn_freelist_allocator_allocate(&fa, size, align);
             break;
 
-        case SNUK_ALLOC_KIND_OBJECT:
+        case SNUK_ALLOC_KIND_POOL:
+            // TODO: object allocator
             break;
 
         default:
             break;
+    }
+
+    if (!mem) {
+        log_fatal("Failed to allocate memory!");
+        exit(EXIT_FAILURE);
     }
 
     return mem;
@@ -80,21 +91,22 @@ void *snuk_alloc(SnukAllocKind kind, uint64_t size, uint64_t align) {
 
 void snuk_free(SnukAllocKind kind, void *ptr) {
     switch (kind) {
-        case SNUK_ALLOC_KIND_TEMP:
-            SNUK_ASSERT(!ptr, "snuk_free on kind SNUK_ALLOC_KIND_TEMP"
+        case SNUK_ALLOC_KIND_LINEAR:
+            SNUK_ASSERT(!ptr, "snuk_free on kind SNUK_ALLOC_KIND_LINEAR"
                     "resets the memory and should be called with NULL");
             if (!ptr) sn_linear_allocator_reset(&la);
             break;
 
-        case SNUK_ALLOC_KIND_FRAME:
+        case SNUK_ALLOC_KIND_STACK:
             sn_stack_allocator_free(&sa, ptr);
             break;
 
-        case SNUK_ALLOC_KIND_STRING:
+        case SNUK_ALLOC_KIND_FREELIST:
             sn_freelist_allocator_free(&fa, ptr);
             break;
 
-        case SNUK_ALLOC_KIND_OBJECT:
+        case SNUK_ALLOC_KIND_POOL:
+            // TODO: object allocator
             break;
 
         default:

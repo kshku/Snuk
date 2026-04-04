@@ -3,10 +3,10 @@
 #include "defines.h"
 
 typedef enum SnukAllocKind {
-    SNUK_ALLOC_KIND_TEMP,
-    SNUK_ALLOC_KIND_STRING,
-    SNUK_ALLOC_KIND_OBJECT,
-    SNUK_ALLOC_KIND_FRAME,
+    SNUK_ALLOC_KIND_LINEAR,
+    SNUK_ALLOC_KIND_FREELIST,
+    SNUK_ALLOC_KIND_POOL,
+    SNUK_ALLOC_KIND_STACK,
 } SnukAllocKind;
 
 bool snuk_memory_init(void);
