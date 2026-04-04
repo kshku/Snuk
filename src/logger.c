@@ -45,7 +45,7 @@ void snuk_logger_deinit(void) {
     sn_static_logger_deinit(&sl);
 }
 
-void log_msg(snLogLevel level, const char *file, const char *function, long line, const char *format_string, ...) {
+void snuk_log_msg(snLogLevel level, const char *file, const char *function, long line, const char *format_string, ...) {
     if (level < sl.level) return;
 
     const char *level_string = NULL;
@@ -66,7 +66,7 @@ void log_msg(snLogLevel level, const char *file, const char *function, long line
     if (len < 0) abort();
 
     if (len >= buffer_size) {
-        log_msg(SN_LOG_LEVEL_ERROR, file, function, line, "Too long message, try increasing the buffer size or decreasing message length!");
+        snuk_log_msg(SN_LOG_LEVEL_ERROR, file, function, line, "Too long message, try increasing the buffer size or decreasing message length!");
         return;
     }
 
