@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "io.h"
 #include "string.h"
+#include "lexer.h"
 
 #define PROMPT_STR ">>> "
 
@@ -91,12 +92,23 @@ void run_repl(void) {
         snuk_print(PROMPT_STR);
         char *line = snuk_read_line();
 
+        Lexer lexer;
+        lexer_init(&lexer, line);
+
+        Token token;
+        while (true) {
+            token = lexer_next_token(&lexer);
+            lexer_log_token(token);
+            log_trace("");
+            if (token.type == TOKEN_TYPE_EOF) break;
+        }
+
+        lexer_deinit(&lexer);
+
         if (string_equal("exit\n", line)) {
             snuk_println("Bye!");
             break;
         }
-
-        snuk_println(line);
 
         // Reset the linear allocator.
         // Should we use frame allocator instead?
@@ -107,13 +119,37 @@ void run_repl(void) {
 
 void run_file(const char *path) {
     const char *content = snuk_read_file(path);
-    snuk_println("The file content:");
-    snuk_println(content);
+
+    Lexer lexer;
+    lexer_init(&lexer, content);
+
+    Token token;
+    while (true) {
+        token = lexer_next_token(&lexer);
+        lexer_log_token(token);
+        log_trace("");
+        if (token.type == TOKEN_TYPE_EOF) break;
+    }
+
+    lexer_deinit(&lexer);
+
     snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
 
 static void run_command(const char *command) {
-    snuk_println("The command: %s", command);
+    Lexer lexer;
+    lexer_init(&lexer, command);
+
+    Token token;
+    while (true) {
+        token = lexer_next_token(&lexer);
+        lexer_log_token(token);
+        log_trace("");
+        if (token.type == TOKEN_TYPE_EOF) break;
+    }
+
+    lexer_deinit(&lexer);
+
     snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
 

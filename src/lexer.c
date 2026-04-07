@@ -1,48 +1,54 @@
 #include "lexer.h"
 
 #include "string.h"
+#include "logger.h"
 
 #include <errno.h>
 #include <stdlib.h>
 
 typedef struct KeyWord {
     const char *str;
+    uint32_t len;
     TokenType type;
 } KeyWord;
 
 typedef struct Value {
     const char *str;
+    uint32_t len;
     TokenType type;
     bool ignore_case;
 } Value;
 
 KeyWord keywords[] = {
-    {.str = "var", .type = TOKEN_TYPE_VAR},
-    {.str = "const", .type = TOKEN_TYPE_CONST},
-    {.str = "if", .type = TOKEN_TYPE_IF},
-    {.str = "else", .type = TOKEN_TYPE_ELSE},
-    {.str = "match", .type = TOKEN_TYPE_MATCH},
-    {.str = "case", .type = TOKEN_TYPE_CASE},
-    {.str = "while", .type = TOKEN_TYPE_WHILE},
-    {.str = "do", .type = TOKEN_TYPE_DO},
-    {.str = "for", .type = TOKEN_TYPE_FOR},
-    {.str = "return", .type = TOKEN_TYPE_RETURN},
-    {.str = "break", .type = TOKEN_TYPE_BREAK},
-    {.str = "continue", .type = TOKEN_TYPE_CONTINUE},
-    {.str = "fn", .type = TOKEN_TYPE_FN},
-    {.str = "print", .type = TOKEN_TYPE_PRINT},
-    {.str = "self", .type = TOKEN_TYPE_SELF},
-    {.str = "type", .type = TOKEN_TYPE_TYPE},
+    {.str = "var",      .len = 3, .type = TOKEN_TYPE_VAR},
+    {.str = "const",    .len = 5, .type = TOKEN_TYPE_CONST},
+    {.str = "if",       .len = 2, .type = TOKEN_TYPE_IF},
+    {.str = "else",     .len = 4, .type = TOKEN_TYPE_ELSE},
+    {.str = "match",    .len = 5, .type = TOKEN_TYPE_MATCH},
+    {.str = "case",     .len = 4, .type = TOKEN_TYPE_CASE},
+    {.str = "while",    .len = 5, .type = TOKEN_TYPE_WHILE},
+    {.str = "do",       .len = 2, .type = TOKEN_TYPE_DO},
+    {.str = "for",      .len = 3, .type = TOKEN_TYPE_FOR},
+    {.str = "return",   .len = 6, .type = TOKEN_TYPE_RETURN},
+    {.str = "break",    .len = 5, .type = TOKEN_TYPE_BREAK},
+    {.str = "continue", .len = 8, .type = TOKEN_TYPE_CONTINUE},
+    {.str = "fn",       .len = 2, .type = TOKEN_TYPE_FN},
+    {.str = "print",    .len = 5, .type = TOKEN_TYPE_PRINT},
+    {.str = "self",     .len = 4, .type = TOKEN_TYPE_SELF},
+    {.str = "type",     .len = 4, .type = TOKEN_TYPE_TYPE},
+    {.str = "or",       .len = 2, .type = TOKEN_TYPE_LOGICAL_OR},
+    {.str = "and",      .len = 3, .type = TOKEN_TYPE_LOGICAL_AND},
+    {.str = "not",      .len = 3, .type = TOKEN_TYPE_BANG},
 };
 
 Value values[] = {
-    {.str = "true", .type = TOKEN_TYPE_TRUE, .ignore_case = false},
-    {.str = "false", .type = TOKEN_TYPE_FALSE, .ignore_case = false},
-    {.str = "null", .type = TOKEN_TYPE_NULL, .ignore_case = false},
+    {.str = "true",     .len = 4, .type = TOKEN_TYPE_TRUE,  .ignore_case = false},
+    {.str = "false",    .len = 5, .type = TOKEN_TYPE_FALSE, .ignore_case = false},
+    {.str = "null",     .len = 4, .type = TOKEN_TYPE_NULL,  .ignore_case = false},
 
-    {.str = "nan", .type = TOKEN_TYPE_NAN, .ignore_case = true},
-    {.str = "inf", .type = TOKEN_TYPE_INF, .ignore_case = true},
-    {.str = "infinity", .type = TOKEN_TYPE_INF, .ignore_case = true},
+    {.str = "nan",      .len = 3, .type = TOKEN_TYPE_NAN,   .ignore_case = true},
+    {.str = "inf",      .len = 3, .type = TOKEN_TYPE_INF,   .ignore_case = true},
+    {.str = "infinity", .len = 8, .type = TOKEN_TYPE_INF,   .ignore_case = true},
 };
 
 SNUK_INLINE char lexer_peek(Lexer *lexer) {
@@ -82,39 +88,14 @@ SNUK_INLINE void lexer_skip_white_spaces(Lexer *lexer) {
 }
 
 SNUK_INLINE Token lexer_build_token(Lexer *lexer, TokenType type) {
+    uint32_t len = lexer->cur - lexer->token_start;
     return (Token){
         .type = type,
-        .string_value = {.string = lexer->token_start, .length = lexer->cur - lexer->token_start},
-        .line = lexer->line,
-        .col = lexer->col,
+        .string_value = {.string = lexer->token_start, .length = len},
+        .line = lexer->token_start_line,
+        .col = lexer->token_start_col,
         .err_msg = NULL,
     };
-}
-
-SNUK_INLINE bool is_alpha(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-}
-
-SNUK_INLINE bool is_alpha_numeric(char c) {
-    return is_alpha(c) || (c >= '0' && c <= '9');
-}
-
-SNUK_INLINE bool is_digit(char c) {
-    return (c >= '0' && c <= '9');
-}
-
-SNUK_INLINE bool is_binary_digit(char c) {
-    return c == '0' || c == '1';
-}
-
-SNUK_INLINE bool is_octal_digit(char c) {
-    return (c >= '0' && c <= '7');
-}
-
-SNUK_INLINE bool is_hex_digit(char c) {
-    if (c >= '0' && c <= '9') return true;
-    c |= (1 << 5);
-    return c >= 'a' && c <= 'f';
 }
 
 SNUK_INLINE Token lexer_build_error_token(Lexer *lexer, const char *err_msg) {
@@ -141,13 +122,16 @@ static Token lexer_scan_comment(Lexer *lexer, bool multi_line);
 static Token lexer_scan_word(Lexer *lexer) {
     // assumes the first character is valid for identifier
     lexer->token_start = lexer->cur;
+    lexer->token_start_line = lexer->line;
+    lexer->token_start_col = lexer->col;
     char c;
     while (c = lexer_peek(lexer)) {
         if (!is_alpha_numeric(c) && c != '_') break;
         lexer_advance(lexer);
     }
 
-    TokenType type = check_keyword(lexer->token_start, lexer->cur - lexer->token_start);
+    TokenType type;
+    type = check_keyword(lexer->token_start, lexer->cur - lexer->token_start);
     if (type != TOKEN_TYPE_EOF) 
         return lexer_build_token(lexer, type);
 
@@ -160,6 +144,8 @@ static Token lexer_scan_word(Lexer *lexer) {
 
 static Token lexer_scan_number(Lexer *lexer) {
     lexer->token_start = lexer->cur;
+    lexer->token_start_line = lexer->line;
+    lexer->token_start_col = lexer->col;
 
     bool is_float = false;
     int base = 10;
@@ -213,7 +199,7 @@ static Token lexer_scan_number(Lexer *lexer) {
         while (is_digit(lexer_peek(lexer))) lexer_advance(lexer);
     }
 
-    if (base == 10 && (lexer_peek(lexer) | (1 << 5) == 'e')) {
+    if (base == 10 && (lexer_peek(lexer) | (1 << 5) ) == 'e') {
         is_float = true;
         lexer_advance(lexer);
 
@@ -260,6 +246,8 @@ static Token lexer_scan_number(Lexer *lexer) {
 static Token lexer_scan_string(Lexer *lexer, char quote) {
     // starting quote is consumed
     lexer->token_start = lexer->cur;
+    lexer->token_start_line = lexer->line;
+    lexer->token_start_col = lexer->col;
 
     while (lexer_peek(lexer) != quote && !lexer_is_eof(lexer))
         lexer_advance(lexer);
@@ -272,16 +260,22 @@ static Token lexer_scan_string(Lexer *lexer, char quote) {
 }
 
 static TokenType check_keyword(const char *s, uint32_t len) {
-    for (uint32_t i = 0; i < ARRAY_LEN(keywords); ++i)
-        if (string_n_equal(s, keywords[i].str, len)) return keywords[i].type;
+    for (uint32_t i = 0; i < ARRAY_LEN(keywords); ++i) {
+        if (len != keywords[i].len) continue;
+
+        if (string_n_equal(s, keywords[i].str, keywords[i].len))
+            return keywords[i].type;
+    }
     return TOKEN_TYPE_EOF;
 }
 
 static TokenType check_values(const char *s, uint32_t len) {
     for (uint32_t i = 0; i < ARRAY_LEN(values); ++i) {
-        if (values[i].ignore_case && string_n_equal_ignore_case(s, values[i].str, len))
+        if (len != values[i].len) continue;
+
+        if (values[i].ignore_case && string_n_equal_ignore_case(s, values[i].str, values[i].len))
             return values[i].type;
-        else if (string_n_equal(s, values[i].str, len))
+        else if (string_n_equal(s, values[i].str, values[i].len))
             return values[i].type;
     }
 
@@ -290,6 +284,8 @@ static TokenType check_values(const char *s, uint32_t len) {
 
 static Token lexer_scan_comment(Lexer *lexer, bool multi_line) {
     lexer->token_start = lexer->cur;
+    lexer->token_start_line = lexer->line;
+    lexer->token_start_col = lexer->col;
 
     if (!multi_line) {
         while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n') lexer_advance(lexer);
@@ -310,10 +306,12 @@ static Token lexer_scan_comment(Lexer *lexer, bool multi_line) {
     return token;
 }
 
-const char *token_kind_to_string(TokenType type) {
+const char *lexer_token_type_to_string(TokenType type) {
     switch (type) {
         case TOKEN_TYPE_EOF:
             return SNUK_STRINGIFY(TOKEN_TYPE_EOF);
+        case TOKEN_TYPE_ERROR:
+            return SNUK_STRINGIFY(TOKEN_TYPE_ERROR);
         case TOKEN_TYPE_IDENTIFIER:
             return SNUK_STRINGIFY(TOKEN_TYPE_IDENTIFIER);
         case TOKEN_TYPE_INTEGER:
@@ -328,6 +326,10 @@ const char *token_kind_to_string(TokenType type) {
             return SNUK_STRINGIFY(TOKEN_TYPE_FALSE);
         case TOKEN_TYPE_NULL:
             return SNUK_STRINGIFY(TOKEN_TYPE_NULL);
+        case TOKEN_TYPE_NAN:
+            return SNUK_STRINGIFY(TOKEN_TYPE_NAN);
+        case TOKEN_TYPE_INF:
+            return SNUK_STRINGIFY(TOKEN_TYPE_INF);
         case TOKEN_TYPE_VAR:
             return SNUK_STRINGIFY(TOKEN_TYPE_VAR);
         case TOKEN_TYPE_CONST:
@@ -448,6 +450,10 @@ const char *token_kind_to_string(TokenType type) {
             return SNUK_STRINGIFY(TOKEN_TYPE_SINGLE_LINE_COMMENT);
         case TOKEN_TYPE_MULTI_LINE_COMMENT:
             return SNUK_STRINGIFY(TOKEN_TYPE_MULTI_LINE_COMMENT);
+        case TOKEN_TYPE_INCREMENT:
+            return SNUK_STRINGIFY(TOKEN_TYPE_INCREMENT);
+        case TOKEN_TYPE_DECREMENT:
+            return SNUK_STRINGIFY(TOKEN_TYPE_DECREMENT);
         case TOKEN_TYPE_MAX:
             return SNUK_STRINGIFY(TOKEN_TYPE_MAX);
         default:
@@ -455,9 +461,25 @@ const char *token_kind_to_string(TokenType type) {
     };
 }
 
+void lexer_log_token(Token token) {
+    log_trace("Token type: %s", lexer_token_type_to_string(token.type));
+    if (token.type == TOKEN_TYPE_INTEGER)
+        log_trace("\tInteger value: %ld", token.int_value);
+    else if (token.type == TOKEN_TYPE_FLOAT)
+        log_trace("\tFloat value: %lf", token.float_value);
+    else if (token.type == TOKEN_TYPE_ERROR)
+        log_trace("\tError line: %.*s and err_msg: %s",
+                token.string_value.length, token.string_value.string, token.err_msg);
+    else
+        log_trace("\tString value: %.*s", token.string_value.length, token.string_value.string);
+    log_trace("Line: %d, Column: %d", token.line, token.col);
+}
+
 Token lexer_next_token(Lexer *lexer) {
     lexer_skip_white_spaces(lexer);
     lexer->token_start = lexer->cur;
+    lexer->token_start_line = lexer->line;
+    lexer->token_start_col = lexer->col;
 
     char c = lexer_peek(lexer);
 
@@ -618,6 +640,10 @@ Token lexer_next_token(Lexer *lexer) {
             return lexer_build_token(lexer, TOKEN_TYPE_XOR);
         case ',':
             return lexer_build_token(lexer, TOKEN_TYPE_COMMA);
+
+        case '"':
+        case '\'':
+            return lexer_scan_string(lexer, c);
 
         default:
             break;

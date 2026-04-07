@@ -119,7 +119,8 @@ typedef struct Lexer {
 
     const char *cur;
     const char *token_start;
-    const char *line_start;
+    uint32_t token_start_line;
+    uint32_t token_start_col;
 
     uint32_t line;
     uint32_t col;
@@ -130,6 +131,8 @@ SNUK_INLINE void lexer_init(Lexer *lexer, const char *src) {
         .src = src,
         .cur = src,
         .token_start = src,
+        .token_start_line = 0,
+        .token_start_col = 0,
         .line = 0,
         .col = 0,
     };
@@ -145,4 +148,5 @@ SNUK_INLINE bool lexer_is_eof(Lexer *lexer) {
 
 Token lexer_next_token(Lexer *lexer);
 
-const char *token_kind_to_string(TokenType type);
+const char *lexer_token_type_to_string(TokenType type);
+void lexer_log_token(Token token);
