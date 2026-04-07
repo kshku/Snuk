@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 }
 
 static inline bool is_option(const char *opt, const char *short_opt, const char *long_opt) {
-    return snuk_string_equal(opt, short_opt) || snuk_string_equal(opt, long_opt);
+    return string_equal(opt, short_opt) || string_equal(opt, long_opt);
 }
 
 OpMode parse_args(int argc, char *argv[], char **data) {
@@ -91,7 +91,7 @@ void run_repl(void) {
         snuk_print(PROMPT_STR);
         char *line = snuk_read_line();
 
-        if (snuk_string_equal("exit\n", line)) {
+        if (string_equal("exit\n", line)) {
             snuk_println("Bye!");
             break;
         }
@@ -114,6 +114,7 @@ void run_file(const char *path) {
 
 static void run_command(const char *command) {
     snuk_println("The command: %s", command);
+    snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
 
 static void print_help(void) {

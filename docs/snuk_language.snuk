@@ -52,6 +52,7 @@ var b = 10 - 3    // 7
 var c = 10 * 3    // 30
 var d = 10 / 3    // 3.333...
 var e = 10 % 3    // 1
+var f = 2 ** 3    // 8
 
 // comparison — always produces bool
 var eq  = a == b

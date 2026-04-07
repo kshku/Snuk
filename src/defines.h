@@ -15,4 +15,8 @@
 #define SNUK_ASSERT(cond, msg)
 #endif
 
+#define SNUK_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+
 #define SNUK_INLINE static inline
+
+#define SNUK_STRINGIFY(x) #x
