@@ -4,117 +4,123 @@
 
 SNUK_STATIC_ASSERT(sizeof(double) == 8, "Expected sizeof(double) to be 8 bytes.");
 
-typedef enum TokenType {
-    TOKEN_TYPE_EOF = 0,
-    TOKEN_TYPE_ERROR,
+typedef enum SnukTokenType {
+    SNUK_TOKEN_EOF = 0,
+    SNUK_TOKEN_ERROR,
 
     // identifiers & literals
-    TOKEN_TYPE_IDENTIFIER,
-    TOKEN_TYPE_INTEGER,
-    TOKEN_TYPE_FLOAT,
-    TOKEN_TYPE_STRING,
-    TOKEN_TYPE_TRUE,
-    TOKEN_TYPE_FALSE,
-    TOKEN_TYPE_NULL,
-    TOKEN_TYPE_NAN,
-    TOKEN_TYPE_INF,
+    SNUK_TOKEN_IDENTIFIER,
+    SNUK_TOKEN_INTEGER,
+    SNUK_TOKEN_FLOAT,
+    SNUK_TOKEN_STRING,
+    SNUK_TOKEN_TRUE,
+    SNUK_TOKEN_FALSE,
+    SNUK_TOKEN_NULL,
+    SNUK_TOKEN_NAN,
+    SNUK_TOKEN_INF,
 
     // keywords
-    TOKEN_TYPE_VAR,
-    TOKEN_TYPE_CONST,
-    TOKEN_TYPE_IF,
-    TOKEN_TYPE_ELSE,
-    TOKEN_TYPE_MATCH,
-    TOKEN_TYPE_CASE,
-    TOKEN_TYPE_WHILE,
-    TOKEN_TYPE_DO,
-    TOKEN_TYPE_FOR,
-    TOKEN_TYPE_RETURN,
-    TOKEN_TYPE_BREAK,
-    TOKEN_TYPE_CONTINUE,
-    TOKEN_TYPE_FN,
-    TOKEN_TYPE_PRINT,
-    TOKEN_TYPE_SELF,
-    TOKEN_TYPE_TYPE,
+    SNUK_TOKEN_VAR,
+    SNUK_TOKEN_CONST,
+
+    SNUK_TOKEN_IF,
+    SNUK_TOKEN_ELSE,
+    SNUK_TOKEN_MATCH,
+    SNUK_TOKEN_CASE,
+
+    SNUK_TOKEN_WHILE,
+    SNUK_TOKEN_DO,
+    SNUK_TOKEN_FOR,
+
+    SNUK_TOKEN_RETURN,
+    SNUK_TOKEN_BREAK,
+    SNUK_TOKEN_CONTINUE,
+
+    SNUK_TOKEN_FN,
+
+    SNUK_TOKEN_TYPE,
+    SNUK_TOKEN_SELF,
+
+    SNUK_TOKEN_PRINT,
 
     // punctuation
-    TOKEN_TYPE_LPAREN, // (
-    TOKEN_TYPE_RPAREN, // )
-    TOKEN_TYPE_LBRACE, // {
-    TOKEN_TYPE_RBRACE, // }
-    TOKEN_TYPE_LBRACKET, // [
-    TOKEN_TYPE_RBRACKET, // ]
-    TOKEN_TYPE_COMMA,
-    TOKEN_TYPE_SEMICOLON,
-    TOKEN_TYPE_COLON,
-    TOKEN_TYPE_DOT,
-    TOKEN_TYPE_ARROW,
+    SNUK_TOKEN_LPAREN, // (
+    SNUK_TOKEN_RPAREN, // )
+    SNUK_TOKEN_LBRACE, // {
+    SNUK_TOKEN_RBRACE, // }
+    SNUK_TOKEN_LBRACKET, // [
+    SNUK_TOKEN_RBRACKET, // ]
+    SNUK_TOKEN_COMMA,
+    SNUK_TOKEN_SEMICOLON,
+    SNUK_TOKEN_COLON,
+    SNUK_TOKEN_DOT,
+    SNUK_TOKEN_ARROW,
 
     // operators
-    TOKEN_TYPE_PLUS,
-    TOKEN_TYPE_MINUS,
-    TOKEN_TYPE_STAR,
-    TOKEN_TYPE_SLASH,
-    TOKEN_TYPE_PERCENT,
+    SNUK_TOKEN_PLUS,
+    SNUK_TOKEN_MINUS,
+    SNUK_TOKEN_STAR,
+    SNUK_TOKEN_SLASH,
+    SNUK_TOKEN_PERCENT,
 
-    TOKEN_TYPE_LEFT_SHIFT,
-    TOKEN_TYPE_RIGHT_SHIFT,
-    TOKEN_TYPE_OR,
-    TOKEN_TYPE_AND,
-    TOKEN_TYPE_TILDE,
-    TOKEN_TYPE_XOR,
+    SNUK_TOKEN_LEFT_SHIFT,
+    SNUK_TOKEN_RIGHT_SHIFT,
+    SNUK_TOKEN_OR,
+    SNUK_TOKEN_AND,
+    SNUK_TOKEN_TILDE,
+    SNUK_TOKEN_XOR,
 
-    TOKEN_TYPE_LOGICAL_AND,
-    TOKEN_TYPE_LOGICAL_OR,
-    TOKEN_TYPE_BANG,
+    SNUK_TOKEN_LOGICAL_AND,
+    SNUK_TOKEN_LOGICAL_OR,
+    SNUK_TOKEN_BANG,
 
-    TOKEN_TYPE_ASSIGN,
+    SNUK_TOKEN_ASSIGN,
     // compound assign
-    TOKEN_TYPE_PLUS_ASSIGN,
-    TOKEN_TYPE_MINUS_ASSIGN,
-    TOKEN_TYPE_STAR_ASSIGN,
-    TOKEN_TYPE_SLASH_ASSIGN,
-    TOKEN_TYPE_PERCENT_ASSIGN,
-    TOKEN_TYPE_LEFT_SHIFT_ASSIGN,
-    TOKEN_TYPE_RIGHT_SHIFT_ASSIGN,
-    TOKEN_TYPE_OR_ASSIGN,
-    TOKEN_TYPE_AND_ASSIGN,
-    TOKEN_TYPE_XOR_ASSIGN,
+    SNUK_TOKEN_PLUS_ASSIGN,
+    SNUK_TOKEN_MINUS_ASSIGN,
+    SNUK_TOKEN_STAR_ASSIGN,
+    SNUK_TOKEN_SLASH_ASSIGN,
+    SNUK_TOKEN_PERCENT_ASSIGN,
+    SNUK_TOKEN_LEFT_SHIFT_ASSIGN,
+    SNUK_TOKEN_RIGHT_SHIFT_ASSIGN,
+    SNUK_TOKEN_OR_ASSIGN,
+    SNUK_TOKEN_AND_ASSIGN,
+    SNUK_TOKEN_XOR_ASSIGN,
+
+    SNUK_TOKEN_INCREMENT,
+    SNUK_TOKEN_DECREMENT,
 
     // relational
-    TOKEN_TYPE_EQUAL,
-    TOKEN_TYPE_NOT_EQUAL,
-    TOKEN_TYPE_LESS_THAN,
-    TOKEN_TYPE_GREATER_THAN,
-    TOKEN_TYPE_LESS_THAN_OR_EQUAL,
-    TOKEN_TYPE_GREATER_THAN_OR_EQUAL,
+    SNUK_TOKEN_EQUAL,
+    SNUK_TOKEN_NOT_EQUAL,
+    SNUK_TOKEN_LESS_THAN,
+    SNUK_TOKEN_GREATER_THAN,
+    SNUK_TOKEN_LESS_THAN_OR_EQUAL,
+    SNUK_TOKEN_GREATER_THAN_OR_EQUAL,
 
-    TOKEN_TYPE_SINGLE_LINE_COMMENT,
-    TOKEN_TYPE_MULTI_LINE_COMMENT,
+    SNUK_TOKEN_SLCOMMENT,
+    SNUK_TOKEN_MLCOMMENT,
 
-    TOKEN_TYPE_INCREMENT,
-    TOKEN_TYPE_DECREMENT,
+    SNUK_TOKEN_MAX
+} SnukTokenType;
 
-    TOKEN_TYPE_MAX
-} TokenType;
-
-typedef struct Token {
-    TokenType type;
+typedef struct SnukToken {
+    SnukTokenType type;
     union {
         struct {
             const char *string;
             uint32_t length;
-        } string_value;
-        int64_t int_value;
-        double float_value;
+        } string_literal;
+        int64_t int_literal;
+        double float_literal;
     };
 
     const char *err_msg;
 
     uint32_t line, col;
-} Token;
+} SnukToken;
 
-typedef struct Lexer {
+typedef struct SnukLexer {
     const char *src;
 
     const char *cur;
@@ -124,10 +130,10 @@ typedef struct Lexer {
 
     uint32_t line;
     uint32_t col;
-} Lexer;
+} SnukLexer;
 
-SNUK_INLINE void lexer_init(Lexer *lexer, const char *src) {
-    *lexer = (Lexer){
+SNUK_INLINE void snuk_lexer_init(SnukLexer *lexer, const char *src) {
+    *lexer = (SnukLexer){
         .src = src,
         .cur = src,
         .token_start = src,
@@ -138,15 +144,11 @@ SNUK_INLINE void lexer_init(Lexer *lexer, const char *src) {
     };
 }
 
-SNUK_INLINE void lexer_deinit(Lexer *lexer) {
-    if (lexer) *lexer = (Lexer){0};
+SNUK_INLINE void snuk_lexer_deinit(SnukLexer *lexer) {
+    if (lexer) *lexer = (SnukLexer){0};
 }
 
-SNUK_INLINE bool lexer_is_eof(Lexer *lexer) {
-    return *lexer->cur == '\0';
-}
+SnukToken snuk_lexer_next_token(SnukLexer *lexer);
 
-Token lexer_next_token(Lexer *lexer);
-
-const char *lexer_token_type_to_string(TokenType type);
-void lexer_log_token(Token token);
+const char *snuk_lexer_token_type_to_string(SnukTokenType type);
+void snuk_lexer_log_token(SnukToken token);

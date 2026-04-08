@@ -92,18 +92,18 @@ void run_repl(void) {
         snuk_print(PROMPT_STR);
         char *line = snuk_read_line();
 
-        Lexer lexer;
-        lexer_init(&lexer, line);
+        SnukLexer lexer;
+        snuk_lexer_init(&lexer, line);
 
-        Token token;
+        SnukToken token;
         while (true) {
-            token = lexer_next_token(&lexer);
-            lexer_log_token(token);
+            token = snuk_lexer_next_token(&lexer);
+            snuk_lexer_log_token(token);
             log_trace("");
-            if (token.type == TOKEN_TYPE_EOF) break;
+            if (token.type == SNUK_TOKEN_EOF) break;
         }
 
-        lexer_deinit(&lexer);
+        snuk_lexer_deinit(&lexer);
 
         if (string_equal("exit\n", line)) {
             snuk_println("Bye!");
@@ -120,35 +120,35 @@ void run_repl(void) {
 void run_file(const char *path) {
     const char *content = snuk_read_file(path);
 
-    Lexer lexer;
-    lexer_init(&lexer, content);
+    SnukLexer lexer;
+    snuk_lexer_init(&lexer, content);
 
-    Token token;
+    SnukToken token;
     while (true) {
-        token = lexer_next_token(&lexer);
-        lexer_log_token(token);
+        token = snuk_lexer_next_token(&lexer);
+        snuk_lexer_log_token(token);
         log_trace("");
-        if (token.type == TOKEN_TYPE_EOF) break;
+        if (token.type == SNUK_TOKEN_EOF) break;
     }
 
-    lexer_deinit(&lexer);
+    snuk_lexer_deinit(&lexer);
 
     snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
 
 static void run_command(const char *command) {
-    Lexer lexer;
-    lexer_init(&lexer, command);
+    SnukLexer lexer;
+    snuk_lexer_init(&lexer, command);
 
-    Token token;
+    SnukToken token;
     while (true) {
-        token = lexer_next_token(&lexer);
-        lexer_log_token(token);
+        token = snuk_lexer_next_token(&lexer);
+        snuk_lexer_log_token(token);
         log_trace("");
-        if (token.type == TOKEN_TYPE_EOF) break;
+        if (token.type == SNUK_TOKEN_EOF) break;
     }
 
-    lexer_deinit(&lexer);
+    snuk_lexer_deinit(&lexer);
 
     snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
