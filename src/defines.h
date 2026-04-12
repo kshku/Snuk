@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <stdalign.h>
 
 #define SNUK_UNUSED(x) ((void)(x))
 

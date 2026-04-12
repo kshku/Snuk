@@ -95,7 +95,7 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
     uint32_t len = lexer->cur - lexer->token_start;
     return (SnukToken){
         .type = type,
-        .string_literal = {.string = lexer->token_start, .length = len},
+        .string_literal = {.value = lexer->token_start, .length = len},
         .line = lexer->token_start_line,
         .col = lexer->token_start_col,
         .err_msg = NULL,
@@ -109,7 +109,7 @@ SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_
 
     return (SnukToken) {
         .type = SNUK_TOKEN_ERROR,
-        .string_literal = {.string = line_start, .length = len},
+        .string_literal = {.value = line_start, .length = len},
         .line = lexer->line,
         .col = lexer->col,
         .err_msg = err_msg,
@@ -419,10 +419,10 @@ void snuk_lexer_log_token(SnukToken token) {
         log_trace("\tFloat value: %lf", token.float_literal);
     else if (token.type == SNUK_TOKEN_ERROR)
         log_trace("\tError line: %.*s and err_msg: %s",
-                token.string_literal.length, token.string_literal.string, token.err_msg);
+                token.string_literal.length, token.string_literal.value, token.err_msg);
     else
-        log_trace("\tString value: %.*s", token.string_literal.length, token.string_literal.string);
-    log_trace("Line: %d, Column: %d", token.line, token.col);
+        log_trace("\tString value: %.*s", token.string_literal.length, token.string_literal.value);
+    log_trace("\tLine: %d, Column: %d", token.line, token.col);
 }
 
 const char *snuk_lexer_token_type_to_string(SnukTokenType type) {

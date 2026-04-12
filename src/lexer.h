@@ -108,7 +108,7 @@ typedef struct SnukToken {
     SnukTokenType type;
     union {
         struct {
-            const char *string;
+            const char *value;
             uint32_t length;
         } string_literal;
         int64_t int_literal;

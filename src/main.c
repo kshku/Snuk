@@ -2,7 +2,7 @@
 #include "memory.h"
 #include "io.h"
 #include "string.h"
-#include "lexer.h"
+#include "parser.h"
 
 #define PROMPT_STR ">>> "
 
@@ -92,18 +92,17 @@ void run_repl(void) {
         snuk_print(PROMPT_STR);
         char *line = snuk_read_line();
 
-        SnukLexer lexer;
-        snuk_lexer_init(&lexer, line);
+        SnukParser parser;
+        snuk_parser_init(&parser, line);
 
-        SnukToken token;
+        SnukStmt *stmt;
         while (true) {
-            token = snuk_lexer_next_token(&lexer);
-            snuk_lexer_log_token(token);
-            log_trace("");
-            if (token.type == SNUK_TOKEN_EOF) break;
+            stmt = snuk_parser_next_stmt(&parser);
+            if (!stmt) break;
+            snuk_parser_log_stmt(stmt);
         }
 
-        snuk_lexer_deinit(&lexer);
+        snuk_parser_deinit(&parser);
 
         if (string_equal("exit\n", line)) {
             snuk_println("Bye!");
@@ -120,35 +119,33 @@ void run_repl(void) {
 void run_file(const char *path) {
     const char *content = snuk_read_file(path);
 
-    SnukLexer lexer;
-    snuk_lexer_init(&lexer, content);
+    SnukParser parser;
+    snuk_parser_init(&parser, content);
 
-    SnukToken token;
+    SnukStmt *stmt;
     while (true) {
-        token = snuk_lexer_next_token(&lexer);
-        snuk_lexer_log_token(token);
-        log_trace("");
-        if (token.type == SNUK_TOKEN_EOF) break;
+        stmt = snuk_parser_next_stmt(&parser);
+        if (!stmt) break;
+        snuk_parser_log_stmt(stmt);
     }
 
-    snuk_lexer_deinit(&lexer);
+    snuk_parser_deinit(&parser);
 
     snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
 
 static void run_command(const char *command) {
-    SnukLexer lexer;
-    snuk_lexer_init(&lexer, command);
+    SnukParser parser;
+    snuk_parser_init(&parser, command);
 
-    SnukToken token;
+    SnukStmt *stmt;
     while (true) {
-        token = snuk_lexer_next_token(&lexer);
-        snuk_lexer_log_token(token);
-        log_trace("");
-        if (token.type == SNUK_TOKEN_EOF) break;
+        stmt = snuk_parser_next_stmt(&parser);
+        if (!stmt) break;
+        snuk_parser_log_stmt(stmt);
     }
 
-    snuk_lexer_deinit(&lexer);
+    snuk_parser_deinit(&parser);
 
     snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
