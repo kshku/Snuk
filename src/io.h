@@ -3,14 +3,10 @@
 #include "defines.h"
 
 // reads one line from stdin, caller should free
-char *snuk_read_line(void);
+char *snuk_read_line(char *buffer, uint64_t size);
 
 // reads entire file, caller should free
 char *snuk_read_file(const char *path);
-
-void snuk_free_file(char *ptr);
-
-void snuk_free_line(char *ptr);
 
 void snuk_print(const char *fmt, ...);
 

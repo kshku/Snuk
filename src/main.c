@@ -5,6 +5,7 @@
 #include "parser.h"
 
 #define PROMPT_STR ">>> "
+#define LINE_BUFFER_SIZE 1024
 
 typedef enum OpMode {
     OP_MODE_FILE,
@@ -25,7 +26,7 @@ static char *program_name;
 
 int main(int argc, char *argv[]) {
     snuk_logger_init();
-    if (!snuk_memory_init()) return -1;
+    if (!snuk_memory_init(GIB(1))) return -1;
 
     char *data;
     OpMode mode = parse_args(argc, argv, &data);
@@ -88,9 +89,11 @@ OpMode parse_args(int argc, char *argv[], char **data) {
 }
 
 void run_repl(void) {
+    char *line_buffer = (char *)snuk_alloc(LINE_BUFFER_SIZE, alignof(char));
+
     while (true) {
         snuk_print(PROMPT_STR);
-        char *line = snuk_read_line();
+        char *line = snuk_read_line(line_buffer, LINE_BUFFER_SIZE);
 
         SnukParser parser;
         snuk_parser_init(&parser, line);
@@ -109,12 +112,9 @@ void run_repl(void) {
             snuk_println("Bye!");
             break;
         }
-
-        // Reset the linear allocator.
-        // Should we use frame allocator instead?
-        snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
     }
 
+    snuk_free(line_buffer);
 }
 
 void run_file(const char *path) {
@@ -133,7 +133,7 @@ void run_file(const char *path) {
 
     snuk_parser_deinit(&parser);
 
-    snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
+    snuk_free((void *)content);
 }
 
 static void run_command(const char *command) {
@@ -149,8 +149,6 @@ static void run_command(const char *command) {
     }
 
     snuk_parser_deinit(&parser);
-
-    snuk_free(SNUK_ALLOC_KIND_LINEAR, NULL);
 }
 
 static void print_help(void) {

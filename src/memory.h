@@ -2,16 +2,13 @@
 
 #include "defines.h"
 
-typedef enum SnukAllocKind {
-    SNUK_ALLOC_KIND_LINEAR,
-    SNUK_ALLOC_KIND_FREELIST,
-    SNUK_ALLOC_KIND_POOL,
-    SNUK_ALLOC_KIND_STACK,
-} SnukAllocKind;
+#define KIB(x) ((x) * 1024)
+#define MIB(x) (KIB((x) * 1024))
+#define GIB(x) (MIB((x) * 1024))
 
-bool snuk_memory_init(void);
+bool snuk_memory_init(uint64_t reserve_size);
 void snuk_memory_deinit(void);
 
-void *snuk_alloc(SnukAllocKind kind, uint64_t size, uint64_t align);
-void snuk_free(SnukAllocKind kind, void *ptr);
-
+void *snuk_alloc(uint64_t size, uint64_t align);
+void *snuk_realloc(void *ptr, uint64_t new_size, uint64_t align);
+void snuk_free(void *ptr);

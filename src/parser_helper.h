@@ -109,7 +109,7 @@ static SnukStmt *parse_block_stmt(SnukParser *parser);
 static SnukStmt *parse_comment_stmt(SnukParser *parser);
 
 SNUK_INLINE SnukStmt *parser_create_stmt(void) {
-    return (SnukStmt *)snuk_alloc(SNUK_ALLOC_KIND_LINEAR, sizeof(SnukStmt), alignof(SnukStmt));
+    return (SnukStmt *)snuk_alloc(sizeof(SnukStmt), alignof(SnukStmt));
 }
 
 SNUK_INLINE SnukStmt *build_expr_stmt(SnukExpr *expr) {
@@ -190,7 +190,7 @@ SNUK_INLINE SnukStmt *build_print_stmt(SnukStmt *print_stmt, SnukExpr *expr) {
             .type = SNUK_STMT_PRINT,
             .print_stmt = {
                 // TODO: darray?
-                .exprs = snuk_alloc(SNUK_ALLOC_KIND_LINEAR, sizeof(SnukExpr *) * ARRAY_SIZE, alignof(SnukExpr *)),
+                .exprs = snuk_alloc(sizeof(SnukExpr *) * ARRAY_SIZE, alignof(SnukExpr *)),
                 .count = 0,
             },
         };
@@ -209,7 +209,7 @@ SNUK_INLINE SnukStmt *build_block_stmt(SnukStmt *block_stmt, SnukStmt *stmt) {
             .type = SNUK_STMT_BLOCK,
             .block_stmt = {
                 // TODO: darray
-                .stmts = snuk_alloc(SNUK_ALLOC_KIND_LINEAR, sizeof(SnukStmt *) * ARRAY_SIZE, alignof(SnukStmt *)),
+                .stmts = snuk_alloc(sizeof(SnukStmt *) * ARRAY_SIZE, alignof(SnukStmt *)),
                 .count = 0,
             },
         };
@@ -230,7 +230,7 @@ SNUK_INLINE SnukStmt *build_comment_stmt(const char *comment, uint64_t length, b
 }
 
 SNUK_INLINE SnukExpr *parser_create_expr(void) {
-    return (SnukExpr *)snuk_alloc(SNUK_ALLOC_KIND_LINEAR, sizeof(SnukExpr), alignof(SnukExpr));
+    return (SnukExpr *)snuk_alloc(sizeof(SnukExpr), alignof(SnukExpr));
 }
 
 SNUK_INLINE SnukExpr *build_null_expr(void) {
