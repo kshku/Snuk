@@ -109,7 +109,7 @@ typedef struct SnukToken {
     union {
         struct {
             const char *value;
-            uint32_t length;
+            uint64_t length;
         } string_literal;
         int64_t int_literal;
         double float_literal;
@@ -117,7 +117,7 @@ typedef struct SnukToken {
 
     const char *err_msg;
 
-    uint32_t line, col;
+    uint64_t line, col;
 } SnukToken;
 
 typedef struct SnukLexer {
@@ -125,11 +125,11 @@ typedef struct SnukLexer {
 
     const char *cur;
     const char *token_start;
-    uint32_t token_start_line;
-    uint32_t token_start_col;
+    uint64_t token_start_line;
+    uint64_t token_start_col;
 
-    uint32_t line;
-    uint32_t col;
+    uint64_t line;
+    uint64_t col;
 } SnukLexer;
 
 SNUK_INLINE void snuk_lexer_init(SnukLexer *lexer, const char *src) {

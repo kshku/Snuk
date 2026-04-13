@@ -8,13 +8,13 @@
 
 typedef struct KeyWord {
     const char *str;
-    uint32_t len;
+    uint64_t len;
     SnukTokenType type;
 } KeyWord;
 
 typedef struct Value {
     const char *str;
-    uint32_t len;
+    uint64_t len;
     SnukTokenType type;
     bool ignore_case;
 } Value;
@@ -92,7 +92,7 @@ SNUK_INLINE void lexer_skip_white_spaces(SnukLexer *lexer) {
 }
 
 SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
-    uint32_t len = lexer->cur - lexer->token_start;
+    uint64_t len = lexer->cur - lexer->token_start;
     return (SnukToken){
         .type = type,
         .string_literal = {.value = lexer->token_start, .length = len},
@@ -104,7 +104,7 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
 
 SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_msg) {
     const char *line_start = lexer->cur - lexer->col;
-    uint32_t len = 0;
+    uint64_t len = 0;
     for (len = 0; line_start[len] && line_start[len] != '\n'; ++len);
 
     return (SnukToken) {
@@ -116,8 +116,8 @@ SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_
     };
 }
 
-static SnukTokenType check_keyword(const char *s, uint32_t len);
-static SnukTokenType check_values(const char *s, uint32_t len);
+static SnukTokenType check_keyword(const char *s, uint64_t len);
+static SnukTokenType check_values(const char *s, uint64_t len);
 static SnukToken lexer_scan_word(SnukLexer *lexer);
 static SnukToken lexer_scan_number(SnukLexer *lexer);
 static SnukToken lexer_scan_string(SnukLexer *lexer, char quote);
@@ -260,8 +260,8 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
     return lexer_build_token(lexer, SNUK_TOKEN_STRING);
 }
 
-static SnukTokenType check_keyword(const char *s, uint32_t len) {
-    for (uint32_t i = 0; i < ARRAY_LEN(keywords); ++i) {
+static SnukTokenType check_keyword(const char *s, uint64_t len) {
+    for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i) {
         if (len != keywords[i].len) continue;
 
         if (string_n_equal(s, keywords[i].str, keywords[i].len))
@@ -270,8 +270,8 @@ static SnukTokenType check_keyword(const char *s, uint32_t len) {
     return SNUK_TOKEN_EOF;
 }
 
-static SnukTokenType check_values(const char *s, uint32_t len) {
-    for (uint32_t i = 0; i < ARRAY_LEN(values); ++i) {
+static SnukTokenType check_values(const char *s, uint64_t len) {
+    for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
         if (len != values[i].len) continue;
 
         if (values[i].ignore_case && string_n_equal_ignore_case(s, values[i].str, values[i].len))

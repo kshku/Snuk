@@ -18,7 +18,7 @@ typedef enum Precedence {
     PRECEDENCE_SHIFT, // << >>
     PRECEDENCE_TERM, // + -
     PRECEDENCE_FACTOR, // * / %
-    PRECEDENCE_UNARY, // - + ~ !
+    PRECEDENCE_UNARY, // - + ~ ! ++ --
     PRECEDENCE_PRIMARY
 } Precedence;
 
@@ -121,7 +121,7 @@ SNUK_INLINE SnukStmt *build_expr_stmt(SnukExpr *expr) {
     return expr_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_decl_stmt(const char *name, uint32_t length, SnukExpr *init, bool is_const) {
+SNUK_INLINE SnukStmt *build_decl_stmt(const char *name, uint64_t length, SnukExpr *init, bool is_const) {
     SnukStmt *decl_stmt = parser_create_stmt();
     *decl_stmt = (SnukStmt){
         .type = is_const ? SNUK_STMT_CONST_DECL : SNUK_STMT_VAR_DECL,
@@ -220,11 +220,11 @@ SNUK_INLINE SnukStmt *build_block_stmt(SnukStmt *block_stmt, SnukStmt *stmt) {
 #undef ARRAY_SIZE
 }
 
-SNUK_INLINE SnukStmt *build_comment_stmt(const char *comment, uint32_t len, bool multi_line) {
+SNUK_INLINE SnukStmt *build_comment_stmt(const char *comment, uint64_t length, bool multi_line) {
     SnukStmt *comment_stmt = parser_create_stmt();
     *comment_stmt = (SnukStmt){
         .type = multi_line ? SNUK_STMT_MLCOMMENT : SNUK_STMT_SLCOMMENT,
-        .comment_stmt = {.comment = comment, .length = len},
+        .comment_stmt = {.comment = comment, .length = length},
     };
     return comment_stmt;
 }
@@ -249,7 +249,7 @@ SNUK_INLINE SnukExpr *build_bool_expr(bool expr) {
     return bool_expr;
 }
 
-SNUK_INLINE SnukExpr *build_string_literal_expr(const char *str, uint32_t length) {
+SNUK_INLINE SnukExpr *build_string_literal_expr(const char *str, uint64_t length) {
     SnukExpr *string_expr = parser_create_expr();
     *string_expr = (SnukExpr){
         .type = SNUK_EXPR_STRING_LITERAL,
@@ -258,7 +258,7 @@ SNUK_INLINE SnukExpr *build_string_literal_expr(const char *str, uint32_t length
     return string_expr;
 }
 
-SNUK_INLINE SnukExpr *build_identifier_expr(const char *name, uint32_t length) {
+SNUK_INLINE SnukExpr *build_identifier_expr(const char *name, uint64_t length) {
     SnukExpr *identifier = parser_create_expr();
     *identifier = (SnukExpr){
         .type = SNUK_EXPR_IDENTIFIER,

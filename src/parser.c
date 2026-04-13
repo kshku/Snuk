@@ -17,8 +17,28 @@ static SnukStmt *parse_stmt(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST))
         return parse_decl_stmt(parser, parser->previous.type == SNUK_TOKEN_CONST);
 
-    if (parser_match(parser, SNUK_TOKEN_IF))
-        return parse_if_stmt(parser);
+    if (parser_match(parser, SNUK_TOKEN_IF)) return parse_if_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_MATCH)) return parse_match_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_WHILE)) return parse_while_stmt(parser);
+    if (parser_match(parser, SNUK_TOKEN_DO)) return parse_do_while_stmt(parser);
+    if (parser_match(parser, SNUK_TOKEN_FOR)) return parse_for_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_RETURN) || parser_match(parser, SNUK_TOKEN_CONTINUE)
+            || parser_match(parser, SNUK_TOKEN_BREAK))
+        return parse_flow_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_FN)) return parse_fn_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_TYPE)) return parse_type_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_LBRACE)) return parse_block_stmt(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_MLCOMMENT) || parser_match(parser, SNUK_TOKEN_SLCOMMENT))
+        return parse_comment_stmt(parser);
 
     return parse_expr_stmt(parser);
 }
@@ -263,6 +283,7 @@ static void parser_sync(SnukParser *parser) {
 }
 
 void snuk_parser_log_stmt(SnukStmt *stmt) {
+    if (!stmt) return;
     log_trace("Statement type: %s", snuk_parser_stmt_type_to_string(stmt->type));
 
     switch (stmt->type) {
@@ -271,30 +292,38 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             snuk_parser_log_expr(stmt->expr_stmt);
             break;
         case SNUK_STMT_VAR_DECL:
-            log_trace("var %.*s:", stmt->decl_stmt.length, stmt->decl_stmt.name);
+            log_trace("var %.*s = ", stmt->decl_stmt.length, stmt->decl_stmt.name);
             snuk_parser_log_expr(stmt->decl_stmt.init);
             break;
         case SNUK_STMT_CONST_DECL:
-            log_trace("const %.*s:", stmt->decl_stmt.length, stmt->decl_stmt.name);
+            log_trace("const %.*s = ", stmt->decl_stmt.length, stmt->decl_stmt.name);
             snuk_parser_log_expr(stmt->decl_stmt.init);
             break;
         case SNUK_STMT_IF:
             log_trace("if:");
+            snuk_parser_log_expr(stmt->if_stmt.condition);
+            snuk_parser_log_stmt(stmt->if_stmt.then_branch);
+            snuk_parser_log_stmt(stmt->if_stmt.else_branch);
             break;
         case SNUK_STMT_MATCH:
             log_trace("match:");
             break;
         case SNUK_STMT_WHILE:
             log_trace("while:");
+            snuk_parser_log_expr(stmt->while_stmt.condition);
+            snuk_parser_log_stmt(stmt->while_stmt.block);
             break;
         case SNUK_STMT_DO_WHILE:
             log_trace("do:");
+            snuk_parser_log_stmt(stmt->while_stmt.block);
+            snuk_parser_log_expr(stmt->while_stmt.condition);
             break;
         case SNUK_STMT_FOR:
             log_trace("for:");
             break;
         case SNUK_STMT_RETURN:
             log_trace("return:");
+            snuk_parser_log_expr(stmt->return_stmt);
             break;
         case SNUK_STMT_BREAK:
             log_trace("break");
@@ -310,15 +339,19 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             break;
         case SNUK_STMT_PRINT:
             log_trace("print:");
+            for (uint64_t i = 0; i < stmt->print_stmt.count; ++i)
+                snuk_parser_log_expr(stmt->print_stmt.exprs[i]);
             break;
         case SNUK_STMT_BLOCK:
             log_trace("block:");
+            for (uint64_t i = 0; i < stmt->block_stmt.count; ++i)
+                snuk_parser_log_stmt(stmt->block_stmt.stmts[i]);
             break;
         case SNUK_STMT_SLCOMMENT:
-            log_trace("single line comment");
+            log_trace("single line comment: %.*s", stmt->comment_stmt.length, stmt->comment_stmt.comment);
             break;
         case SNUK_STMT_MLCOMMENT:
-            log_trace("multi-line comment");
+            log_trace("multi-line comment: %.*s", stmt->comment_stmt.length, stmt->comment_stmt.comment);
             break;
         default:
             break;
@@ -326,6 +359,7 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
 }
 
 void snuk_parser_log_expr(SnukExpr *expr) {
+    if (!expr) return;
     log_trace("Expression type: %s", snuk_parser_expr_type_to_string(expr->type));
 
     switch (expr->type) {
@@ -350,9 +384,14 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             break;
         case SNUK_EXPR_UNARY:
             log_trace("Unary:");
+            log_trace("%s", snuk_lexer_token_type_to_string(expr->unary.op));
+            snuk_parser_log_expr(expr->unary.operand);
             break;
         case SNUK_EXPR_BINARY:
             log_trace("Binary:");
+            snuk_parser_log_expr(expr->binary.left);
+            log_trace("%s", snuk_lexer_token_type_to_string(expr->binary.op));
+            snuk_parser_log_expr(expr->binary.right);
             break;
         case SNUK_EXPR_CALL:
             log_trace("call: %.*s", expr->identifier.length, expr->identifier.name);

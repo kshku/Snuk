@@ -63,7 +63,7 @@ struct SnukExpr {
     union {
         struct {
             const char *value;
-            uint32_t length;
+            uint64_t length;
         } string_literal;
 
         int64_t int_literal;
@@ -72,7 +72,7 @@ struct SnukExpr {
 
         struct {
             const char *name;
-            uint32_t length;
+            uint64_t length;
         } identifier;
 
         struct {
@@ -94,7 +94,7 @@ struct SnukExpr {
         struct {
             // TODO:
             SnukExpr **params;
-            uint32_t count;
+            uint64_t count;
         } call;
     };
 };
@@ -104,11 +104,11 @@ struct SnukStmt {
     SnukStmtType type;
 
     union {
-        SnukExpr *expr_stmt;;
+        SnukExpr *expr_stmt;
 
         struct {
             const char *name;
-            uint32_t length;
+            uint64_t length;
             SnukExpr *init;
         } decl_stmt; // var or const
 
@@ -149,17 +149,17 @@ struct SnukStmt {
 
         struct {
             SnukExpr **exprs;
-            uint32_t count;
+            uint64_t count;
         } print_stmt;
 
         struct {
             SnukStmt **stmts;
-            uint32_t count;
+            uint64_t count;
         } block_stmt;
 
         struct {
             const char *comment;
-            uint32_t length;
+            uint64_t length;
         } comment_stmt;
     };
 };

@@ -100,6 +100,7 @@ void run_repl(void) {
             stmt = snuk_parser_next_stmt(&parser);
             if (!stmt) break;
             snuk_parser_log_stmt(stmt);
+            log_trace("");
         }
 
         snuk_parser_deinit(&parser);
@@ -127,6 +128,7 @@ void run_file(const char *path) {
         stmt = snuk_parser_next_stmt(&parser);
         if (!stmt) break;
         snuk_parser_log_stmt(stmt);
+        log_trace("");
     }
 
     snuk_parser_deinit(&parser);
@@ -143,6 +145,7 @@ static void run_command(const char *command) {
         stmt = snuk_parser_next_stmt(&parser);
         if (!stmt) break;
         snuk_parser_log_stmt(stmt);
+        log_trace("");
     }
 
     snuk_parser_deinit(&parser);
