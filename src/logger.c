@@ -29,7 +29,7 @@ static snStaticLogger sl;
 static char log_buffer[LOGGER_BUFFER_SIZE];
 static stdout_stderr_sink sink_data;
 static snSink sinks[] = {
-    (snSink){
+    {
         .open = stdout_stderr_sink_open,
         .flush = stdout_stderr_sink_flush,
         .write = stdout_stderr_sink_write,
@@ -54,8 +54,8 @@ void snuk_log_msg(snLogLevel level, const char *file, const char *function, long
 
 
     char buffer[1024] = {0};
-    size_t buffer_size = ARRAY_LEN(buffer);
-    size_t len = 0;
+    int buffer_size = ARRAY_LEN(buffer);
+    int len = 0;
 
     if (level < SN_LOG_LEVEL_WARN)
         len = snprintf(buffer, buffer_size, "[%s]: %s\n", level_string, format_string);

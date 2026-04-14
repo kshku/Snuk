@@ -21,7 +21,8 @@ char *snuk_read_file(const char *path) {
     uint64_t file_size = sn_file_size(&file);
     char *content = (char *)snuk_alloc(file_size, alignof(char));
 
-    if (sn_file_read(&file, content, file_size) != file_size) log_warn("file_size != read_size");
+    if (sn_file_read(&file, content, file_size) != (int64_t)file_size)
+        log_warn("file_size != read_size", NULL);
 
     sn_file_close(&file);
 

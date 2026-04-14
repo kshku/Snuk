@@ -89,6 +89,7 @@ static SnukStmt *parse_if_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_match_stmt(SnukParser *parser) {
+    SNUK_UNUSED(parser);
     // TODO:
     return NULL;
 }
@@ -109,6 +110,7 @@ static SnukStmt *parse_do_while_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_for_stmt(SnukParser *parser) {
+    SNUK_UNUSED(parser);
     // TODO:
     return NULL;
     SnukStmt *left = parse_stmt(parser);
@@ -129,11 +131,13 @@ static SnukStmt *parse_flow_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_fn_stmt(SnukParser *parser) {
+    SNUK_UNUSED(parser);
     // TODO:
     return NULL;
 }
 
 static SnukStmt *parse_type_stmt(SnukParser *parser) {
+    SNUK_UNUSED(parser);
     return NULL;
 }
 
@@ -289,7 +293,7 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
     uint64_t count;
     switch (stmt->type) {
         case SNUK_STMT_EXPR:
-            log_trace("Expr:");
+            log_trace("Expr:", NULL);
             snuk_parser_log_expr(stmt->expr_stmt);
             break;
         case SNUK_STMT_VAR_DECL:
@@ -301,51 +305,51 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             snuk_parser_log_expr(stmt->decl_stmt.init);
             break;
         case SNUK_STMT_IF:
-            log_trace("if:");
+            log_trace("if:", NULL);
             snuk_parser_log_expr(stmt->if_stmt.condition);
             snuk_parser_log_stmt(stmt->if_stmt.then_branch);
             snuk_parser_log_stmt(stmt->if_stmt.else_branch);
             break;
         case SNUK_STMT_MATCH:
-            log_trace("match:");
+            log_trace("match:", NULL);
             break;
         case SNUK_STMT_WHILE:
-            log_trace("while:");
+            log_trace("while:", NULL);
             snuk_parser_log_expr(stmt->while_stmt.condition);
             snuk_parser_log_stmt(stmt->while_stmt.block);
             break;
         case SNUK_STMT_DO_WHILE:
-            log_trace("do:");
+            log_trace("do:", NULL);
             snuk_parser_log_stmt(stmt->while_stmt.block);
             snuk_parser_log_expr(stmt->while_stmt.condition);
             break;
         case SNUK_STMT_FOR:
-            log_trace("for:");
+            log_trace("for:", NULL);
             break;
         case SNUK_STMT_RETURN:
-            log_trace("return:");
+            log_trace("return:", NULL);
             snuk_parser_log_expr(stmt->return_stmt);
             break;
         case SNUK_STMT_BREAK:
-            log_trace("break");
+            log_trace("break", NULL);
             break;
         case SNUK_STMT_CONTINUE:
-            log_trace("continue");
+            log_trace("continue", NULL);
             break;
         case SNUK_STMT_FN:
-            log_trace("function:");
+            log_trace("function:", NULL);
             break;
         case SNUK_STMT_TYPE:
-            log_trace("type:");
+            log_trace("type:", NULL);
             break;
         case SNUK_STMT_PRINT:
-            log_trace("print:");
+            log_trace("print:", NULL);
             count = snuk_darray_get_length(stmt->print_stmt.exprs);
             for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_expr(stmt->print_stmt.exprs[i]);
             break;
         case SNUK_STMT_BLOCK:
-            log_trace("block:");
+            log_trace("block:", NULL);
             count = snuk_darray_get_length(stmt->block_stmt.stmts);
             for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_stmt(stmt->block_stmt.stmts[i]);
@@ -383,15 +387,15 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             log_trace("Bool: %s", expr->type == SNUK_EXPR_TRUE_LITERAL? "true" : "false");
             break;
         case SNUK_EXPR_NULL_LITERAL:
-            log_trace("Null");
+            log_trace("Null", NULL);
             break;
         case SNUK_EXPR_UNARY:
-            log_trace("Unary:");
+            log_trace("Unary:", NULL);
             log_trace("%s", snuk_lexer_token_type_to_string(expr->unary.op));
             snuk_parser_log_expr(expr->unary.operand);
             break;
         case SNUK_EXPR_BINARY:
-            log_trace("Binary:");
+            log_trace("Binary:", NULL);
             snuk_parser_log_expr(expr->binary.left);
             log_trace("%s", snuk_lexer_token_type_to_string(expr->binary.op));
             snuk_parser_log_expr(expr->binary.right);
@@ -400,11 +404,14 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             log_trace("call: %.*s", expr->identifier.length, expr->identifier.name);
             break;
         case SNUK_EXPR_MEMBER:
-            log_trace("Member:");
+            log_trace("Member:", NULL);
             break;
         case SNUK_EXPR_INDEX:
-            log_trace("Index:");
+            log_trace("Index:", NULL);
             break;
+        case SNUK_EXPR_ASSIGN:
+            snuk_parser_log_expr(expr->assign.identifier);
+            snuk_parser_log_expr(expr->assign.value);
         default:
             break;
     }
@@ -473,6 +480,8 @@ const char *snuk_parser_expr_type_to_string(SnukExprType type) {
             return SNUK_STRINGIFY(SNUK_EXPR_UNARY);
         case SNUK_EXPR_BINARY:
             return SNUK_STRINGIFY(SNUK_EXPR_BINARY);
+        case SNUK_EXPR_ASSIGN:
+            return SNUK_STRINGIFY(SNUK_EXPR_ASSIGN);
         case SNUK_EXPR_CALL:
             return SNUK_STRINGIFY(SNUK_EXPR_CALL);
         case SNUK_EXPR_MEMBER:

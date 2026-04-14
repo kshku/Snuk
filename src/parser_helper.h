@@ -64,7 +64,7 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_BANG] = {parse_unary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_TILDE] = {parse_unary, NULL, PRECEDENCE_NONE},
 
-    [SNUK_TOKEN_ASSIGN] = {NULL, parse_binary, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_ASSIGN] = {NULL, parse_assignment, PRECEDENCE_ASSIGNMENT},
 
     [SNUK_TOKEN_EQUAL] = {NULL, parse_binary, PRECEDENCE_EQUALITY},
     [SNUK_TOKEN_NOT_EQUAL] = {NULL, parse_binary, PRECEDENCE_EQUALITY},

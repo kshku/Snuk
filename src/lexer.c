@@ -129,7 +129,7 @@ static SnukToken lexer_scan_word(SnukLexer *lexer) {
     lexer->token_start_line = lexer->line;
     lexer->token_start_col = lexer->col;
     char c;
-    while (c = lexer_peek(lexer)) {
+    while ((c = lexer_peek(lexer))) {
         if (!is_alpha_numeric(c) && c != '_') break;
         lexer_advance(lexer);
     }

@@ -4,7 +4,8 @@
 
 #include "lexer.h"
 
-typedef enum SnukStmtType { SNUK_STMT_EXPR,
+typedef enum SnukStmtType {
+    SNUK_STMT_EXPR,
 
     SNUK_STMT_VAR_DECL,
     SNUK_STMT_CONST_DECL,

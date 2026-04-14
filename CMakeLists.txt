@@ -25,6 +25,7 @@ target_compile_definitions(snuk_configs INTERFACE
 )
 
 add_executable(snuk)
+target_link_libraries(snuk PRIVATE snuk_configs)
 
 add_subdirectory(external)
 
