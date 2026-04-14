@@ -15,9 +15,9 @@ static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages);
 static void destroy_allocator(SnukPageAllocator *allocator);
 static void *commit_pages(SnukPageAllocator *allocator, uint32_t pages);
 static void *reverse_commit_pages(SnukPageAllocator *allocator, uint32_t pages);
+static void reverse_decommit_pages(SnukPageAllocator *allocator, void *base, uint32_t pages);
 
 static void try_increasing_allocator_size(void);
-static bool try_merge_nodes(snFreeNode *previous_node, snFreeNode *node);
 
 static SnukPageAllocator page_allocator;
 static snFreeListAllocator galloc;
@@ -39,6 +39,19 @@ bool snuk_memory_init(uint64_t reserve_size) {
 void snuk_memory_deinit(void) {
     sn_freelist_allocator_deinit(&galloc);
     destroy_allocator(&page_allocator);
+}
+
+void *snuk_allocate_pages(uint32_t pages) {
+    void *base = reverse_commit_pages(&page_allocator, pages);
+    if (!base) {
+        log_fatal("Ran out of memory!", NULL);
+        exit(EXIT_FAILURE);
+    }
+    return base;
+}
+
+void snuk_free_pages(void *base, uint32_t pages) {
+    reverse_decommit_pages(&page_allocator, base, pages);
 }
 
 void *snuk_alloc(uint64_t size, uint64_t align) {
@@ -76,7 +89,7 @@ static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages) {
 static void destroy_allocator(SnukPageAllocator *allocator) {
     if (!allocator) return;
     sn_vm_decommit(allocator->base, allocator->committed_pages);
-    sn_vm_release(allocator->base, allocator->total_pages);
+    sn_vm_decommit(allocator->base, allocator->total_pages);
     *allocator = (SnukPageAllocator){0};
 }
 
@@ -109,10 +122,18 @@ static void *reverse_commit_pages(SnukPageAllocator *allocator, uint32_t pages) 
     return base;
 }
 
+static void reverse_decommit_pages(SnukPageAllocator *allocator, void *base, uint32_t pages) {
+    uint64_t page_size = sn_vm_get_page_size();
+    void *actual_base = allocator->base + ((allocator->total_pages - allocator->reverse_committed_pages) * page_size);
+    SNUK_ASSERT(actual_base == base, "freeing in non-stack order");
+    sn_vm_decommit(base, pages);
+    allocator->reverse_committed_pages -= pages;
+}
+
 static void try_increasing_allocator_size(void) {
     void *base = commit_pages(&page_allocator, 1);
     if (!base) {
-        log_fatal("Ran out of memory!");
+        log_fatal("Ran out of memory!", NULL);
         exit(EXIT_FAILURE);
     }
 

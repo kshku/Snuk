@@ -26,7 +26,16 @@ static char *program_name;
 
 int main(int argc, char *argv[]) {
     snuk_logger_init();
+#ifdef SNUK_DEBUG
+    log_trace("DEBUG MODE", NULL);
+#endif
     if (!snuk_memory_init(GIB(1))) return -1;
+
+    void *mem = snuk_allocate_pages(10);
+    void *mem2 = snuk_allocate_pages(10);
+
+    snuk_free_pages(mem2, 10);
+    snuk_free_pages(mem, 10);
 
     char *data;
     OpMode mode = parse_args(argc, argv, &data);
@@ -38,7 +47,7 @@ int main(int argc, char *argv[]) {
             break;
 
         case OP_MODE_REPL:
-            log_info("Running in REPL mode");
+            log_info("Running in REPL mode", NULL);
             run_repl();
             break;
 
@@ -103,7 +112,7 @@ void run_repl(void) {
             stmt = snuk_parser_next_stmt(&parser);
             if (!stmt) break;
             snuk_parser_log_stmt(stmt);
-            log_trace("");
+            log_trace("", NULL);
         }
 
         snuk_parser_deinit(&parser);
@@ -128,7 +137,7 @@ void run_file(const char *path) {
         stmt = snuk_parser_next_stmt(&parser);
         if (!stmt) break;
         snuk_parser_log_stmt(stmt);
-        log_trace("");
+        log_trace("", NULL);
     }
 
     snuk_parser_deinit(&parser);
@@ -145,7 +154,7 @@ static void run_command(const char *command) {
         stmt = snuk_parser_next_stmt(&parser);
         if (!stmt) break;
         snuk_parser_log_stmt(stmt);
-        log_trace("");
+        log_trace("", NULL);
     }
 
     snuk_parser_deinit(&parser);
