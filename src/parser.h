@@ -164,15 +164,24 @@ struct SnukStmt {
     };
 };
 
+typedef void *(*alloc_fn)(void *data, uint64_t size, uint64_t align);
+
 typedef struct SnukParser {
     SnukLexer lexer;
     SnukToken current, previous;
 
+    // allocation data
+    void *alloc_data;
+    alloc_fn alloc;
+
     bool had_error, panic_mode;
 } SnukParser;
 
-SNUK_INLINE void snuk_parser_init(SnukParser *parser, const char *src) {
-    *parser = (SnukParser){0};
+SNUK_INLINE void snuk_parser_init(SnukParser *parser, const char *src, void *alloc_data, alloc_fn alloc) {
+    *parser = (SnukParser){
+        .alloc_data = alloc_data,
+        .alloc = alloc,
+    };
     snuk_lexer_init(&parser->lexer, src);
 
     parser->previous = (SnukToken){0};

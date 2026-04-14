@@ -44,7 +44,7 @@ static SnukStmt *parse_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_expr_stmt(SnukParser *parser) {
-    return build_expr_stmt(parse_expression(parser));
+    return build_expr_stmt(parser, parse_expression(parser));
 }
 
 static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
@@ -56,20 +56,11 @@ static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
     }
 
-    SnukExpr *expr = NULL;
-    if (parser_match(parser, SNUK_TOKEN_ASSIGN)) expr = parse_expression(parser);
-    else expr = build_null_expr();
+    SnukExpr *init = NULL;
+    if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser);
+    else init = build_null_expr(parser);
 
-    SnukStmt *stmt = parser_create_stmt();
-    *stmt = (SnukStmt){
-        .type = is_const ? SNUK_STMT_CONST_DECL : SNUK_STMT_VAR_DECL,
-        .decl_stmt = {
-            .name = identifier.string_literal.value,
-            .length = identifier.string_literal.length,
-            .init = expr,
-        },
-    };
-    return stmt;
+    return build_decl_stmt(parser, identifier, init, is_const);
 }
 
 static SnukStmt *parse_if_stmt(SnukParser *parser) {
@@ -85,7 +76,7 @@ static SnukStmt *parse_if_stmt(SnukParser *parser) {
             else_branch = parse_block_stmt(parser);
         }
     }
-    return build_if_stmt(condition, then_branch, else_branch);
+    return build_if_stmt(parser, condition, then_branch, else_branch);
 }
 
 static SnukStmt *parse_match_stmt(SnukParser *parser) {
@@ -98,7 +89,7 @@ static SnukStmt *parse_while_stmt(SnukParser *parser) {
     SnukExpr *condition = parse_expression(parser);
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
     SnukStmt *block = parse_block_stmt(parser);
-    return build_while_stmt(condition, block, false);
+    return build_while_stmt(parser, condition, block, false);
 }
 
 static SnukStmt *parse_do_while_stmt(SnukParser *parser) {
@@ -106,7 +97,7 @@ static SnukStmt *parse_do_while_stmt(SnukParser *parser) {
     SnukStmt *block = parse_block_stmt(parser);
     parser_expect(parser, SNUK_TOKEN_WHILE, "expected while condition");
     SnukExpr *condition = parse_expression(parser);
-    return build_while_stmt(condition, block, false);
+    return build_while_stmt(parser, condition, block, true);
 }
 
 static SnukStmt *parse_for_stmt(SnukParser *parser) {
@@ -127,7 +118,7 @@ static SnukStmt *parse_flow_stmt(SnukParser *parser) {
     if (parser->previous.type == SNUK_TOKEN_RETURN)
         value = parse_expression(parser);
 
-    return build_flow_stmt(parser->previous.type, value);
+    return build_flow_stmt(parser, parser->previous.type, value);
 }
 
 static SnukStmt *parse_fn_stmt(SnukParser *parser) {
@@ -142,22 +133,22 @@ static SnukStmt *parse_type_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_print_stmt(SnukParser *parser) {
-    SnukStmt *print_stmt = build_print_stmt(NULL, parse_expression(parser));
+    SnukStmt *print_stmt = build_print_stmt(parser, NULL, parse_expression(parser));
     while (parser_match(parser, SNUK_TOKEN_COMMA))
-        print_stmt = build_print_stmt(print_stmt, parse_expression(parser));
+        print_stmt = build_print_stmt(parser, print_stmt, parse_expression(parser));
     return print_stmt;
 }
 
 static SnukStmt *parse_block_stmt(SnukParser *parser) {
-    SnukStmt *block_stmt = build_block_stmt(NULL, parse_stmt(parser));
+    SnukStmt *block_stmt = build_block_stmt(parser, NULL, parse_stmt(parser));
     while (!parser_match(parser, SNUK_TOKEN_RBRACE))
-        block_stmt = build_block_stmt(block_stmt, parse_stmt(parser));
+        block_stmt = build_block_stmt(parser, block_stmt, parse_stmt(parser));
     return block_stmt;
 }
 
 static SnukStmt *parse_comment_stmt(SnukParser *parser) {
     SnukToken t = parser->previous;
-    return build_comment_stmt(t.string_literal.value, t.string_literal.length, t.type == SNUK_TOKEN_MLCOMMENT);
+    return build_comment_stmt(parser, t);
 }
 
 static SnukExpr *parse_expression(SnukParser *parser) {
@@ -186,18 +177,18 @@ static SnukExpr *parse_primary(SnukParser *parser) {
     SnukToken t = parser->previous;
     switch (t.type) {
         case SNUK_TOKEN_IDENTIFIER:
-            return build_identifier_expr(t.string_literal.value, t.string_literal.length);
+            return build_identifier_expr(parser);
         case SNUK_TOKEN_INTEGER:
-            return build_int_literal_expr(t.int_literal);
+            return build_int_literal_expr(parser);
         case SNUK_TOKEN_FLOAT:
-            return build_float_literal_expr(t.float_literal);
+            return build_float_literal_expr(parser);
         case SNUK_TOKEN_STRING:
-            return build_string_literal_expr(t.string_literal.value, t.string_literal.length);
+            return build_string_literal_expr(parser);
         case SNUK_TOKEN_TRUE:
         case SNUK_TOKEN_FALSE:
-            return build_bool_expr(t.type == SNUK_TOKEN_TRUE);
+            return build_bool_expr(parser);
         case SNUK_TOKEN_NULL:
-            return build_null_expr();
+            return build_null_expr(parser);
         case SNUK_TOKEN_NAN:
             // TODO:
         case SNUK_TOKEN_INF:
@@ -221,14 +212,14 @@ static SnukExpr *parse_grouping(SnukParser *parser) {
 static SnukExpr *parse_unary(SnukParser *parser) {
     SnukToken op = parser->previous;
     SnukExpr *right = parse_precedence(parser, PRECEDENCE_UNARY);
-    return build_unary_expr(op.type, right);
+    return build_unary_expr(parser, op.type, right);
 }
 
 static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left) {
     SnukToken op = parser->previous;
     ParseRule *rule = get_rule(op.type);
     SnukExpr *right = parse_precedence(parser, rule->precedence + 1);
-    return build_binary_expr(op.type, left, right);
+    return build_binary_expr(parser, op.type, left, right);
 }
 
 static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
@@ -237,7 +228,7 @@ static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
         return NULL;
     }
     SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
-    return build_assign_expr(left, value);
+    return build_assign_expr(parser, left, value);
 }
 
 static void parser_error(SnukParser *parser, const char *err_msg) {

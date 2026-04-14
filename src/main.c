@@ -4,6 +4,8 @@
 #include "string.h"
 #include "parser.h"
 
+#include <snmemory/frame.h>
+
 #define PROMPT_STR ">>> "
 #define LINE_BUFFER_SIZE 1024
 
@@ -98,14 +100,21 @@ OpMode parse_args(int argc, char *argv[], char **data) {
 }
 
 void run_repl(void) {
-    char *line_buffer = (char *)snuk_alloc(LINE_BUFFER_SIZE, alignof(char));
+    snFrameAllocator falloc;
+    void *mem = snuk_allocate_pages(10);
+    sn_frame_allocator_init(&falloc, mem, 10 * snuk_page_size());
+
+    // allocate before begin (doesn't get deallocated when calling end
+    char *line_buffer = (char *)sn_frame_allocator_allocate(&falloc, LINE_BUFFER_SIZE, alignof(char));
 
     while (true) {
+        sn_frame_allocator_begin(&falloc);
+
         snuk_print(PROMPT_STR);
         char *line = snuk_read_line(line_buffer, LINE_BUFFER_SIZE);
 
         SnukParser parser;
-        snuk_parser_init(&parser, line);
+        snuk_parser_init(&parser, line, (void *)(&falloc), (alloc_fn)sn_frame_allocator_allocate);
 
         SnukStmt *stmt;
         while (true) {
@@ -117,20 +126,28 @@ void run_repl(void) {
 
         snuk_parser_deinit(&parser);
 
+        sn_frame_allocator_end(&falloc);
+
         if (string_equal("exit\n", line)) {
             snuk_println("Bye!");
             break;
         }
     }
 
-    snuk_free(line_buffer);
+    sn_frame_allocator_deinit(&falloc);
+    snuk_free_pages(mem, 10);
 }
 
 void run_file(const char *path) {
     const char *content = snuk_read_file(path);
 
+    snFrameAllocator falloc;
+    void *mem = snuk_allocate_pages(10);
+    sn_frame_allocator_init(&falloc, mem, 10 * snuk_page_size());
+    sn_frame_allocator_begin(&falloc);
+
     SnukParser parser;
-    snuk_parser_init(&parser, content);
+    snuk_parser_init(&parser, content, (void *)(&falloc), (alloc_fn)sn_frame_allocator_allocate);
 
     SnukStmt *stmt;
     while (true) {
@@ -141,13 +158,22 @@ void run_file(const char *path) {
     }
 
     snuk_parser_deinit(&parser);
+    sn_frame_allocator_end(&falloc);
+
+    sn_frame_allocator_deinit(&falloc);
+    snuk_free_pages(mem, 10);
 
     snuk_free((void *)content);
 }
 
 static void run_command(const char *command) {
+    snFrameAllocator falloc;
+    void *mem = snuk_allocate_pages(10);
+    sn_frame_allocator_init(&falloc, mem, 10 * snuk_page_size());
+    sn_frame_allocator_begin(&falloc);
+
     SnukParser parser;
-    snuk_parser_init(&parser, command);
+    snuk_parser_init(&parser, command, (void *)(&falloc), (alloc_fn)sn_frame_allocator_allocate);
 
     SnukStmt *stmt;
     while (true) {
@@ -158,6 +184,10 @@ static void run_command(const char *command) {
     }
 
     snuk_parser_deinit(&parser);
+    sn_frame_allocator_end(&falloc);
+
+    sn_frame_allocator_deinit(&falloc);
+    snuk_free_pages(mem, 10);
 }
 
 static void print_help(void) {

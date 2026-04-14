@@ -109,12 +109,18 @@ static SnukStmt *parse_print_stmt(SnukParser *parser);
 static SnukStmt *parse_block_stmt(SnukParser *parser);
 static SnukStmt *parse_comment_stmt(SnukParser *parser);
 
-SNUK_INLINE SnukStmt *parser_create_stmt(void) {
-    return (SnukStmt *)snuk_alloc(sizeof(SnukStmt), alignof(SnukStmt));
+SNUK_INLINE SnukStmt *parser_create_stmt(SnukParser *parser) {
+    return (SnukStmt *)parser->alloc(parser->alloc_data,
+            sizeof(SnukStmt), alignof(SnukStmt));
 }
 
-SNUK_INLINE SnukStmt *build_expr_stmt(SnukExpr *expr) {
-    SnukStmt *expr_stmt = parser_create_stmt();
+SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
+    return (SnukExpr *)parser->alloc(parser->alloc_data,
+            sizeof(SnukExpr), alignof(SnukExpr));
+}
+
+SNUK_INLINE SnukStmt *build_expr_stmt(SnukParser *parser, SnukExpr *expr) {
+    SnukStmt *expr_stmt = parser_create_stmt(parser);
     *expr_stmt = (SnukStmt){
         .type = SNUK_STMT_EXPR,
         .expr_stmt = expr,
@@ -122,26 +128,34 @@ SNUK_INLINE SnukStmt *build_expr_stmt(SnukExpr *expr) {
     return expr_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_decl_stmt(const char *name, uint64_t length, SnukExpr *init, bool is_const) {
-    SnukStmt *decl_stmt = parser_create_stmt();
+SNUK_INLINE SnukStmt *build_decl_stmt(SnukParser *parser, SnukToken identifier, SnukExpr *init, bool is_const) {
+    SnukStmt *decl_stmt = parser_create_stmt(parser);
     *decl_stmt = (SnukStmt){
         .type = is_const ? SNUK_STMT_CONST_DECL : SNUK_STMT_VAR_DECL,
-        .decl_stmt = {.name = name, .length = length, .init = init}
+        .decl_stmt = {
+            .name = identifier.string_literal.value,
+            .length = identifier.string_literal.length,
+            .init = init,
+        },
     };
     return decl_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_if_stmt(SnukExpr *condition, SnukStmt *then_branch, SnukStmt *else_branch) {
-    SnukStmt *if_stmt = parser_create_stmt();
+SNUK_INLINE SnukStmt *build_if_stmt(SnukParser *parser, SnukExpr *condition, SnukStmt *then_branch, SnukStmt *else_branch) {
+    SnukStmt *if_stmt = parser_create_stmt(parser);
     *if_stmt = (SnukStmt){
         .type = SNUK_STMT_IF,
-        .if_stmt = {.condition = condition, .then_branch = then_branch, .else_branch = else_branch},
+        .if_stmt = {
+            .condition = condition,
+            .then_branch = then_branch,
+            .else_branch = else_branch,
+        },
     };
     return if_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_while_stmt(SnukExpr *condition, SnukStmt *block, bool is_do_while) {
-    SnukStmt *while_stmt = parser_create_stmt();
+SNUK_INLINE SnukStmt *build_while_stmt(SnukParser *parser, SnukExpr *condition, SnukStmt *block, bool is_do_while) {
+    SnukStmt *while_stmt = parser_create_stmt(parser);
     *while_stmt = (SnukStmt){
         .type = is_do_while ? SNUK_STMT_DO_WHILE : SNUK_STMT_WHILE,
         .while_stmt = {.condition = condition, .block = block},
@@ -149,8 +163,8 @@ SNUK_INLINE SnukStmt *build_while_stmt(SnukExpr *condition, SnukStmt *block, boo
     return while_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_for_stmt(SnukStmt *init, SnukExpr *cond, SnukExpr *update, SnukStmt *block) {
-    SnukStmt *for_stmt = parser_create_stmt();
+SNUK_INLINE SnukStmt *build_for_stmt(SnukParser *parser, SnukStmt *init, SnukExpr *cond, SnukExpr *update, SnukStmt *block) {
+    SnukStmt *for_stmt = parser_create_stmt(parser);
     *for_stmt = (SnukStmt){
         .type = SNUK_STMT_FOR,
         .for_stmt = {.init = init, .cond = cond, .update = update, .block = block},
@@ -158,8 +172,8 @@ SNUK_INLINE SnukStmt *build_for_stmt(SnukStmt *init, SnukExpr *cond, SnukExpr *u
     return for_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_flow_stmt(SnukTokenType type, SnukExpr *value) {
-    SnukStmt *flow_stmt = parser_create_stmt();
+SNUK_INLINE SnukStmt *build_flow_stmt(SnukParser *parser, SnukTokenType type, SnukExpr *value) {
+    SnukStmt *flow_stmt = parser_create_stmt(parser);
     switch (type) {
         case SNUK_TOKEN_RETURN:
             *flow_stmt = (SnukStmt){
@@ -183,9 +197,9 @@ SNUK_INLINE SnukStmt *build_flow_stmt(SnukTokenType type, SnukExpr *value) {
     return flow_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_print_stmt(SnukStmt *print_stmt, SnukExpr *expr) {
+SNUK_INLINE SnukStmt *build_print_stmt(SnukParser *parser, SnukStmt *print_stmt, SnukExpr *expr) {
     if (!print_stmt) {
-        print_stmt = parser_create_stmt();
+        print_stmt = parser_create_stmt(parser);
         *print_stmt = (SnukStmt){
             .type = SNUK_STMT_PRINT,
             .print_stmt = {.exprs = snuk_darray_create(SnukExpr *)},
@@ -195,9 +209,9 @@ SNUK_INLINE SnukStmt *build_print_stmt(SnukStmt *print_stmt, SnukExpr *expr) {
     return print_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_block_stmt(SnukStmt *block_stmt, SnukStmt *stmt) {
+SNUK_INLINE SnukStmt *build_block_stmt(SnukParser *parser, SnukStmt *block_stmt, SnukStmt *stmt) {
     if (!block_stmt) {
-        block_stmt = parser_create_stmt();
+        block_stmt = parser_create_stmt(parser);
         *block_stmt = (SnukStmt){
             .type = SNUK_STMT_BLOCK,
             .block_stmt = {.stmts = snuk_darray_create(SnukStmt *)},
@@ -207,73 +221,79 @@ SNUK_INLINE SnukStmt *build_block_stmt(SnukStmt *block_stmt, SnukStmt *stmt) {
     return block_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_comment_stmt(const char *comment, uint64_t length, bool multi_line) {
-    SnukStmt *comment_stmt = parser_create_stmt();
+SNUK_INLINE SnukStmt *build_comment_stmt(SnukParser *parser, SnukToken comment_token) {
+    SnukStmt *comment_stmt = parser_create_stmt(parser);
     *comment_stmt = (SnukStmt){
-        .type = multi_line ? SNUK_STMT_MLCOMMENT : SNUK_STMT_SLCOMMENT,
-        .comment_stmt = {.comment = comment, .length = length},
+        .type = comment_token.type == SNUK_TOKEN_MLCOMMENT ? SNUK_STMT_MLCOMMENT : SNUK_STMT_SLCOMMENT,
+        .comment_stmt = {
+            .comment = comment_token.string_literal.value,
+            .length = comment_token.string_literal.length,
+        },
     };
     return comment_stmt;
 }
 
-SNUK_INLINE SnukExpr *parser_create_expr(void) {
-    return (SnukExpr *)snuk_alloc(sizeof(SnukExpr), alignof(SnukExpr));
-}
-
-SNUK_INLINE SnukExpr *build_null_expr(void) {
-    SnukExpr *null_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_null_expr(SnukParser *parser) {
+    SnukExpr *null_expr = parser_create_expr(parser);
     *null_expr = (SnukExpr){
         .type = SNUK_EXPR_NULL_LITERAL,
     };
     return null_expr;
 }
 
-SNUK_INLINE SnukExpr *build_bool_expr(bool expr) {
-    SnukExpr *bool_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_bool_expr(SnukParser *parser) {
+    SnukExpr *bool_expr = parser_create_expr(parser);
     *bool_expr = (SnukExpr){
-        .type = expr ? SNUK_EXPR_TRUE_LITERAL : SNUK_EXPR_FALSE_LITERAL,
+        .type = parser->previous.type == SNUK_TOKEN_TRUE
+            ? SNUK_EXPR_TRUE_LITERAL : SNUK_EXPR_FALSE_LITERAL,
     };
     return bool_expr;
 }
 
-SNUK_INLINE SnukExpr *build_string_literal_expr(const char *str, uint64_t length) {
-    SnukExpr *string_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
+    SnukExpr *string_expr = parser_create_expr(parser);
     *string_expr = (SnukExpr){
         .type = SNUK_EXPR_STRING_LITERAL,
-        .string_literal = {.value = str, .length = length},
+        .string_literal = {
+            .value = parser->previous.string_literal.value,
+            .length = parser->previous.string_literal.length,
+        },
     };
     return string_expr;
 }
 
-SNUK_INLINE SnukExpr *build_identifier_expr(const char *name, uint64_t length) {
-    SnukExpr *identifier = parser_create_expr();
+SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
+    SnukExpr *identifier = parser_create_expr(parser);
     *identifier = (SnukExpr){
         .type = SNUK_EXPR_IDENTIFIER,
-        .identifier = {.name = name, .length = length},
+        .identifier = {
+            .name = parser->previous.string_literal.value,
+            .length = parser->previous.string_literal.length,
+        },
     };
     return identifier;
 }
 
-SNUK_INLINE SnukExpr *build_int_literal_expr(int64_t value) {
-    SnukExpr *int_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_int_literal_expr(SnukParser *parser) {
+    SnukExpr *int_expr = parser_create_expr(parser);
     *int_expr = (SnukExpr){
         .type = SNUK_EXPR_INT_LITERAL,
-        .int_literal = value,
+        .int_literal = parser->previous.int_literal,
     };
     return int_expr;
 }
 
-SNUK_INLINE SnukExpr *build_float_literal_expr(double value) {
-    SnukExpr *float_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_float_literal_expr(SnukParser *parser) {
+    SnukExpr *float_expr = parser_create_expr(parser);
     *float_expr = (SnukExpr){
         .type = SNUK_EXPR_FLOAT_LITERAL,
-        .float_literal = value,
+        .float_literal = parser->previous.float_literal,
     };
     return float_expr;
 }
 
-SNUK_INLINE SnukExpr *build_unary_expr(SnukTokenType op, SnukExpr *operand) {
-    SnukExpr *unary_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_unary_expr(SnukParser *parser, SnukTokenType op, SnukExpr *operand) {
+    SnukExpr *unary_expr = parser_create_expr(parser);
     *unary_expr = (SnukExpr){
         .type = SNUK_EXPR_UNARY,
         .unary = {.op = op, .operand = operand},
@@ -281,8 +301,8 @@ SNUK_INLINE SnukExpr *build_unary_expr(SnukTokenType op, SnukExpr *operand) {
     return unary_expr;
 }
 
-SNUK_INLINE SnukExpr *build_binary_expr(SnukTokenType op, SnukExpr *left, SnukExpr *right) {
-    SnukExpr *binary_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_binary_expr(SnukParser *parser, SnukTokenType op, SnukExpr *left, SnukExpr *right) {
+    SnukExpr *binary_expr = parser_create_expr(parser);
     *binary_expr = (SnukExpr){
         .type = SNUK_EXPR_BINARY,
         .binary = {.op = op, .left = left, .right = right},
@@ -290,8 +310,8 @@ SNUK_INLINE SnukExpr *build_binary_expr(SnukTokenType op, SnukExpr *left, SnukEx
     return binary_expr;
 }
 
-SNUK_INLINE SnukExpr *build_assign_expr(SnukExpr *identifier, SnukExpr *value) {
-    SnukExpr *assign_expr = parser_create_expr();
+SNUK_INLINE SnukExpr *build_assign_expr(SnukParser *parser, SnukExpr *identifier, SnukExpr *value) {
+    SnukExpr *assign_expr = parser_create_expr(parser);
     *assign_expr = (SnukExpr){
         .type = SNUK_EXPR_ASSIGN,
         .assign = {.identifier = identifier, .value = value},

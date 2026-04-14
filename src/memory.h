@@ -2,9 +2,13 @@
 
 #include "defines.h"
 
+#include <snmemory/snmemory.h>
+
 #define KIB(x) ((x) * 1024)
 #define MIB(x) (KIB((x) * 1024))
 #define GIB(x) (MIB((x) * 1024))
+
+#define snuk_page_size() sn_vm_get_page_size()
 
 bool snuk_memory_init(uint64_t reserve_size);
 void snuk_memory_deinit(void);

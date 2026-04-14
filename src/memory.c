@@ -1,7 +1,7 @@
 #include "memory.h"
+
 #include "logger.h"
 
-#include <snmemory/snmemory.h>
 #include <stdlib.h>
 
 typedef struct SnukPageAllocator {
