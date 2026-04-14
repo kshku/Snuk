@@ -4,102 +4,146 @@
 #include <snmemory/snmemory.h>
 #include <stdlib.h>
 
-typedef struct SnukAllocator {
-    snFreeListAllocator fla;
+typedef struct SnukPageAllocator {
+    uint8_t *base;
     uint32_t total_pages;
     uint32_t committed_pages;
-} SnukAllocator;
+    uint32_t reverse_committed_pages;
+} SnukPageAllocator;
 
-static bool create_allocator(SnukAllocator *allocator, uint32_t pages);
-static void destroy_allocator(SnukAllocator *allocator);
-static bool commit_pages(SnukAllocator *allocator, uint32_t pages);
+static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages);
+static void destroy_allocator(SnukPageAllocator *allocator);
+static void *commit_pages(SnukPageAllocator *allocator, uint32_t pages);
+static void *reverse_commit_pages(SnukPageAllocator *allocator, uint32_t pages);
 
-static bool create_allocator(SnukAllocator *allocator, uint32_t pages) {
-    void *base = sn_vm_reserve(pages);
-    if (!base) return false;
+static void try_increasing_allocator_size(void);
+static bool try_merge_nodes(snFreeNode *previous_node, snFreeNode *node);
 
-    if (!sn_vm_commit(base, 1)) goto fail;
-
-    *allocator = (SnukAllocator) {
-        .total_pages = pages,
-        .committed_pages = 1,
-    };
-
-    if (!sn_freelist_allocator_init(&allocator->fla, base, sn_vm_get_page_size()))
-        goto fail;
-
-    return true;
-
-fail:
-    sn_vm_release(base, pages);
-    return false;
-}
-
-static void destroy_allocator(SnukAllocator *allocator) {
-    if (!allocator) return;
-    void *base = allocator->fla.mem;
-    sn_freelist_allocator_deinit(&allocator->fla);
-    sn_vm_decommit(base, allocator->committed_pages);
-    sn_vm_release(base, allocator->total_pages);
-    *allocator = (SnukAllocator){0};
-}
-
-static bool commit_pages(SnukAllocator *allocator, uint32_t pages) {
-    if (pages + allocator->committed_pages > allocator->total_pages)
-        return false;
-
-    uint8_t *base = allocator->fla.mem;
-    if (!sn_vm_commit(base + allocator->committed_pages, pages)) 
-        return false;
-
-    allocator->committed_pages += pages;
-
-    // trick to  increase the allocator size
-    uint64_t added_size = pages * sn_vm_get_page_size();
-    allocator->fla.size += added_size;
-
-    return true;
-}
-
-static SnukAllocator gallocator;
+static SnukPageAllocator page_allocator;
+static snFreeListAllocator galloc;
 
 bool snuk_memory_init(uint64_t reserve_size) {
-    uint32_t pages = (uint32_t)(reserve_size / sn_vm_get_page_size() + 1);
-    if (!create_allocator(&gallocator, pages)) return false;
+    uint64_t page_size = sn_vm_get_page_size();
+    uint32_t pages = (uint32_t)(reserve_size / page_size + 1);
+    if (!create_allocator(&page_allocator, pages)) return false;
+
+    void *base = commit_pages(&page_allocator, 1);
+    if (!base) return false;
+    
+    if (!sn_freelist_allocator_init(&galloc, base, page_size))
+        return false;
+
     return true;
 }
 
 void snuk_memory_deinit(void) {
-    destroy_allocator(&gallocator);
+    sn_freelist_allocator_deinit(&galloc);
+    destroy_allocator(&page_allocator);
 }
 
 void *snuk_alloc(uint64_t size, uint64_t align) {
-    void *ptr = sn_freelist_allocator_allocate(&gallocator.fla, size, align);
+    void *ptr = sn_freelist_allocator_allocate(&galloc, size, align);
 
     if (ptr) return ptr;
-
-    if (!commit_pages(&gallocator, 1)) {
-        log_fatal("Ran out of memory!");
-        exit(EXIT_FAILURE);
-    }
-
+    try_increasing_allocator_size();
     return snuk_alloc(size, align);
 
 }
 
 void *snuk_realloc(void *ptr, uint64_t new_size, uint64_t align) {
-    void *new_ptr = sn_freelist_allocator_reallocate(&gallocator.fla, ptr, new_size, align);
+    void *new_ptr = sn_freelist_allocator_reallocate(&galloc, ptr, new_size, align);
     if (new_ptr) return new_ptr;
-
-    if (!commit_pages(&gallocator, 1)) {
-        log_fatal("Ran out of memory!");
-        exit(EXIT_FAILURE);
-    }
-
+    try_increasing_allocator_size();
     return snuk_realloc(ptr, new_size, align);
 }
 
 void snuk_free(void *ptr) {
-    sn_freelist_allocator_free(&gallocator.fla, ptr);
+    sn_freelist_allocator_free(&galloc, ptr);
 }
 
+static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages) {
+    *allocator = (SnukPageAllocator) {
+        .base = sn_vm_reserve(pages),
+        .total_pages = pages,
+        .committed_pages = 1,
+    };
+
+    if (!allocator->base) return false;
+
+    return true;
+}
+
+static void destroy_allocator(SnukPageAllocator *allocator) {
+    if (!allocator) return;
+    sn_vm_decommit(allocator->base, allocator->committed_pages);
+    sn_vm_release(allocator->base, allocator->total_pages);
+    *allocator = (SnukPageAllocator){0};
+}
+
+static void *commit_pages(SnukPageAllocator *allocator, uint32_t pages) {
+    if (pages + allocator->committed_pages + allocator->reverse_committed_pages
+            > allocator->total_pages)
+        return NULL;
+
+    uint64_t page_size = sn_vm_get_page_size();
+    void *base = allocator->base + (allocator->committed_pages * page_size);
+    if (!sn_vm_commit(base, pages)) return NULL;
+
+    allocator->committed_pages += pages;
+
+    return base;
+}
+
+static void *reverse_commit_pages(SnukPageAllocator *allocator, uint32_t pages) {
+    if (pages + allocator->committed_pages + allocator->reverse_committed_pages
+            > allocator->total_pages)
+        return NULL;
+
+    uint64_t page_size = sn_vm_get_page_size();
+    uint8_t *base = allocator->base +
+        ((allocator->total_pages - allocator->reverse_committed_pages - pages) * page_size); 
+    if (!sn_vm_commit(base, pages)) return NULL;
+
+    allocator->reverse_committed_pages += pages;
+
+    return base;
+}
+
+static void try_increasing_allocator_size(void) {
+    void *base = commit_pages(&page_allocator, 1);
+    if (!base) {
+        log_fatal("Ran out of memory!");
+        exit(EXIT_FAILURE);
+    }
+
+    uint64_t page_size  = sn_vm_get_page_size();
+
+    // trick to increase the freelist allocator size
+    // find the freelist which is just before the committed page
+    // and add this page to it
+
+    galloc.size += page_size;
+    
+    if (!galloc.free_list) {
+        galloc.free_list = base;
+        *galloc.free_list = (snFreeNode) {
+            .size = page_size,
+            .next = NULL,
+        };
+
+        return;
+    }
+
+#define NODE_END(node) (((uint8_t *)((node) + 1)) + (node)->size)
+    snFreeNode *cur_node = galloc.free_list;
+    while (cur_node) {
+        if (NODE_END(cur_node) == ((uint8_t *)base)) {
+            cur_node->size += page_size;
+            break;
+        }
+
+        cur_node = cur_node->next;
+    }
+
+    SNUK_ASSERT(cur_node, "wrong assumption about freelist allocator");
+}
