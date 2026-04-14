@@ -7,6 +7,7 @@ set(HEADERS
     lexer.h
     parser.h
     parser_helper.h
+    darray.h
 )
 
 set(SRCS
@@ -16,6 +17,7 @@ set(SRCS
     io.c
     lexer.c
     parser.c
+    darray.c
 )
 
 target_sources(snuk PRIVATE ${HEADERS} ${SRCS})

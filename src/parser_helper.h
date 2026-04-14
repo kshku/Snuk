@@ -1,8 +1,9 @@
 #pragma once
 
 #include "defines.h"
-#include "parser.h"
 
+#include "parser.h"
+#include "darray.h"
 #include "memory.h"
 
 typedef enum Precedence {
@@ -183,41 +184,27 @@ SNUK_INLINE SnukStmt *build_flow_stmt(SnukTokenType type, SnukExpr *value) {
 }
 
 SNUK_INLINE SnukStmt *build_print_stmt(SnukStmt *print_stmt, SnukExpr *expr) {
-#define ARRAY_SIZE 25
     if (!print_stmt) {
         print_stmt = parser_create_stmt();
         *print_stmt = (SnukStmt){
             .type = SNUK_STMT_PRINT,
-            .print_stmt = {
-                // TODO: darray?
-                .exprs = snuk_alloc(sizeof(SnukExpr *) * ARRAY_SIZE, alignof(SnukExpr *)),
-                .count = 0,
-            },
+            .print_stmt = {.exprs = snuk_darray_create(SnukExpr *)},
         };
     }
-    if (print_stmt->print_stmt.count < ARRAY_SIZE)
-        print_stmt->print_stmt.exprs[print_stmt->print_stmt.count++] = expr;
+    snuk_darray_push(&print_stmt->print_stmt.exprs, expr);
     return print_stmt;
-#undef ARRAY_SIZE
 }
 
 SNUK_INLINE SnukStmt *build_block_stmt(SnukStmt *block_stmt, SnukStmt *stmt) {
-#define ARRAY_SIZE 100
     if (!block_stmt) {
         block_stmt = parser_create_stmt();
         *block_stmt = (SnukStmt){
             .type = SNUK_STMT_BLOCK,
-            .block_stmt = {
-                // TODO: darray
-                .stmts = snuk_alloc(sizeof(SnukStmt *) * ARRAY_SIZE, alignof(SnukStmt *)),
-                .count = 0,
-            },
+            .block_stmt = {.stmts = snuk_darray_create(SnukStmt *)},
         };
     }
-    if (block_stmt->block_stmt.count < ARRAY_SIZE)
-        block_stmt->block_stmt.stmts[block_stmt->block_stmt.count++] = stmt;
+    snuk_darray_push(&block_stmt->block_stmt.stmts, stmt);
     return block_stmt;
-#undef ARRAY_SIZE
 }
 
 SNUK_INLINE SnukStmt *build_comment_stmt(const char *comment, uint64_t length, bool multi_line) {

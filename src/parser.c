@@ -286,6 +286,7 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
     if (!stmt) return;
     log_trace("Statement type: %s", snuk_parser_stmt_type_to_string(stmt->type));
 
+    uint64_t count;
     switch (stmt->type) {
         case SNUK_STMT_EXPR:
             log_trace("Expr:");
@@ -339,12 +340,14 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             break;
         case SNUK_STMT_PRINT:
             log_trace("print:");
-            for (uint64_t i = 0; i < stmt->print_stmt.count; ++i)
+            count = snuk_darray_get_length(stmt->print_stmt.exprs);
+            for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_expr(stmt->print_stmt.exprs[i]);
             break;
         case SNUK_STMT_BLOCK:
             log_trace("block:");
-            for (uint64_t i = 0; i < stmt->block_stmt.count; ++i)
+            count = snuk_darray_get_length(stmt->block_stmt.stmts);
+            for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_stmt(stmt->block_stmt.stmts[i]);
             break;
         case SNUK_STMT_SLCOMMENT:

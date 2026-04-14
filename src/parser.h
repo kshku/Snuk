@@ -4,8 +4,7 @@
 
 #include "lexer.h"
 
-typedef enum SnukStmtType {
-    SNUK_STMT_EXPR,
+typedef enum SnukStmtType { SNUK_STMT_EXPR,
 
     SNUK_STMT_VAR_DECL,
     SNUK_STMT_CONST_DECL,
@@ -148,13 +147,13 @@ struct SnukStmt {
         } type_stmt;
 
         struct {
+            // darray
             SnukExpr **exprs;
-            uint64_t count;
         } print_stmt;
 
         struct {
+            // darray
             SnukStmt **stmts;
-            uint64_t count;
         } block_stmt;
 
         struct {
