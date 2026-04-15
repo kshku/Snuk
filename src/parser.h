@@ -99,6 +99,12 @@ struct SnukExpr {
     };
 };
 
+typedef struct SnukParam {
+    SnukExpr *identifier;
+    // TODO: type
+    SnukExpr *default_value;
+} SnukParam;
+
 typedef struct SnukStmt SnukStmt;
 struct SnukStmt {
     SnukStmtType type;
@@ -107,8 +113,7 @@ struct SnukStmt {
         SnukExpr *expr_stmt;
 
         struct {
-            const char *name;
-            uint64_t length;
+            SnukExpr *identifier;
             SnukExpr *init;
         } decl_stmt; // var or const
 
@@ -138,8 +143,10 @@ struct SnukStmt {
         SnukExpr *return_stmt;
 
         struct {
-            // TODO:
-            SnukStmt *block;
+            SnukExpr *identifier;
+            // darray
+            SnukParam **params;
+            SnukStmt *body;
         } fn_stmt;
 
         struct {
@@ -200,3 +207,4 @@ const char *snuk_parser_stmt_type_to_string(SnukStmtType type);
 const char *snuk_parser_expr_type_to_string(SnukExprType type);
 void snuk_parser_log_stmt(SnukStmt *stmt);
 void snuk_parser_log_expr(SnukExpr *expr);
+void snuk_parser_log_param(SnukParam *param);

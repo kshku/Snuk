@@ -119,6 +119,11 @@ SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
             sizeof(SnukExpr), alignof(SnukExpr));
 }
 
+SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
+    return (SnukParam *)parser->alloc(parser->alloc_data,
+            sizeof(SnukParam), alignof(SnukParam));
+}
+
 SNUK_INLINE SnukStmt *build_expr_stmt(SnukParser *parser, SnukExpr *expr) {
     SnukStmt *expr_stmt = parser_create_stmt(parser);
     *expr_stmt = (SnukStmt){
@@ -128,13 +133,12 @@ SNUK_INLINE SnukStmt *build_expr_stmt(SnukParser *parser, SnukExpr *expr) {
     return expr_stmt;
 }
 
-SNUK_INLINE SnukStmt *build_decl_stmt(SnukParser *parser, SnukToken identifier, SnukExpr *init, bool is_const) {
+SNUK_INLINE SnukStmt *build_decl_stmt(SnukParser *parser, SnukExpr *identifier, SnukExpr *init, bool is_const) {
     SnukStmt *decl_stmt = parser_create_stmt(parser);
     *decl_stmt = (SnukStmt){
         .type = is_const ? SNUK_STMT_CONST_DECL : SNUK_STMT_VAR_DECL,
         .decl_stmt = {
-            .name = identifier.string_literal.value,
-            .length = identifier.string_literal.length,
+            .identifier = identifier,
             .init = init,
         },
     };
@@ -195,6 +199,19 @@ SNUK_INLINE SnukStmt *build_flow_stmt(SnukParser *parser, SnukTokenType type, Sn
             break;
     }
     return flow_stmt;
+}
+
+SNUK_INLINE SnukStmt *build_fn_stmt(SnukParser *parser, SnukExpr *identifier, SnukParam **params, SnukStmt *body) {
+    SnukStmt *fn_stmt = parser_create_stmt(parser);
+    *fn_stmt = (SnukStmt){
+        .type = SNUK_STMT_FN,
+        .fn_stmt = {
+            .identifier = identifier,
+            .params = params,
+            .body = body,
+        },
+    };
+    return fn_stmt;
 }
 
 SNUK_INLINE SnukStmt *build_print_stmt(SnukParser *parser, SnukStmt *print_stmt, SnukExpr *expr) {
@@ -317,6 +334,15 @@ SNUK_INLINE SnukExpr *build_assign_expr(SnukParser *parser, SnukExpr *identifier
         .assign = {.identifier = identifier, .value = value},
     };
     return assign_expr;
+}
+
+SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukExpr *default_value) {
+    SnukParam *param = parser_create_param(parser);
+    *param = (SnukParam){
+        .identifier = identifier,
+        .default_value = default_value,
+    };
+    return param;
 }
 
 SNUK_INLINE void parser_advance(SnukParser *parser) {

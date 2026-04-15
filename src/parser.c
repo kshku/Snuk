@@ -5,6 +5,7 @@
 #include "io.h"
 #include "memory.h"
 #include "logger.h"
+#include "darray.h"
 
 SnukStmt *snuk_parser_next_stmt(SnukParser *parser) {
     if (parser->current.type == SNUK_TOKEN_EOF) return NULL;
@@ -49,7 +50,7 @@ static SnukStmt *parse_expr_stmt(SnukParser *parser) {
 
 static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
-    SnukToken identifier = parser->previous;
+    SnukExpr *identifier = parse_primary(parser);
 
     if (parser_match(parser, SNUK_TOKEN_COLON)) {
         // TODO: types
@@ -148,9 +149,31 @@ static SnukStmt *parse_flow_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_fn_stmt(SnukParser *parser) {
-    SNUK_UNUSED(parser);
-    // TODO:
-    return NULL;
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected function name");
+    SnukExpr *identifier = parse_primary(parser);
+
+    SnukParam **params = snuk_darray_create(SnukParam *);
+    parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
+    while (!parser_match(parser, SNUK_TOKEN_RPAREN)) {
+        parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
+        SnukExpr *name = parse_primary(parser);
+        SnukExpr *default_value = NULL;
+        if (parser_match(parser, SNUK_TOKEN_COLON)) {
+            // TODO: types
+            parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
+        }
+        if (parser_match(parser, SNUK_TOKEN_ASSIGN))
+            default_value = parse_expression(parser);
+        snuk_darray_push(&params, build_param(parser, name, default_value));
+
+        if (!parser_check(parser, SNUK_TOKEN_RPAREN))
+            parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
+    }
+
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
+    SnukStmt *body = parse_block_stmt(parser);
+
+    return build_fn_stmt(parser, identifier, params, body);
 }
 
 static SnukStmt *parse_type_stmt(SnukParser *parser) {
@@ -314,11 +337,13 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             snuk_parser_log_expr(stmt->expr_stmt);
             break;
         case SNUK_STMT_VAR_DECL:
-            log_trace("var %.*s = ", stmt->decl_stmt.length, stmt->decl_stmt.name);
+            log_trace("var: ", NULL);
+            snuk_parser_log_expr(stmt->decl_stmt.identifier);
             snuk_parser_log_expr(stmt->decl_stmt.init);
             break;
         case SNUK_STMT_CONST_DECL:
-            log_trace("const %.*s = ", stmt->decl_stmt.length, stmt->decl_stmt.name);
+            log_trace("const: ", NULL);
+            snuk_parser_log_expr(stmt->decl_stmt.identifier);
             snuk_parser_log_expr(stmt->decl_stmt.init);
             break;
         case SNUK_STMT_IF:
@@ -359,6 +384,11 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             break;
         case SNUK_STMT_FN:
             log_trace("function:", NULL);
+            snuk_parser_log_expr(stmt->fn_stmt.identifier);
+            count = snuk_darray_get_length(stmt->fn_stmt.params);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_param(stmt->fn_stmt.params[i]);
+            snuk_parser_log_stmt(stmt->fn_stmt.body);
             break;
         case SNUK_STMT_TYPE:
             log_trace("type:", NULL);
@@ -436,6 +466,13 @@ void snuk_parser_log_expr(SnukExpr *expr) {
         default:
             break;
     }
+}
+
+void snuk_parser_log_param(SnukParam *param) {
+    if (!param) return;
+    log_trace("param: ", NULL);
+    snuk_parser_log_expr(param->identifier);
+    snuk_parser_log_expr(param->default_value);
 }
 
 const char *snuk_parser_stmt_type_to_string(SnukStmtType type) {
