@@ -101,16 +101,36 @@ static SnukStmt *parse_do_while_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_for_stmt(SnukParser *parser) {
-    SNUK_UNUSED(parser);
-    // TODO:
-    return NULL;
-    SnukStmt *left = parse_stmt(parser);
-    if (left->type == SNUK_STMT_VAR_DECL) {
-        parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';'");
-    } else if (left->type == SNUK_STMT_EXPR) {
-        if (parser_match(parser, SNUK_TOKEN_SEMICOLON)) {
-        }
+    SnukStmt *init = NULL;
+    SnukExpr *cond = NULL;
+    SnukExpr *update = NULL;
+    SnukStmt *block = NULL;
+
+    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
+        // infinite loop
+        block = parse_block_stmt(parser);
+        return build_for_stmt(parser, init, cond, update, block);
     }
+
+    if (parser_match(parser, SNUK_TOKEN_VAR))
+        init = parse_decl_stmt(parser, false);
+
+    parser_match(parser, SNUK_TOKEN_SEMICOLON);
+    cond = parse_expression(parser);
+    parser_match(parser, SNUK_TOKEN_SEMICOLON);
+
+    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
+        block = parse_block_stmt(parser);
+        return build_for_stmt(parser, init, cond, update, block);
+    }
+
+    update = parse_expression(parser);
+
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
+
+    block = parse_block_stmt(parser);
+
+    return build_for_stmt(parser, init, cond, update, block);
 }
 
 static SnukStmt *parse_flow_stmt(SnukParser *parser) {
@@ -316,6 +336,10 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             break;
         case SNUK_STMT_FOR:
             log_trace("for:", NULL);
+            snuk_parser_log_stmt(stmt->for_stmt.init);
+            snuk_parser_log_expr(stmt->for_stmt.cond);
+            snuk_parser_log_expr(stmt->for_stmt.update);
+            snuk_parser_log_stmt(stmt->for_stmt.block);
             break;
         case SNUK_STMT_RETURN:
             log_trace("return:", NULL);
