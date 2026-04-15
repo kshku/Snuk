@@ -126,6 +126,12 @@ static SnukStmt *parse_for_stmt(SnukParser *parser) {
 
     update = parse_expression(parser);
 
+    if (parser_match(parser, SNUK_TOKEN_SEMICOLON) && !init) {
+        init = build_expr_stmt(parser, cond);
+        cond = update;
+        update = parse_expression(parser);
+    }
+
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
 
     block = parse_block_stmt(parser);

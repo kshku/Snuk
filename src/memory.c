@@ -78,7 +78,8 @@ static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages) {
     *allocator = (SnukPageAllocator) {
         .base = sn_vm_reserve(pages),
         .total_pages = pages,
-        .committed_pages = 1,
+        .committed_pages = 0,
+        .reverse_committed_pages = 0,
     };
 
     if (!allocator->base) return false;
