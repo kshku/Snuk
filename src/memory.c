@@ -158,14 +158,19 @@ static void try_increasing_allocator_size(void) {
 
 #define NODE_END(node) (((uint8_t *)((node) + 1)) + (node)->size)
     snFreeNode *cur_node = galloc.free_list;
+    snFreeNode *last_node = NULL;
     while (cur_node) {
         if (NODE_END(cur_node) == ((uint8_t *)base)) {
             cur_node->size += page_size;
             break;
         }
 
+        last_node = cur_node;
         cur_node = cur_node->next;
     }
 
-    SNUK_ASSERT(cur_node, "wrong assumption about freelist allocator");
+    if (!cur_node) {
+        *(snFreeNode *)base = (snFreeNode){.size = page_size, .next = NULL};
+        last_node->next = (snFreeNode *)base;
+    }
 }

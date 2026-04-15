@@ -190,8 +190,11 @@ static SnukStmt *parse_print_stmt(SnukParser *parser) {
 
 static SnukStmt *parse_block_stmt(SnukParser *parser) {
     SnukStmt *block_stmt = build_block_stmt(parser, NULL, parse_stmt(parser));
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE))
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+            && parser->current.type != SNUK_TOKEN_EOF)
         block_stmt = build_block_stmt(parser, block_stmt, parse_stmt(parser));
+    if (parser->previous.type != SNUK_TOKEN_RBRACE)
+        parser_error(parser, "block was not closed");
     return block_stmt;
 }
 
