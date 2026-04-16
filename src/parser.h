@@ -144,24 +144,22 @@ struct SnukStmt {
 
         struct {
             SnukExpr *identifier;
-            // darray
-            SnukParam **params;
+            SnukParam **params; // darray
             SnukStmt *body;
         } fn_stmt;
 
         struct {
-            // TODO:
-            bool place_holder;
+            SnukExpr *identifier;
+            SnukStmt **vars; // darray
+            SnukStmt **fns; // darray
         } type_stmt;
 
         struct {
-            // darray
-            SnukExpr **exprs;
+            SnukExpr **exprs; // darray
         } print_stmt;
 
         struct {
-            // darray
-            SnukStmt **stmts;
+            SnukStmt **stmts; // darray
         } block_stmt;
 
         struct {

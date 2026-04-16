@@ -177,8 +177,33 @@ static SnukStmt *parse_fn_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_type_stmt(SnukParser *parser) {
-    SNUK_UNUSED(parser);
-    return NULL;
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
+
+    SnukExpr *identifier = parse_primary(parser);
+    SnukStmt **vars = snuk_darray_create(SnukStmt *);
+    SnukStmt **fns = snuk_darray_create(SnukStmt *);
+
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+            && parser->current.type !=  SNUK_TOKEN_EOF) {
+
+        if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST)) {
+            snuk_darray_push(&vars,
+                    parse_decl_stmt(parser, parser->previous.type == SNUK_TOKEN_CONST));
+        } else if (parser_match(parser, SNUK_TOKEN_FN)) {
+            snuk_darray_push(&fns, parse_fn_stmt(parser));
+        } else {
+            parser_error(parser, "Unexpected token");
+        }
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "expected '}'");
+        return NULL;
+    }
+
+    return build_type_stmt(parser, identifier, vars, fns);
 }
 
 static SnukStmt *parse_print_stmt(SnukParser *parser) {
@@ -189,12 +214,14 @@ static SnukStmt *parse_print_stmt(SnukParser *parser) {
 }
 
 static SnukStmt *parse_block_stmt(SnukParser *parser) {
-    SnukStmt *block_stmt = build_block_stmt(parser, NULL, parse_stmt(parser));
+    SnukStmt *block_stmt = build_block_stmt(parser, NULL, NULL);
     while (!parser_match(parser, SNUK_TOKEN_RBRACE)
             && parser->current.type != SNUK_TOKEN_EOF)
         block_stmt = build_block_stmt(parser, block_stmt, parse_stmt(parser));
-    if (parser->previous.type != SNUK_TOKEN_RBRACE)
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
         parser_error(parser, "block was not closed");
+        return NULL;
+    }
     return block_stmt;
 }
 
@@ -395,6 +422,13 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
             break;
         case SNUK_STMT_TYPE:
             log_trace("type:", NULL);
+            snuk_parser_log_expr(stmt->type_stmt.identifier);
+            count = snuk_darray_get_length(stmt->type_stmt.vars);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_stmt(stmt->type_stmt.vars[i]);
+            count = snuk_darray_get_length(stmt->type_stmt.fns);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_stmt(stmt->type_stmt.fns[i]);
             break;
         case SNUK_STMT_PRINT:
             log_trace("print:", NULL);

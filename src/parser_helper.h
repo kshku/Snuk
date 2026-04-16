@@ -214,6 +214,19 @@ SNUK_INLINE SnukStmt *build_fn_stmt(SnukParser *parser, SnukExpr *identifier, Sn
     return fn_stmt;
 }
 
+SNUK_INLINE SnukStmt *build_type_stmt(SnukParser *parser, SnukExpr *identifier, SnukStmt **vars, SnukStmt **fns) {
+    SnukStmt *type_stmt = parser_create_stmt(parser);
+    *type_stmt = (SnukStmt){
+        .type = SNUK_STMT_TYPE,
+        .type_stmt = {
+            .identifier = identifier,
+            .vars = vars,
+            .fns = fns,
+        },
+    };
+    return type_stmt;
+}
+
 SNUK_INLINE SnukStmt *build_print_stmt(SnukParser *parser, SnukStmt *print_stmt, SnukExpr *expr) {
     if (!print_stmt) {
         print_stmt = parser_create_stmt(parser);
@@ -222,7 +235,7 @@ SNUK_INLINE SnukStmt *build_print_stmt(SnukParser *parser, SnukStmt *print_stmt,
             .print_stmt = {.exprs = snuk_darray_create(SnukExpr *)},
         };
     }
-    snuk_darray_push(&print_stmt->print_stmt.exprs, expr);
+    if (expr) snuk_darray_push(&print_stmt->print_stmt.exprs, expr);
     return print_stmt;
 }
 
@@ -234,7 +247,7 @@ SNUK_INLINE SnukStmt *build_block_stmt(SnukParser *parser, SnukStmt *block_stmt,
             .block_stmt = {.stmts = snuk_darray_create(SnukStmt *)},
         };
     }
-    snuk_darray_push(&block_stmt->block_stmt.stmts, stmt);
+    if (stmt) snuk_darray_push(&block_stmt->block_stmt.stmts, stmt);
     return block_stmt;
 }
 
