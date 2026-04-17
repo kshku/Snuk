@@ -1,6 +1,6 @@
 #include "lexer.h"
 
-#include "string.h"
+#include "snuk_string.h"
 #include "logger.h"
 
 #include <errno.h>

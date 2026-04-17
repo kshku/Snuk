@@ -1,7 +1,7 @@
 #include "logger.h"
 #include "memory.h"
 #include "io.h"
-#include "string.h"
+#include "snuk_string.h"
 #include "parser.h"
 
 #include <snmemory/frame.h>

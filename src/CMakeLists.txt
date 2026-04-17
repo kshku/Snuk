@@ -3,7 +3,7 @@ set(HEADERS
     logger.h
     memory.h
     io.h
-    string.h
+    snuk_string.h
     lexer.h
     parser.h
     parser_helper.h
