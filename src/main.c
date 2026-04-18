@@ -3,6 +3,7 @@
 #include "io.h"
 #include "snuk_string.h"
 #include "parser.h"
+#include "interpreter.h"
 
 #include <snmemory/frame.h>
 
@@ -108,8 +109,11 @@ void run_repl(void) {
     void *mem = snuk_allocate_pages(10);
     sn_frame_allocator_init(&falloc, mem, 10 * snuk_page_size());
 
+
     // allocate before begin (doesn't get deallocated when calling end
     char *line_buffer = (char *)sn_frame_allocator_allocate(&falloc, LINE_BUFFER_SIZE, alignof(char));
+    SnukInterpreter intpret;
+    snuk_interpreter_init(&intpret);
 
     while (true) {
         sn_frame_allocator_begin(&falloc);
@@ -124,8 +128,9 @@ void run_repl(void) {
         while (true) {
             stmt = snuk_parser_next_stmt(&parser);
             if (!stmt) break;
-            snuk_parser_log_stmt(stmt);
-            log_trace("", NULL);
+            // snuk_parser_log_stmt(stmt);
+            // log_trace("", NULL);
+            snuk_interpreter_exec_stmt(&intpret, stmt);
         }
 
         snuk_parser_deinit(&parser);
@@ -137,6 +142,8 @@ void run_repl(void) {
             break;
         }
     }
+
+    snuk_interpreter_deinit(&intpret);
 
     sn_frame_allocator_deinit(&falloc);
     snuk_free_pages(mem, 10);
