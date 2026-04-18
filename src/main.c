@@ -23,6 +23,7 @@ static void run_file(const char *path);
 static void run_command(const char *command);
 
 static void print_help(void);
+static void print_version(void);
 
 static char *program_name;
 
@@ -90,6 +91,9 @@ OpMode parse_args(int argc, char *argv[], char **data) {
             if (i >= argc) snuk_eprintln("COMMAND is not given");
             *data = argv[i];
             return OP_MODE_COMMAND;
+        } else if (is_option(argv[i], "-v", "--version")) {
+            print_version();
+            return OP_MODE_QUIT;
         } else {
             *data = argv[i];
             return OP_MODE_FILE;
@@ -193,13 +197,20 @@ static void run_command(const char *command) {
 static void print_help(void) {
     snuk_println(
             "snuk - snuk interpreter\n"
+            "VERSION: %d.%d.%d\n"
             "USAGE:\n"
             "snuk               luanch as REPL\n"
             "snuk file.snuk     runs the file\n"
             "if multiple files are given, they will be ignored. Only first file gets executed."
             "\n"
             "ARGS:\n"
-            "-h | --help                print this help message and exit\n"
-            "-c | --command \"COMMAND\"     executes the given command and exits\n"
+            "-v | --version                 print the version\n"
+            "-h | --help                    print this help message and exit\n"
+            "-c | --command \"COMMAND\"     executes the given command and exits\n",
+            SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR, SNUK_VERSION_PATCH
     );
+}
+
+static void print_version(void) {
+    snuk_println("Snuk version: %d.%d.%d", SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR, SNUK_VERSION_PATCH);
 }
