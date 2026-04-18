@@ -25,6 +25,9 @@ jobs:
           # check all commits in this PR
           for COMMIT in $(git log origin/${{ github.base_ref }}..HEAD --format="%H"); do
             MSG=$(git log -1 --format="%s" "$COMMIT")
+            if [[ "$MSG" =~ ^Merge\ [0-9a-f]+\ into\ [0-9a-f]+ ]]; then
+              continue
+            fi
             if [[ ! "$MSG" =~ $PATTERN ]]; then
               echo "Invalid commit message: '$MSG'"
               echo "Expected: <type>(<scope>): <summary>"
