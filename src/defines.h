@@ -21,3 +21,5 @@
 #define SNUK_INLINE static inline
 
 #define SNUK_STRINGIFY(x) #x
+
+#define SNUK_SHOULD_NOT_REACH_HERE SNUK_ASSERT(false, "Should not reach here")
