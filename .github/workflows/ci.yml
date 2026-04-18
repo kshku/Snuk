@@ -52,9 +52,14 @@ jobs:
       - name: Run tests
         run: |
           if [ -d tests ]; then
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              SNUK_BIN="./build/Debug/snuk.exe"
+            else
+              SNUK_BIN="./build/snuk"
+            fi
             for f in tests/*.snuk; do
               echo "--- running $f"
-              ./build/snuk "$f"
+              "$SNUK_BIN" "$f"
               if [ $? -ne 0 ]; then
                 echo "FAILED: $f"
                 exit 1
