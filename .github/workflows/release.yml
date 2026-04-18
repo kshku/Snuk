@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build-release:
+    name: Build release (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary: build/snuk
+          - os: macos-latest
+            binary: build/snuk
+          - os: windows-latest
+            binary: build/Release/snuk.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Get platform info (non-windows)
+        id: platform
+        if: runner.os != 'Windows'
+        run: |
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/macos/')
+          ARCH=$(uname -m)
+          echo "name=snuk-${OS}-${ARCH}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Get platform info (windows)
+        id: platform_win
+        if: runner.os == 'Windows'
+        run: |
+          $ARCH = $env:PROCESSOR_ARCHITECTURE.ToLower()
+          # normalize AMD64 -> x86_64
+          if ($ARCH -eq "amd64") { $ARCH = "x86_64" }
+          echo "name=snuk-windows-${ARCH}" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Resolve artifact name
+        id: artifact
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "name=${{ steps.platform_win.outputs.name }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ steps.platform.outputs.name }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ matrix.binary }}
+          if-no-files-found: error
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: false
+
+      - name: List artifacts
+        run: find artifacts/ -type f
+        shell: bash
+
+      - name: Extract changelog entry for this version
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          NOTES=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
+          if [ -z "$NOTES" ]; then
+            NOTES="See CHANGELOG.md for details."
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Snuk ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.notes }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: artifacts/**/*
