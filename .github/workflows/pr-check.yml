@@ -1,0 +1,74 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+
+jobs:
+  conventional-commits:
+    name: Validate commit messages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit messages
+        run: |
+          PATTERN="^(feat|fix|docs|refactor|test|chore|perf|style|ci)(\([a-z]+\))?(!)?: .{1,72}"
+          FAILED=0
+
+          # check all commits in this PR
+          for COMMIT in $(git log origin/${{ github.base_ref }}..HEAD --format="%H"); do
+            MSG=$(git log -1 --format="%s" "$COMMIT")
+            if [[ ! "$MSG" =~ $PATTERN ]]; then
+              echo "Invalid commit message: '$MSG'"
+              echo "Expected: <type>(<scope>): <summary>"
+              echo "Example:  feat(lexer): add string escape handling"
+              FAILED=1
+            fi
+          done
+
+          exit $FAILED
+        shell: bash
+
+  branch-name:
+    name: Validate branch name
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          PATTERN="^(feat|fix|docs|refactor|test|chore|perf|style|ci)/.+"
+          if [[ ! "$BRANCH" =~ $PATTERN ]]; then
+            echo "Branch name '$BRANCH' does not follow the convention."
+            echo "Expected format: <type>/<description>"
+            echo "Example: feat/lexer-string-escape"
+            exit 1
+          fi
+          echo "Branch name '$BRANCH' is valid."
+        shell: bash
+ 
+  build-check:
+    name: Build check (warnings as errors)
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+ 
+      - name: Configure (strict)
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_FLAGS="-Wall -Wextra -Werror"
+ 
+      - name: Build
+        run: cmake --build build
