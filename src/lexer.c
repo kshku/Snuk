@@ -416,10 +416,10 @@ void snuk_lexer_log_token(SnukToken token) {
     else if (token.type == SNUK_TOKEN_FLOAT)
         log_trace("\tFloat value: %lf", token.float_literal);
     else if (token.type == SNUK_TOKEN_ERROR)
-        log_trace("\tError line: %.*s and err_msg: %s",
-                token.string_literal.len, token.string_literal.str, token.err_msg);
+        log_trace("\tError line: "SNUK_STRING_VIEW_FORMAT" and err_msg: %s",
+                SNUK_STRING_VIEW_ARG(token.string_literal), token.err_msg);
     else
-        log_trace("\tString value: %.*s", token.string_literal.len, token.string_literal.str);
+        log_trace("\tString value: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(token.string_literal));
     log_trace("\tLine: %d, Column: %d", token.line, token.col);
 }
 

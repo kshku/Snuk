@@ -6,6 +6,9 @@
 #include "memory.h"
 #include <string.h>
 
+#define SNUK_STRING_VIEW_FORMAT "%.*s"
+#define SNUK_STRING_VIEW_ARG(sv) (sv).len, (sv).str
+
 typedef struct SnukStringView {
     const char *str;
     uint64_t len;

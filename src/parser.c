@@ -319,7 +319,7 @@ static void parser_error(SnukParser *parser, const char *err_msg) {
     SnukToken t = parser->current;
     snuk_eprint("%lu:%lu error", t.line, t.col);
     if (t.type == SNUK_TOKEN_EOF) snuk_eprint(" at end");
-    else snuk_eprint(" at '%.*s'", t.string_literal.len, t.string_literal.str);
+    else snuk_eprint(" at '"SNUK_STRING_VIEW_FORMAT"'", SNUK_STRING_VIEW_ARG(t.string_literal));
     snuk_eprintln(" at '%s", err_msg);
 }
 
@@ -443,10 +443,10 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
                 snuk_parser_log_stmt(stmt->block_stmt.stmts[i]);
             break;
         case SNUK_STMT_SLCOMMENT:
-            log_trace("single line comment: %.*s", stmt->comment.len, stmt->comment.str);
+            log_trace("single line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(stmt->comment));
             break;
         case SNUK_STMT_MLCOMMENT:
-            log_trace("multi-line comment: %.*s", stmt->comment.len, stmt->comment.str);
+            log_trace("multi-line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(stmt->comment));
             break;
         default:
             break;
@@ -459,7 +459,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
 
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
-            log_trace("Identifier: %.*s", expr->identifier.len, expr->identifier.str);
+            log_trace("Identifier: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
             break;
         case SNUK_EXPR_INT_LITERAL:
             log_trace("Integer: %ld", expr->int_literal);
@@ -468,7 +468,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             log_trace("Float: %lf", expr->float_literal);
             break;
         case SNUK_EXPR_STRING_LITERAL:
-            log_trace("String: %.*s", expr->string_literal.len, expr->string_literal.str);
+            log_trace("String: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->string_literal));
             break;
         case SNUK_EXPR_TRUE_LITERAL:
         case SNUK_EXPR_FALSE_LITERAL:
@@ -489,7 +489,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             snuk_parser_log_expr(expr->binary.right);
             break;
         case SNUK_EXPR_CALL:
-            log_trace("call: %.*s", expr->identifier.len, expr->identifier.str);
+            log_trace("call: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
             break;
         case SNUK_EXPR_MEMBER:
             log_trace("Member:", NULL);
