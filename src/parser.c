@@ -443,10 +443,10 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
                 snuk_parser_log_stmt(stmt->block_stmt.stmts[i]);
             break;
         case SNUK_STMT_SLCOMMENT:
-            log_trace("single line comment: %.*s", stmt->comment_stmt.length, stmt->comment_stmt.comment);
+            log_trace("single line comment: %.*s", stmt->comment.len, stmt->comment.str);
             break;
         case SNUK_STMT_MLCOMMENT:
-            log_trace("multi-line comment: %.*s", stmt->comment_stmt.length, stmt->comment_stmt.comment);
+            log_trace("multi-line comment: %.*s", stmt->comment.len, stmt->comment.str);
             break;
         default:
             break;
@@ -459,7 +459,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
 
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
-            log_trace("Identifier: %.*s", expr->identifier.length, expr->identifier.name);
+            log_trace("Identifier: %.*s", expr->identifier.len, expr->identifier.str);
             break;
         case SNUK_EXPR_INT_LITERAL:
             log_trace("Integer: %ld", expr->int_literal);
@@ -468,7 +468,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             log_trace("Float: %lf", expr->float_literal);
             break;
         case SNUK_EXPR_STRING_LITERAL:
-            log_trace("String: %.*s", expr->string_literal.length, expr->string_literal.value);
+            log_trace("String: %.*s", expr->string_literal.len, expr->string_literal.str);
             break;
         case SNUK_EXPR_TRUE_LITERAL:
         case SNUK_EXPR_FALSE_LITERAL:
@@ -489,7 +489,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             snuk_parser_log_expr(expr->binary.right);
             break;
         case SNUK_EXPR_CALL:
-            log_trace("call: %.*s", expr->identifier.length, expr->identifier.name);
+            log_trace("call: %.*s", expr->identifier.len, expr->identifier.str);
             break;
         case SNUK_EXPR_MEMBER:
             log_trace("Member:", NULL);

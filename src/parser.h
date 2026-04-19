@@ -3,6 +3,7 @@
 #include "defines.h"
 
 #include "lexer.h"
+#include "string_view.h"
 
 typedef enum SnukStmtType {
     SNUK_STMT_EXPR,
@@ -61,19 +62,10 @@ struct SnukExpr {
     SnukExprType type;
 
     union {
-        struct {
-            const char *value;
-            uint64_t length;
-        } string_literal;
-
+        SnukStringView string_literal;
         int64_t int_literal;
-
         double float_literal;
-
-        struct {
-            const char *name;
-            uint64_t length;
-        } identifier;
+        SnukStringView identifier;
 
         struct {
             SnukTokenType op;
@@ -162,10 +154,7 @@ struct SnukStmt {
             SnukStmt **stmts; // darray
         } block_stmt;
 
-        struct {
-            const char *comment;
-            uint64_t length;
-        } comment_stmt;
+        SnukStringView comment;
     };
 };
 
