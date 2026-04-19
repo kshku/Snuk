@@ -4,6 +4,7 @@
 #include "darray.h"
 
 #include "parser.h"
+#include "string_view.h"
 
 typedef struct Value {
     enum {
@@ -19,20 +20,12 @@ typedef struct Value {
         int64_t int_value;
         double float_value;
         bool bool_value;
-        struct { 
-            const char *string;
-            uint64_t length;
-        } string_value;
+        SnukStringView string_value;
     };
 } Value;
 
-typedef struct SnukIdentifier{
-    const char *name;
-    uint64_t length;
-} SnukIdentifier;
-
 typedef struct Env {
-    SnukIdentifier identifier;
+    SnukStringView identifier;
     Value value;
 } Env;
 

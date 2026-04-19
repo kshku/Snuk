@@ -12,13 +12,11 @@ SNUK_INLINE char *copy_string(const char *str, uint64_t length) {
     return copy;
 }
 
-SNUK_INLINE SnukIdentifier copy_identifier(SnukExpr *identifier) {
+SNUK_INLINE SnukStringView copy_identifier(SnukExpr *identifier) {
     SNUK_ASSERT(identifier->type == SNUK_EXPR_IDENTIFIER, "not identifier");
-    SnukIdentifier ident = {
-        .name = copy_string(identifier->identifier.str, identifier->identifier.len),
-        .length = identifier->identifier.len,
-    };
-    return ident;
+    return snuk_string_view_create_with_len(
+            copy_string(identifier->identifier.str, identifier->identifier.len),
+            identifier->identifier.len);
 }
 
 static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier);
@@ -101,10 +99,9 @@ Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
         case SNUK_EXPR_STRING_LITERAL:
             return (Value){
                 .type = VALUE_STRING, 
-                .string_value = {
-                    .string = copy_string(expr->string_literal.str, expr->string_literal.len),
-                    .length = expr->string_literal.len,
-                },
+                .string_value = snuk_string_view_create_with_len(
+                        copy_string(expr->string_literal.str, expr->string_literal.len),
+                        expr->string_literal.len),
             };
 
         case SNUK_EXPR_TRUE_LITERAL:
@@ -154,9 +151,9 @@ static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier) {
 
     uint64_t count = snuk_darray_get_length(i->envs[index]);
     for (uint64_t j = 0; j < count; ++j) {
-        if (identifier->identifier.len != i->envs[index][j].identifier.length) continue;
+        if (identifier->identifier.len != i->envs[index][j].identifier.len) continue;
         if (string_n_equal(identifier->identifier.str,
-                    i->envs[index][j].identifier.name, identifier->identifier.len)) {
+                    i->envs[index][j].identifier.str, identifier->identifier.len)) {
             return i->envs[index][j].value;
         }
     }
@@ -177,9 +174,9 @@ static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, Snuk
 
     uint64_t count = snuk_darray_get_length(i->envs[index]);
     for (uint64_t j = 0; j < count; ++j) {
-        if (identifier->identifier.len != i->envs[index][j].identifier.length) continue;
+        if (identifier->identifier.len != i->envs[index][j].identifier.len) continue;
         if (string_n_equal(identifier->identifier.str,
-                    i->envs[index][j].identifier.name, identifier->identifier.len)) {
+                    i->envs[index][j].identifier.str, identifier->identifier.len)) {
             i->envs[index][j].value = value;
             return value;
         }
@@ -355,7 +352,7 @@ void snuk_interpreter_print_value(Value value) {
             break;
         case VALUE_STRING:
             snuk_println("type: %s", SNUK_STRINGIFY(VALUE_STRING));
-            snuk_println("value: %.*s", value.string_value.length, value.string_value.string);
+            snuk_println("value: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(value.string_value));
             break;
         case VALUE_NULL:
             snuk_println("type: %s", SNUK_STRINGIFY(VALUE_NULL));
