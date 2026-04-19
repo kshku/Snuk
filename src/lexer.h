@@ -2,6 +2,8 @@
 
 #include "defines.h"
 
+#include "string_view.h"
+
 SNUK_STATIC_ASSERT(sizeof(double) == 8, "Expected sizeof(double) to be 8 bytes.");
 
 typedef enum SnukTokenType {
@@ -107,10 +109,7 @@ typedef enum SnukTokenType {
 typedef struct SnukToken {
     SnukTokenType type;
     union {
-        struct {
-            const char *value;
-            uint64_t length;
-        } string_literal;
+        SnukStringView string_literal;
         int64_t int_literal;
         double float_literal;
     };

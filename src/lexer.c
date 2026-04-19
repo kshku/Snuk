@@ -7,48 +7,46 @@
 #include <stdlib.h>
 
 typedef struct KeyWord {
-    const char *str;
-    uint64_t len;
+    SnukStringView keyword;
     SnukTokenType type;
 } KeyWord;
 
 typedef struct Value {
-    const char *str;
-    uint64_t len;
+    SnukStringView value;
     SnukTokenType type;
     bool ignore_case;
 } Value;
 
 KeyWord keywords[] = {
-    {.str = "var",      .len = 3, .type = SNUK_TOKEN_VAR},
-    {.str = "const",    .len = 5, .type = SNUK_TOKEN_CONST},
-    {.str = "if",       .len = 2, .type = SNUK_TOKEN_IF},
-    {.str = "else",     .len = 4, .type = SNUK_TOKEN_ELSE},
-    {.str = "match",    .len = 5, .type = SNUK_TOKEN_MATCH},
-    {.str = "case",     .len = 4, .type = SNUK_TOKEN_CASE},
-    {.str = "while",    .len = 5, .type = SNUK_TOKEN_WHILE},
-    {.str = "do",       .len = 2, .type = SNUK_TOKEN_DO},
-    {.str = "for",      .len = 3, .type = SNUK_TOKEN_FOR},
-    {.str = "return",   .len = 6, .type = SNUK_TOKEN_RETURN},
-    {.str = "break",    .len = 5, .type = SNUK_TOKEN_BREAK},
-    {.str = "continue", .len = 8, .type = SNUK_TOKEN_CONTINUE},
-    {.str = "fn",       .len = 2, .type = SNUK_TOKEN_FN},
-    {.str = "print",    .len = 5, .type = SNUK_TOKEN_PRINT},
-    {.str = "self",     .len = 4, .type = SNUK_TOKEN_SELF},
-    {.str = "type",     .len = 4, .type = SNUK_TOKEN_TYPE},
-    {.str = "or",       .len = 2, .type = SNUK_TOKEN_LOGICAL_OR},
-    {.str = "and",      .len = 3, .type = SNUK_TOKEN_LOGICAL_AND},
-    {.str = "not",      .len = 3, .type = SNUK_TOKEN_BANG},
+    {.keyword = {.str = "var",      .len = 3}, .type = SNUK_TOKEN_VAR},
+    {.keyword = {.str = "const",    .len = 5}, .type = SNUK_TOKEN_CONST},
+    {.keyword = {.str = "if",       .len = 2}, .type = SNUK_TOKEN_IF},
+    {.keyword = {.str = "else",     .len = 4}, .type = SNUK_TOKEN_ELSE},
+    {.keyword = {.str = "match",    .len = 5}, .type = SNUK_TOKEN_MATCH},
+    {.keyword = {.str = "case",     .len = 4}, .type = SNUK_TOKEN_CASE},
+    {.keyword = {.str = "while",    .len = 5}, .type = SNUK_TOKEN_WHILE},
+    {.keyword = {.str = "do",       .len = 2}, .type = SNUK_TOKEN_DO},
+    {.keyword = {.str = "for",      .len = 3}, .type = SNUK_TOKEN_FOR},
+    {.keyword = {.str = "return",   .len = 6}, .type = SNUK_TOKEN_RETURN},
+    {.keyword = {.str = "break",    .len = 5}, .type = SNUK_TOKEN_BREAK},
+    {.keyword = {.str = "continue", .len = 8}, .type = SNUK_TOKEN_CONTINUE},
+    {.keyword = {.str = "fn",       .len = 2}, .type = SNUK_TOKEN_FN},
+    {.keyword = {.str = "print",    .len = 5}, .type = SNUK_TOKEN_PRINT},
+    {.keyword = {.str = "self",     .len = 4}, .type = SNUK_TOKEN_SELF},
+    {.keyword = {.str = "type",     .len = 4}, .type = SNUK_TOKEN_TYPE},
+    {.keyword = {.str = "or",       .len = 2}, .type = SNUK_TOKEN_LOGICAL_OR},
+    {.keyword = {.str = "and",      .len = 3}, .type = SNUK_TOKEN_LOGICAL_AND},
+    {.keyword = {.str = "not",      .len = 3}, .type = SNUK_TOKEN_BANG},
 };
 
 Value values[] = {
-    {.str = "true",     .len = 4, .type = SNUK_TOKEN_TRUE,  .ignore_case = false},
-    {.str = "false",    .len = 5, .type = SNUK_TOKEN_FALSE, .ignore_case = false},
-    {.str = "null",     .len = 4, .type = SNUK_TOKEN_NULL,  .ignore_case = false},
+    {.value = {.str = "true",     .len = 4}, .type = SNUK_TOKEN_TRUE,  .ignore_case = false},
+    {.value = {.str = "false",    .len = 5}, .type = SNUK_TOKEN_FALSE, .ignore_case = false},
+    {.value = {.str = "null",     .len = 4}, .type = SNUK_TOKEN_NULL,  .ignore_case = false},
 
-    {.str = "nan",      .len = 3, .type = SNUK_TOKEN_NAN,   .ignore_case = true},
-    {.str = "inf",      .len = 3, .type = SNUK_TOKEN_INF,   .ignore_case = true},
-    {.str = "infinity", .len = 8, .type = SNUK_TOKEN_INF,   .ignore_case = true},
+    {.value = {.str = "nan",      .len = 3}, .type = SNUK_TOKEN_NAN,   .ignore_case = true},
+    {.value = {.str = "inf",      .len = 3}, .type = SNUK_TOKEN_INF,   .ignore_case = true},
+    {.value = {.str = "infinity", .len = 8}, .type = SNUK_TOKEN_INF,   .ignore_case = true},
 };
 
 SNUK_INLINE bool lexer_is_eof(SnukLexer *lexer) {
@@ -95,7 +93,7 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
     uint64_t len = lexer->cur - lexer->token_start;
     return (SnukToken){
         .type = type,
-        .string_literal = {.value = lexer->token_start, .length = len},
+        .string_literal = snuk_string_view_create_with_len(lexer->token_start, len),
         .line = lexer->token_start_line,
         .col = lexer->token_start_col,
         .err_msg = NULL,
@@ -109,7 +107,7 @@ SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_
 
     return (SnukToken) {
         .type = SNUK_TOKEN_ERROR,
-        .string_literal = {.value = line_start, .length = len},
+        .string_literal = snuk_string_view_create_with_len(line_start, len),
         .line = lexer->line,
         .col = lexer->col,
         .err_msg = err_msg,
@@ -262,9 +260,9 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
 
 static SnukTokenType check_keyword(const char *s, uint64_t len) {
     for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i) {
-        if (len != keywords[i].len) continue;
+        if (len != keywords[i].keyword.len) continue;
 
-        if (string_n_equal(s, keywords[i].str, keywords[i].len))
+        if (string_n_equal(s, keywords[i].keyword.str, keywords[i].keyword.len))
             return keywords[i].type;
     }
     return SNUK_TOKEN_EOF;
@@ -272,11 +270,11 @@ static SnukTokenType check_keyword(const char *s, uint64_t len) {
 
 static SnukTokenType check_values(const char *s, uint64_t len) {
     for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
-        if (len != values[i].len) continue;
+        if (len != values[i].value.len) continue;
 
-        if (values[i].ignore_case && string_n_equal_ignore_case(s, values[i].str, values[i].len))
+        if (values[i].ignore_case && string_n_equal_ignore_case(s, values[i].value.str, values[i].value.len))
             return values[i].type;
-        else if (string_n_equal(s, values[i].str, values[i].len))
+        else if (string_n_equal(s, values[i].value.str, values[i].value.len))
             return values[i].type;
     }
 
@@ -419,9 +417,9 @@ void snuk_lexer_log_token(SnukToken token) {
         log_trace("\tFloat value: %lf", token.float_literal);
     else if (token.type == SNUK_TOKEN_ERROR)
         log_trace("\tError line: %.*s and err_msg: %s",
-                token.string_literal.length, token.string_literal.value, token.err_msg);
+                token.string_literal.len, token.string_literal.str, token.err_msg);
     else
-        log_trace("\tString value: %.*s", token.string_literal.length, token.string_literal.value);
+        log_trace("\tString value: %.*s", token.string_literal.len, token.string_literal.str);
     log_trace("\tLine: %d, Column: %d", token.line, token.col);
 }
 

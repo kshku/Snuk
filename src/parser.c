@@ -319,7 +319,7 @@ static void parser_error(SnukParser *parser, const char *err_msg) {
     SnukToken t = parser->current;
     snuk_eprint("%lu:%lu error", t.line, t.col);
     if (t.type == SNUK_TOKEN_EOF) snuk_eprint(" at end");
-    else snuk_eprint(" at '%.*s'", t.string_literal.length, t.string_literal.value);
+    else snuk_eprint(" at '%.*s'", t.string_literal.len, t.string_literal.str);
     snuk_eprintln(" at '%s", err_msg);
 }
 
