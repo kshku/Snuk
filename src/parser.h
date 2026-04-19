@@ -55,6 +55,7 @@ typedef enum SnukExprType {
     SNUK_EXPR_BINARY, /**< Binary operator expression. */
 
     SNUK_EXPR_ASSIGN, /**< Assignment expression. */
+    SNUK_EXPR_COMPOUND_ASSIGN, /**< Compound assignment expression. */
 
     SNUK_EXPR_CALL, /**< Function call expression. */
     SNUK_EXPR_MEMBER, /**< Member access expression. */
@@ -92,6 +93,12 @@ struct SnukExpr {
             SnukExpr *identifier; /**< Assignment target identifier expression. */
             SnukExpr *value; /**< Assigned value expression. */
         } assign;
+
+        struct {
+            SnukTokenType op; /**< Compound assignment token */
+            SnukExpr *identifier; /**< Assignment target identifier expression. */
+            SnukExpr *value; /**< Assigned value expression. */
+        } compound_assign;
 
         struct {
             // TODO:

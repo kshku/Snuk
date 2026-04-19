@@ -377,6 +377,19 @@ static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
 }
 
 /**
+ * @brief Parse an compound assignment expression.
+ */
+static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left) {
+    if (left->type != SNUK_EXPR_IDENTIFIER) {
+        parser_error(parser, "invalid assignment target");
+        return NULL;
+    }
+    SnukTokenType op = parser->previous.type;
+    SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
+    return build_compound_assign_expr(parser, op, left, value);
+}
+
+/**
  * @brief Report a parser error and enter panic mode.
  */
 static void parser_error(SnukParser *parser, const char *err_msg) {
@@ -578,6 +591,11 @@ void snuk_parser_log_expr(SnukExpr *expr) {
         case SNUK_EXPR_ASSIGN:
             snuk_parser_log_expr(expr->assign.identifier);
             snuk_parser_log_expr(expr->assign.value);
+            break;
+        case SNUK_EXPR_COMPOUND_ASSIGN:
+            snuk_parser_log_expr(expr->compound_assign.identifier);
+            log_trace("%s", snuk_lexer_token_type_to_string(expr->compound_assign.op));
+            snuk_parser_log_expr(expr->compound_assign.value);
         default:
             break;
     }
