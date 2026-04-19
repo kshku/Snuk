@@ -7,6 +7,9 @@
 #include "logger.h"
 #include "darray.h"
 
+/**
+ * @brief Parse the next top-level statement.
+ */
 SnukStmt *snuk_parser_next_stmt(SnukParser *parser) {
     if (parser->current.type == SNUK_TOKEN_EOF) return NULL;
     SnukStmt *stmt = parse_stmt(parser);
@@ -14,6 +17,9 @@ SnukStmt *snuk_parser_next_stmt(SnukParser *parser) {
     return stmt;
 }
 
+/**
+ * @brief Dispatch statement parsing based on the current token.
+ */
 static SnukStmt *parse_stmt(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST))
         return parse_decl_stmt(parser, parser->previous.type == SNUK_TOKEN_CONST);
@@ -44,10 +50,16 @@ static SnukStmt *parse_stmt(SnukParser *parser) {
     return parse_expr_stmt(parser);
 }
 
+/**
+ * @brief Parse an expression statement.
+ */
 static SnukStmt *parse_expr_stmt(SnukParser *parser) {
     return build_expr_stmt(parser, parse_expression(parser));
 }
 
+/**
+ * @brief Parse a variable or constant declaration statement.
+ */
 static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
     SnukExpr *identifier = parse_primary(parser);
@@ -64,6 +76,9 @@ static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
     return build_decl_stmt(parser, identifier, init, is_const);
 }
 
+/**
+ * @brief Parse an if or else-if statement.
+ */
 static SnukStmt *parse_if_stmt(SnukParser *parser) {
     SnukExpr *condition = parse_expression(parser);
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
@@ -80,12 +95,18 @@ static SnukStmt *parse_if_stmt(SnukParser *parser) {
     return build_if_stmt(parser, condition, then_branch, else_branch);
 }
 
+/**
+ * @brief Parse a match statement.
+ */
 static SnukStmt *parse_match_stmt(SnukParser *parser) {
     SNUK_UNUSED(parser);
     // TODO:
     return NULL;
 }
 
+/**
+ * @brief Parse a while loop statement.
+ */
 static SnukStmt *parse_while_stmt(SnukParser *parser) {
     SnukExpr *condition = parse_expression(parser);
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
@@ -93,6 +114,9 @@ static SnukStmt *parse_while_stmt(SnukParser *parser) {
     return build_while_stmt(parser, condition, block, false);
 }
 
+/**
+ * @brief Parse a do-while loop statement.
+ */
 static SnukStmt *parse_do_while_stmt(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
     SnukStmt *block = parse_block_stmt(parser);
@@ -101,6 +125,9 @@ static SnukStmt *parse_do_while_stmt(SnukParser *parser) {
     return build_while_stmt(parser, condition, block, true);
 }
 
+/**
+ * @brief Parse a for loop statement.
+ */
 static SnukStmt *parse_for_stmt(SnukParser *parser) {
     SnukStmt *init = NULL;
     SnukExpr *cond = NULL;
@@ -140,6 +167,9 @@ static SnukStmt *parse_for_stmt(SnukParser *parser) {
     return build_for_stmt(parser, init, cond, update, block);
 }
 
+/**
+ * @brief Parse return, break, or continue statements.
+ */
 static SnukStmt *parse_flow_stmt(SnukParser *parser) {
     SnukExpr *value = NULL;
     if (parser->previous.type == SNUK_TOKEN_RETURN)
@@ -148,6 +178,9 @@ static SnukStmt *parse_flow_stmt(SnukParser *parser) {
     return build_flow_stmt(parser, parser->previous.type, value);
 }
 
+/**
+ * @brief Parse a function declaration statement.
+ */
 static SnukStmt *parse_fn_stmt(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected function name");
     SnukExpr *identifier = parse_primary(parser);
@@ -176,6 +209,9 @@ static SnukStmt *parse_fn_stmt(SnukParser *parser) {
     return build_fn_stmt(parser, identifier, params, body);
 }
 
+/**
+ * @brief Parse a type declaration statement.
+ */
 static SnukStmt *parse_type_stmt(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
 
@@ -206,6 +242,9 @@ static SnukStmt *parse_type_stmt(SnukParser *parser) {
     return build_type_stmt(parser, identifier, vars, fns);
 }
 
+/**
+ * @brief Parse a print statement.
+ */
 static SnukStmt *parse_print_stmt(SnukParser *parser) {
     SnukStmt *print_stmt = build_print_stmt(parser, NULL, parse_expression(parser));
     while (parser_match(parser, SNUK_TOKEN_COMMA))
@@ -213,6 +252,9 @@ static SnukStmt *parse_print_stmt(SnukParser *parser) {
     return print_stmt;
 }
 
+/**
+ * @brief Parse a block statement.
+ */
 static SnukStmt *parse_block_stmt(SnukParser *parser) {
     SnukStmt *block_stmt = build_block_stmt(parser, NULL, NULL);
     while (!parser_match(parser, SNUK_TOKEN_RBRACE)
@@ -225,15 +267,24 @@ static SnukStmt *parse_block_stmt(SnukParser *parser) {
     return block_stmt;
 }
 
+/**
+ * @brief Parse a source comment as a statement.
+ */
 static SnukStmt *parse_comment_stmt(SnukParser *parser) {
     SnukToken t = parser->previous;
     return build_comment_stmt(parser, t);
 }
 
+/**
+ * @brief Parse an expression from the lowest precedence.
+ */
 static SnukExpr *parse_expression(SnukParser *parser) {
     return parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
 }
 
+/**
+ * @brief Parse an expression at or above the given precedence.
+ */
 static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence) {
     parser_advance(parser);
     prefix_fn pfn = get_rule(parser->previous.type)->pfn;
@@ -252,6 +303,9 @@ static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence) {
     return left;
 }
 
+/**
+ * @brief Parse a primary expression.
+ */
 static SnukExpr *parse_primary(SnukParser *parser) {
     SnukToken t = parser->previous;
     switch (t.type) {
@@ -282,18 +336,27 @@ static SnukExpr *parse_primary(SnukParser *parser) {
     return NULL;
 }
 
+/**
+ * @brief Parse a grouped expression.
+ */
 static SnukExpr *parse_grouping(SnukParser *parser) {
     SnukExpr *expr = parse_expression(parser);
     parser_expect(parser, SNUK_TOKEN_RPAREN, "expected ')'");
     return expr;
 }
 
+/**
+ * @brief Parse a unary expression.
+ */
 static SnukExpr *parse_unary(SnukParser *parser) {
     SnukToken op = parser->previous;
     SnukExpr *right = parse_precedence(parser, PRECEDENCE_UNARY);
     return build_unary_expr(parser, op.type, right);
 }
 
+/**
+ * @brief Parse a binary expression.
+ */
 static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left) {
     SnukToken op = parser->previous;
     ParseRule *rule = get_rule(op.type);
@@ -301,6 +364,9 @@ static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left) {
     return build_binary_expr(parser, op.type, left, right);
 }
 
+/**
+ * @brief Parse an assignment expression.
+ */
 static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
     if (left->type != SNUK_EXPR_IDENTIFIER) {
         parser_error(parser, "invalid assignment target");
@@ -310,6 +376,9 @@ static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
     return build_assign_expr(parser, left, value);
 }
 
+/**
+ * @brief Report a parser error and enter panic mode.
+ */
 static void parser_error(SnukParser *parser, const char *err_msg) {
     if (parser->panic_mode) return;
 
@@ -323,6 +392,9 @@ static void parser_error(SnukParser *parser, const char *err_msg) {
     snuk_eprintln(" at '%s", err_msg);
 }
 
+/**
+ * @brief Recover parser state after an error.
+ */
 static void parser_sync(SnukParser *parser) {
     // TODO: skipping errors
     parser->panic_mode = false;
@@ -356,6 +428,9 @@ static void parser_sync(SnukParser *parser) {
     }
 }
 
+/**
+ * @brief Log a statement tree.
+ */
 void snuk_parser_log_stmt(SnukStmt *stmt) {
     if (!stmt) return;
     log_trace("Statement type: %s", snuk_parser_stmt_type_to_string(stmt->type));
@@ -453,6 +528,9 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
     }
 }
 
+/**
+ * @brief Log an expression tree.
+ */
 void snuk_parser_log_expr(SnukExpr *expr) {
     if (!expr) return;
     log_trace("Expression type: %s", snuk_parser_expr_type_to_string(expr->type));
@@ -505,6 +583,9 @@ void snuk_parser_log_expr(SnukExpr *expr) {
     }
 }
 
+/**
+ * @brief Log a function parameter.
+ */
 void snuk_parser_log_param(SnukParam *param) {
     if (!param) return;
     log_trace("param: ", NULL);
@@ -512,6 +593,9 @@ void snuk_parser_log_param(SnukParam *param) {
     snuk_parser_log_expr(param->default_value);
 }
 
+/**
+ * @brief Convert a statement type to a string.
+ */
 const char *snuk_parser_stmt_type_to_string(SnukStmtType type) {
     switch (type) {
         case SNUK_STMT_EXPR:
@@ -555,6 +639,9 @@ const char *snuk_parser_stmt_type_to_string(SnukStmtType type) {
     }
 }
 
+/**
+ * @brief Convert an expression type to a string.
+ */
 const char *snuk_parser_expr_type_to_string(SnukExprType type) {
     switch (type) {
         case SNUK_EXPR_IDENTIFIER:
