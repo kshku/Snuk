@@ -6,39 +6,109 @@
 #include "darray.h"
 #include "memory.h"
 
+/**
+ * @brief Pratt parser precedence levels.
+ */
 typedef enum Precedence {
-    PRECEDENCE_NONE = 0,
-    PRECEDENCE_ASSIGNMENT, // =
-    PRECEDENCE_LOGICAL_OR, // ||
-    PRECEDENCE_LOGICAL_AND, // &&
-    PRECEDENCE_OR, // |
-    PRECEDENCE_XOR, // ^
-    PRECEDENCE_AND, // &
-    PRECEDENCE_EQUALITY, // == !=
-    PRECEDENCE_COMPARISION, // < > <= >=
-    PRECEDENCE_SHIFT, // << >>
-    PRECEDENCE_TERM, // + -
-    PRECEDENCE_FACTOR, // * / %
-    PRECEDENCE_UNARY, // - + ~ ! ++ --
-    PRECEDENCE_PRIMARY
+    PRECEDENCE_NONE = 0, /**< No binding precedence. */
+    PRECEDENCE_ASSIGNMENT, /**< Assignment precedence for '='. */
+    PRECEDENCE_LOGICAL_OR, /**< Logical OR precedence for '||'. */
+    PRECEDENCE_LOGICAL_AND, /**< Logical AND precedence for '&&'. */
+    PRECEDENCE_OR, /**< Bitwise OR precedence for '|'. */
+    PRECEDENCE_XOR, /**< Bitwise XOR precedence for '^'. */
+    PRECEDENCE_AND, /**< Bitwise AND precedence for '&'. */
+    PRECEDENCE_EQUALITY, /**< Equality precedence for '==' and '!='. */
+    PRECEDENCE_COMPARISION, /**< Comparison precedence for '<', '>', '<=', and '>='. */
+    PRECEDENCE_SHIFT, /**< Shift precedence for '<<' and '>>'. */
+    PRECEDENCE_TERM, /**< Additive precedence for '+' and '-'. */
+    PRECEDENCE_FACTOR, /**< Multiplicative precedence for '*', '/', and '%'. */
+    PRECEDENCE_UNARY, /**< Unary operator precedence. */
+    PRECEDENCE_PRIMARY /**< Primary expression precedence. */
 } Precedence;
 
+/**
+ * @brief Prefix parse function for tokens that start expressions.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 typedef SnukExpr *(*prefix_fn)(SnukParser *parser);
+
+/**
+ * @brief Infix parse function for tokens that continue expressions.
+ *
+ * @param parser Parser context to operate on.
+ * @param expr Left-hand expression already parsed.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 typedef SnukExpr *(*infix_fn)(SnukParser *parser, SnukExpr *expr);
 
+/**
+ * @brief Pratt parser rule for a token type.
+ */
 typedef struct ParseRule {
-    prefix_fn pfn;
-    infix_fn ifn;
-    Precedence precedence;
+    prefix_fn pfn; /**< Prefix parse function, or NULL if unsupported. */
+    infix_fn ifn; /**< Infix parse function, or NULL if unsupported. */
+    Precedence precedence; /**< Binding precedence for the infix function. */
 } ParseRule;
 
+/**
+ * @brief Parse an expression at or above the given precedence.
+ *
+ * @param parser Parser context to operate on.
+ * @param precedence Minimum precedence to parse.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence);
 
+/**
+ * @brief Parse a primary expression.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 static SnukExpr *parse_primary(SnukParser *parser);
+
+/**
+ * @brief Parse a grouped expression.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 static SnukExpr *parse_grouping(SnukParser *parser);
+
+/**
+ * @brief Parse a unary expression.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 static SnukExpr *parse_unary(SnukParser *parser);
 
+/**
+ * @brief Parse a binary expression.
+ *
+ * @param parser Parser context to operate on.
+ * @param left Left-hand expression.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left);
+
+/**
+ * @brief Parse an assignment expression.
+ *
+ * @param parser Parser context to operate on.
+ * @param left Candidate assignment target.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left);
 
 static ParseRule rules[] = {
@@ -85,45 +155,212 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_RIGHT_SHIFT] = {NULL, parse_binary, PRECEDENCE_SHIFT},
 };
 
+/**
+ * @brief Get the parse rule for a token type.
+ *
+ * @param type Token type to look up.
+ *
+ * @return Pointer to the static parse rule for type.
+ */
 SNUK_INLINE ParseRule *get_rule(SnukTokenType type) {
     return &rules[type];
 }
 
+/**
+ * @brief Report a parser error and enter panic mode.
+ *
+ * @param parser Parser context to operate on.
+ * @param err_msg Error message to print.
+ */
 static void parser_error(SnukParser *parser, const char *err_msg);
+
+/**
+ * @brief Recover parser state after an error.
+ *
+ * @param parser Parser context to operate on.
+ */
 static void parser_sync(SnukParser *parser);
 
+/**
+ * @brief Parse an expression from the lowest precedence.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
 static SnukExpr *parse_expression(SnukParser *parser);
 
+/**
+ * @brief Parse the next statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse an expression statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_expr_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a variable or constant declaration statement.
+ *
+ * @param parser Parser context to operate on.
+ * @param is_const True when parsing a const declaration.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const);
+
+/**
+ * @brief Parse an if statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_if_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a match statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_match_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a while loop statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_while_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a do-while loop statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_do_while_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a for loop statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_for_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse return, break, or continue statements.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_flow_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a function declaration statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_fn_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a type declaration statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_type_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a print statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_print_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a block statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_block_stmt(SnukParser *parser);
+
+/**
+ * @brief Parse a comment statement.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed statement, or NULL on parse failure.
+ */
 static SnukStmt *parse_comment_stmt(SnukParser *parser);
 
+/**
+ * @brief Allocate a statement node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated statement storage.
+ */
 SNUK_INLINE SnukStmt *parser_create_stmt(SnukParser *parser) {
     return (SnukStmt *)parser->alloc(parser->alloc_data,
             sizeof(SnukStmt), alignof(SnukStmt));
 }
 
+/**
+ * @brief Allocate an expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated expression storage.
+ */
 SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
     return (SnukExpr *)parser->alloc(parser->alloc_data,
             sizeof(SnukExpr), alignof(SnukExpr));
 }
 
+/**
+ * @brief Allocate a parameter node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated parameter storage.
+ */
 SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
     return (SnukParam *)parser->alloc(parser->alloc_data,
             sizeof(SnukParam), alignof(SnukParam));
 }
 
+/**
+ * @brief Build an expression statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param expr Expression payload.
+ *
+ * @return Newly allocated expression statement node.
+ */
 SNUK_INLINE SnukStmt *build_expr_stmt(SnukParser *parser, SnukExpr *expr) {
     SnukStmt *expr_stmt = parser_create_stmt(parser);
     *expr_stmt = (SnukStmt){
@@ -133,6 +370,16 @@ SNUK_INLINE SnukStmt *build_expr_stmt(SnukParser *parser, SnukExpr *expr) {
     return expr_stmt;
 }
 
+/**
+ * @brief Build a variable or constant declaration statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param identifier Declared identifier expression.
+ * @param init Initializer expression.
+ * @param is_const True to build a const declaration.
+ *
+ * @return Newly allocated declaration statement node.
+ */
 SNUK_INLINE SnukStmt *build_decl_stmt(SnukParser *parser, SnukExpr *identifier, SnukExpr *init, bool is_const) {
     SnukStmt *decl_stmt = parser_create_stmt(parser);
     *decl_stmt = (SnukStmt){
@@ -145,6 +392,16 @@ SNUK_INLINE SnukStmt *build_decl_stmt(SnukParser *parser, SnukExpr *identifier, 
     return decl_stmt;
 }
 
+/**
+ * @brief Build an if statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param condition Condition expression.
+ * @param then_branch Statement executed when condition is true.
+ * @param else_branch Optional statement executed otherwise.
+ *
+ * @return Newly allocated if statement node.
+ */
 SNUK_INLINE SnukStmt *build_if_stmt(SnukParser *parser, SnukExpr *condition, SnukStmt *then_branch, SnukStmt *else_branch) {
     SnukStmt *if_stmt = parser_create_stmt(parser);
     *if_stmt = (SnukStmt){
@@ -158,6 +415,16 @@ SNUK_INLINE SnukStmt *build_if_stmt(SnukParser *parser, SnukExpr *condition, Snu
     return if_stmt;
 }
 
+/**
+ * @brief Build a while or do-while statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param condition Loop condition expression.
+ * @param block Loop body block.
+ * @param is_do_while True to build a do-while statement.
+ *
+ * @return Newly allocated loop statement node.
+ */
 SNUK_INLINE SnukStmt *build_while_stmt(SnukParser *parser, SnukExpr *condition, SnukStmt *block, bool is_do_while) {
     SnukStmt *while_stmt = parser_create_stmt(parser);
     *while_stmt = (SnukStmt){
@@ -167,6 +434,17 @@ SNUK_INLINE SnukStmt *build_while_stmt(SnukParser *parser, SnukExpr *condition, 
     return while_stmt;
 }
 
+/**
+ * @brief Build a for loop statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param init Optional initializer statement.
+ * @param cond Optional condition expression.
+ * @param update Optional update expression.
+ * @param block Loop body block.
+ *
+ * @return Newly allocated for statement node.
+ */
 SNUK_INLINE SnukStmt *build_for_stmt(SnukParser *parser, SnukStmt *init, SnukExpr *cond, SnukExpr *update, SnukStmt *block) {
     SnukStmt *for_stmt = parser_create_stmt(parser);
     *for_stmt = (SnukStmt){
@@ -176,6 +454,15 @@ SNUK_INLINE SnukStmt *build_for_stmt(SnukParser *parser, SnukStmt *init, SnukExp
     return for_stmt;
 }
 
+/**
+ * @brief Build a control-flow statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param type Token type for the control-flow keyword.
+ * @param value Optional return value expression.
+ *
+ * @return Newly allocated control-flow statement node.
+ */
 SNUK_INLINE SnukStmt *build_flow_stmt(SnukParser *parser, SnukTokenType type, SnukExpr *value) {
     SnukStmt *flow_stmt = parser_create_stmt(parser);
     switch (type) {
@@ -201,6 +488,16 @@ SNUK_INLINE SnukStmt *build_flow_stmt(SnukParser *parser, SnukTokenType type, Sn
     return flow_stmt;
 }
 
+/**
+ * @brief Build a function declaration statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param identifier Function name expression.
+ * @param params Dynamic array of parameter nodes.
+ * @param body Function body block.
+ *
+ * @return Newly allocated function statement node.
+ */
 SNUK_INLINE SnukStmt *build_fn_stmt(SnukParser *parser, SnukExpr *identifier, SnukParam **params, SnukStmt *body) {
     SnukStmt *fn_stmt = parser_create_stmt(parser);
     *fn_stmt = (SnukStmt){
@@ -214,6 +511,16 @@ SNUK_INLINE SnukStmt *build_fn_stmt(SnukParser *parser, SnukExpr *identifier, Sn
     return fn_stmt;
 }
 
+/**
+ * @brief Build a type declaration statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param identifier Type name expression.
+ * @param vars Dynamic array of field declarations.
+ * @param fns Dynamic array of method declarations.
+ *
+ * @return Newly allocated type statement node.
+ */
 SNUK_INLINE SnukStmt *build_type_stmt(SnukParser *parser, SnukExpr *identifier, SnukStmt **vars, SnukStmt **fns) {
     SnukStmt *type_stmt = parser_create_stmt(parser);
     *type_stmt = (SnukStmt){
@@ -227,6 +534,15 @@ SNUK_INLINE SnukStmt *build_type_stmt(SnukParser *parser, SnukExpr *identifier, 
     return type_stmt;
 }
 
+/**
+ * @brief Build or append to a print statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param print_stmt Existing print statement to append to, or NULL to create one.
+ * @param expr Expression to append.
+ *
+ * @return Print statement node.
+ */
 SNUK_INLINE SnukStmt *build_print_stmt(SnukParser *parser, SnukStmt *print_stmt, SnukExpr *expr) {
     if (!print_stmt) {
         print_stmt = parser_create_stmt(parser);
@@ -239,6 +555,15 @@ SNUK_INLINE SnukStmt *build_print_stmt(SnukParser *parser, SnukStmt *print_stmt,
     return print_stmt;
 }
 
+/**
+ * @brief Build or append to a block statement node.
+ *
+ * @param parser Parser context to operate on.
+ * @param block_stmt Existing block statement to append to, or NULL to create one.
+ * @param stmt Statement to append.
+ *
+ * @return Block statement node.
+ */
 SNUK_INLINE SnukStmt *build_block_stmt(SnukParser *parser, SnukStmt *block_stmt, SnukStmt *stmt) {
     if (!block_stmt) {
         block_stmt = parser_create_stmt(parser);
@@ -251,6 +576,14 @@ SNUK_INLINE SnukStmt *build_block_stmt(SnukParser *parser, SnukStmt *block_stmt,
     return block_stmt;
 }
 
+/**
+ * @brief Build a comment statement node from a comment token.
+ *
+ * @param parser Parser context to operate on.
+ * @param comment_token Source comment token.
+ *
+ * @return Newly allocated comment statement node.
+ */
 SNUK_INLINE SnukStmt *build_comment_stmt(SnukParser *parser, SnukToken comment_token) {
     SnukStmt *comment_stmt = parser_create_stmt(parser);
     *comment_stmt = (SnukStmt){
@@ -260,6 +593,13 @@ SNUK_INLINE SnukStmt *build_comment_stmt(SnukParser *parser, SnukToken comment_t
     return comment_stmt;
 }
 
+/**
+ * @brief Build a null literal expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated null expression node.
+ */
 SNUK_INLINE SnukExpr *build_null_expr(SnukParser *parser) {
     SnukExpr *null_expr = parser_create_expr(parser);
     *null_expr = (SnukExpr){
@@ -268,6 +608,13 @@ SNUK_INLINE SnukExpr *build_null_expr(SnukParser *parser) {
     return null_expr;
 }
 
+/**
+ * @brief Build a boolean literal expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated boolean expression node.
+ */
 SNUK_INLINE SnukExpr *build_bool_expr(SnukParser *parser) {
     SnukExpr *bool_expr = parser_create_expr(parser);
     *bool_expr = (SnukExpr){
@@ -277,6 +624,13 @@ SNUK_INLINE SnukExpr *build_bool_expr(SnukParser *parser) {
     return bool_expr;
 }
 
+/**
+ * @brief Build a string literal expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated string literal expression node.
+ */
 SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
     SnukExpr *string_expr = parser_create_expr(parser);
     *string_expr = (SnukExpr){
@@ -286,6 +640,13 @@ SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
     return string_expr;
 }
 
+/**
+ * @brief Build an identifier expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated identifier expression node.
+ */
 SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
     SnukExpr *identifier = parser_create_expr(parser);
     *identifier = (SnukExpr){
@@ -295,6 +656,13 @@ SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
     return identifier;
 }
 
+/**
+ * @brief Build an integer literal expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated integer literal expression node.
+ */
 SNUK_INLINE SnukExpr *build_int_literal_expr(SnukParser *parser) {
     SnukExpr *int_expr = parser_create_expr(parser);
     *int_expr = (SnukExpr){
@@ -304,6 +672,13 @@ SNUK_INLINE SnukExpr *build_int_literal_expr(SnukParser *parser) {
     return int_expr;
 }
 
+/**
+ * @brief Build a floating-point literal expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated floating-point literal expression node.
+ */
 SNUK_INLINE SnukExpr *build_float_literal_expr(SnukParser *parser) {
     SnukExpr *float_expr = parser_create_expr(parser);
     *float_expr = (SnukExpr){
@@ -313,6 +688,15 @@ SNUK_INLINE SnukExpr *build_float_literal_expr(SnukParser *parser) {
     return float_expr;
 }
 
+/**
+ * @brief Build a unary expression node.
+ *
+ * @param parser Parser context to operate on.
+ * @param op Unary operator token type.
+ * @param operand Operand expression.
+ *
+ * @return Newly allocated unary expression node.
+ */
 SNUK_INLINE SnukExpr *build_unary_expr(SnukParser *parser, SnukTokenType op, SnukExpr *operand) {
     SnukExpr *unary_expr = parser_create_expr(parser);
     *unary_expr = (SnukExpr){
@@ -322,6 +706,16 @@ SNUK_INLINE SnukExpr *build_unary_expr(SnukParser *parser, SnukTokenType op, Snu
     return unary_expr;
 }
 
+/**
+ * @brief Build a binary expression node.
+ *
+ * @param parser Parser context to operate on.
+ * @param op Binary operator token type.
+ * @param left Left-hand operand expression.
+ * @param right Right-hand operand expression.
+ *
+ * @return Newly allocated binary expression node.
+ */
 SNUK_INLINE SnukExpr *build_binary_expr(SnukParser *parser, SnukTokenType op, SnukExpr *left, SnukExpr *right) {
     SnukExpr *binary_expr = parser_create_expr(parser);
     *binary_expr = (SnukExpr){
@@ -331,6 +725,15 @@ SNUK_INLINE SnukExpr *build_binary_expr(SnukParser *parser, SnukTokenType op, Sn
     return binary_expr;
 }
 
+/**
+ * @brief Build an assignment expression node.
+ *
+ * @param parser Parser context to operate on.
+ * @param identifier Assignment target identifier expression.
+ * @param value Assigned value expression.
+ *
+ * @return Newly allocated assignment expression node.
+ */
 SNUK_INLINE SnukExpr *build_assign_expr(SnukParser *parser, SnukExpr *identifier, SnukExpr *value) {
     SnukExpr *assign_expr = parser_create_expr(parser);
     *assign_expr = (SnukExpr){
@@ -340,6 +743,15 @@ SNUK_INLINE SnukExpr *build_assign_expr(SnukParser *parser, SnukExpr *identifier
     return assign_expr;
 }
 
+/**
+ * @brief Build a function parameter node.
+ *
+ * @param parser Parser context to operate on.
+ * @param identifier Parameter name expression.
+ * @param default_value Optional default value expression.
+ *
+ * @return Newly allocated parameter node.
+ */
 SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukExpr *default_value) {
     SnukParam *param = parser_create_param(parser);
     *param = (SnukParam){
@@ -349,16 +761,37 @@ SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, Snu
     return param;
 }
 
+/**
+ * @brief Advance to the next token.
+ *
+ * @param parser Parser context to operate on.
+ */
 SNUK_INLINE void parser_advance(SnukParser *parser) {
     parser->previous = parser->current;
     parser->current = snuk_lexer_next_token(&parser->lexer);
 }
 
+/**
+ * @brief Check whether the current token has the expected type.
+ *
+ * @param parser Parser context to operate on.
+ * @param expected Expected token type.
+ *
+ * @return True when the current token matches expected.
+ */
 SNUK_INLINE bool parser_check(SnukParser *parser, SnukTokenType expected) {
     // Does not consume
     return parser->current.type == expected;
 }
 
+/**
+ * @brief Consume the current token if it has the expected type.
+ *
+ * @param parser Parser context to operate on.
+ * @param expected Expected token type.
+ *
+ * @return True when a token was consumed.
+ */
 SNUK_INLINE bool parser_match(SnukParser *parser, SnukTokenType expected) {
     // Consumes
     if (!parser_check(parser, expected)) return false;
@@ -366,6 +799,13 @@ SNUK_INLINE bool parser_match(SnukParser *parser, SnukTokenType expected) {
     return true;
 }
 
+/**
+ * @brief Require and consume a token of the expected type.
+ *
+ * @param parser Parser context to operate on.
+ * @param expected Expected token type.
+ * @param err_msg Error message to report if the token does not match.
+ */
 SNUK_INLINE void parser_expect(SnukParser *parser, SnukTokenType expected, const char *err_msg) {
     if (!parser_match(parser, expected)) parser_error(parser, err_msg);
 }
