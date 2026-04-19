@@ -160,16 +160,22 @@ void run_file(const char *path) {
     SnukParser parser;
     snuk_parser_init(&parser, content, (void *)(&falloc), (alloc_fn)sn_frame_allocator_allocate);
 
+    SnukInterpreter intpret;
+    snuk_interpreter_init(&intpret);
+
     SnukStmt *stmt;
     while (true) {
         stmt = snuk_parser_next_stmt(&parser);
         if (!stmt) break;
-        snuk_parser_log_stmt(stmt);
-        log_trace("", NULL);
+        // snuk_parser_log_stmt(stmt);
+        // log_trace("", NULL);
+        snuk_interpreter_exec_stmt(&intpret, stmt);
     }
 
     snuk_parser_deinit(&parser);
     sn_frame_allocator_end(&falloc);
+
+    snuk_interpreter_deinit(&intpret);
 
     sn_frame_allocator_deinit(&falloc);
     snuk_free_pages(mem, 10);

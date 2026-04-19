@@ -1,0 +1,13 @@
+2 * 10
+5 + 2 * 20
+5 % 3
+2.5 * 100
+
+var x = "Hello, World"
+x
+
+var i = 25.5
+i * 255
+
+print "Hello, World!", i, x
+

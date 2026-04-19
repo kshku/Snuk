@@ -95,7 +95,7 @@ Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
         case SNUK_EXPR_FLOAT_LITERAL:
             return (Value){
                 .type = VALUE_FLOAT,
-                .int_value = expr->float_literal,
+                .float_value = expr->float_literal,
             };
 
         case SNUK_EXPR_STRING_LITERAL:

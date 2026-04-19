@@ -88,7 +88,7 @@ SNUK_INLINE bool lexer_match(SnukLexer *lexer, char expected) {
 }
 
 SNUK_INLINE void lexer_skip_white_spaces(SnukLexer *lexer) {
-    while (char_in_string(lexer_peek(lexer), " \t\n")) lexer_advance(lexer);
+    while (char_in_string(lexer_peek(lexer), " \t\r\n")) lexer_advance(lexer);
 }
 
 SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {

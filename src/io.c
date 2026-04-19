@@ -6,6 +6,7 @@
 
 #include "memory.h"
 #include "logger.h"
+#include "snuk_string.h"
 
 // reads one line from stdin, caller should free
 char *snuk_read_line(char *buffer, uint64_t size) {
@@ -15,16 +16,17 @@ char *snuk_read_line(char *buffer, uint64_t size) {
 // reads entire file, caller should free
 char *snuk_read_file(const char *path) {
     snFile file;
-
     if (!sn_file_open(path, SN_FILE_OPEN_FLAG_READ, &file)) return NULL;
 
     uint64_t file_size = sn_file_size(&file);
-    char *content = (char *)snuk_alloc(file_size, alignof(char));
+    char *content = (char *)snuk_alloc(file_size + 1, alignof(char));
 
     if (sn_file_read(&file, content, file_size) != (int64_t)file_size)
         log_warn("file_size != read_size", NULL);
 
     sn_file_close(&file);
+
+    content[file_size] = 0;
 
     return content;
 }
