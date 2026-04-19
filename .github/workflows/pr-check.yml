@@ -19,7 +19,7 @@ jobs:
 
       - name: Check commit messages
         run: |
-          PATTERN="^(feat|fix|docs|refactor|test|chore|perf|style|ci)(\([a-z]+\))?(!)?: .{1,72}"
+          PATTERN="^(feat|fix|docs|refactor|test|chore|perf|style|ci)(\([a-z][a-z0-9_-]*\))?(!)?: .{1,72}"
           FAILED=0
 
           # check all commits in this PR
