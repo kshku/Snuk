@@ -111,6 +111,16 @@ static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left);
  */
 static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left);
 
+/**
+ * @brief Parse an compound assignment expression.
+ *
+ * @param parser Parser context to operate on.
+ * @param left Candidate assignment target.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left);
+
 static ParseRule rules[] = {
     [SNUK_TOKEN_IDENTIFIER] = {parse_primary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_INTEGER] = {parse_primary, NULL, PRECEDENCE_NONE},
@@ -135,6 +145,17 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_TILDE] = {parse_unary, NULL, PRECEDENCE_NONE},
 
     [SNUK_TOKEN_ASSIGN] = {NULL, parse_assignment, PRECEDENCE_ASSIGNMENT},
+
+    [SNUK_TOKEN_PLUS_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_MINUS_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_STAR_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_SLASH_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_PERCENT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_LEFT_SHIFT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_RIGHT_SHIFT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_OR_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_AND_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_XOR_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
 
     [SNUK_TOKEN_EQUAL] = {NULL, parse_binary, PRECEDENCE_EQUALITY},
     [SNUK_TOKEN_NOT_EQUAL] = {NULL, parse_binary, PRECEDENCE_EQUALITY},
@@ -741,6 +762,25 @@ SNUK_INLINE SnukExpr *build_assign_expr(SnukParser *parser, SnukExpr *identifier
         .assign = {.identifier = identifier, .value = value},
     };
     return assign_expr;
+}
+
+/**
+ * @brief Build an compound assignment expression node.
+ *
+ * @param parser Parser context to operate on.
+ * @param op The compound operator
+ * @param identifier Assignment target identifier expression.
+ * @param value Assigned value expression.
+ *
+ * @return Newly allocated assignment expression node.
+ */
+SNUK_INLINE SnukExpr *build_compound_assign_expr(SnukParser *parser, SnukTokenType op, SnukExpr *identifier, SnukExpr *value) {
+    SnukExpr *compound = parser_create_expr(parser);
+    *compound = (SnukExpr){
+        .type = SNUK_EXPR_COMPOUND_ASSIGN,
+        .compound_assign = {.op = op, .identifier = identifier, .value = value},
+    };
+    return compound;
 }
 
 /**

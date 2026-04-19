@@ -128,8 +128,8 @@ void run_repl(void) {
         while (true) {
             stmt = snuk_parser_next_stmt(&parser);
             if (!stmt) break;
-            // snuk_parser_log_stmt(stmt);
-            // log_trace("", NULL);
+            snuk_parser_log_stmt(stmt);
+            log_trace("", NULL);
             snuk_interpreter_exec_stmt(&intpret, stmt);
         }
 
@@ -167,8 +167,8 @@ void run_file(const char *path) {
     while (true) {
         stmt = snuk_parser_next_stmt(&parser);
         if (!stmt) break;
-        // snuk_parser_log_stmt(stmt);
-        // log_trace("", NULL);
+        snuk_parser_log_stmt(stmt);
+        log_trace("", NULL);
         snuk_interpreter_exec_stmt(&intpret, stmt);
     }
 
