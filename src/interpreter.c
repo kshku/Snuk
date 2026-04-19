@@ -5,20 +5,6 @@
 #include "snuk_string.h"
 #include "io.h"
 
-SNUK_INLINE char *copy_string(const char *str, uint64_t length) {
-    char *copy = snuk_alloc(sizeof(char) * (length + 1), alignof(char));
-    memcpy(copy, str, length);
-    copy[length] = 0;
-    return copy;
-}
-
-SNUK_INLINE SnukStringView copy_identifier(SnukExpr *identifier) {
-    SNUK_ASSERT(identifier->type == SNUK_EXPR_IDENTIFIER, "not identifier");
-    return snuk_string_view_create_with_len(
-            copy_string(identifier->identifier.str, identifier->identifier.len),
-            identifier->identifier.len);
-}
-
 static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier);
 static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *value);
 
@@ -99,9 +85,7 @@ Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
         case SNUK_EXPR_STRING_LITERAL:
             return (Value){
                 .type = VALUE_STRING, 
-                .string_value = snuk_string_view_create_with_len(
-                        copy_string(expr->string_literal.str, expr->string_literal.len),
-                        expr->string_literal.len),
+                .string_value = snuk_string_view_copy(expr->string_literal),
             };
 
         case SNUK_EXPR_TRUE_LITERAL:
@@ -316,7 +300,7 @@ static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *e
         i->envs[index] = snuk_darray_create(Env);
 
     Env env = {
-        .identifier = copy_identifier(identifier),
+        .identifier = snuk_string_view_copy(identifier->identifier),
         .value = value,
     };
     snuk_darray_push(&i->envs[index], env);

@@ -31,3 +31,13 @@ SNUK_INLINE char *snuk_string_view_get_cstr(SnukStringView view) {
     str[view.len] = 0;
     return str;
 }
+
+SNUK_INLINE SnukStringView snuk_string_view_copy(SnukStringView view) {
+    char *str = snuk_alloc(sizeof(char) * view.len, alignof(char)); 
+    memcpy(str, view.str, view.len);
+
+    return (SnukStringView){
+        .str = str,
+        .len = view.len,
+    };
+}
