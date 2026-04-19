@@ -588,10 +588,7 @@ SNUK_INLINE SnukStmt *build_comment_stmt(SnukParser *parser, SnukToken comment_t
     SnukStmt *comment_stmt = parser_create_stmt(parser);
     *comment_stmt = (SnukStmt){
         .type = comment_token.type == SNUK_TOKEN_MLCOMMENT ? SNUK_STMT_MLCOMMENT : SNUK_STMT_SLCOMMENT,
-        .comment_stmt = {
-            .comment = comment_token.string_literal.value,
-            .length = comment_token.string_literal.length,
-        },
+        .comment = comment_token.string_literal,
     };
     return comment_stmt;
 }
@@ -638,10 +635,7 @@ SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
     SnukExpr *string_expr = parser_create_expr(parser);
     *string_expr = (SnukExpr){
         .type = SNUK_EXPR_STRING_LITERAL,
-        .string_literal = {
-            .value = parser->previous.string_literal.value,
-            .length = parser->previous.string_literal.length,
-        },
+        .string_literal = parser->previous.string_literal,
     };
     return string_expr;
 }
@@ -657,10 +651,7 @@ SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
     SnukExpr *identifier = parser_create_expr(parser);
     *identifier = (SnukExpr){
         .type = SNUK_EXPR_IDENTIFIER,
-        .identifier = {
-            .name = parser->previous.string_literal.value,
-            .length = parser->previous.string_literal.length,
-        },
+        .identifier = parser->previous.string_literal,
     };
     return identifier;
 }

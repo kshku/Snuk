@@ -3,6 +3,7 @@
 #include "defines.h"
 
 #include "lexer.h"
+#include "string_view.h"
 
 /**
  * @brief Parser statement node kinds.
@@ -71,19 +72,10 @@ struct SnukExpr {
     SnukExprType type; /**< Discriminant selecting the active expression payload. */
 
     union {
-        struct {
-            const char *value; /**< String literal bytes from the source text. */
-            uint64_t length; /**< String literal length in bytes. */
-        } string_literal;
-
-        int64_t int_literal; /**< Integer literal value. */
-
-        double float_literal; /**< Floating-point literal value. */
-
-        struct {
-            const char *name; /**< Identifier bytes from the source text. */
-            uint64_t length; /**< Identifier length in bytes. */
-        } identifier;
+        SnukStringView string_literal;
+        int64_t int_literal;
+        double float_literal;
+        SnukStringView identifier;
 
         struct {
             SnukTokenType op; /**< Unary operator token. */
@@ -179,10 +171,7 @@ struct SnukStmt {
             SnukStmt **stmts; /**< Dynamic array of statements in the block. */
         } block_stmt;
 
-        struct {
-            const char *comment; /**< Comment bytes from the source text. */
-            uint64_t length; /**< Comment length in bytes. */
-        } comment_stmt;
+        SnukStringView comment;
     };
 };
 

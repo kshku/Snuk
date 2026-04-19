@@ -5,22 +5,6 @@
 #include "snuk_string.h"
 #include "io.h"
 
-SNUK_INLINE char *copy_string(const char *str, uint64_t length) {
-    char *copy = snuk_alloc(sizeof(char) * (length + 1), alignof(char));
-    memcpy(copy, str, length);
-    copy[length] = 0;
-    return copy;
-}
-
-SNUK_INLINE SnukIdentifier copy_identifier(SnukExpr *identifier) {
-    SNUK_ASSERT(identifier->type == SNUK_EXPR_IDENTIFIER, "not identifier");
-    SnukIdentifier ident = {
-        .name = copy_string(identifier->identifier.name, identifier->identifier.length),
-        .length = identifier->identifier.length,
-    };
-    return ident;
-}
-
 static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier);
 static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *value);
 
@@ -101,10 +85,7 @@ Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
         case SNUK_EXPR_STRING_LITERAL:
             return (Value){
                 .type = VALUE_STRING, 
-                .string_value = {
-                    .string = copy_string(expr->string_literal.value, expr->string_literal.length),
-                    .length = expr->string_literal.length,
-                },
+                .string_value = snuk_string_view_copy(expr->string_literal),
             };
 
         case SNUK_EXPR_TRUE_LITERAL:
@@ -144,9 +125,9 @@ Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
 }
 
 static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier) {
-    SNUK_ASSERT(identifier->identifier.length > 0, "identifier name is empty");
+    SNUK_ASSERT(identifier->identifier.len > 0, "identifier name is empty");
 
-    uint64_t index = (uint64_t)identifier->identifier.name[0];
+    uint64_t index = (uint64_t)identifier->identifier.str[0];
     uint64_t length = snuk_darray_get_length(i->envs);
 
     if (length < index) goto fail;
@@ -154,9 +135,9 @@ static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier) {
 
     uint64_t count = snuk_darray_get_length(i->envs[index]);
     for (uint64_t j = 0; j < count; ++j) {
-        if (identifier->identifier.length != i->envs[index][j].identifier.length) continue;
-        if (string_n_equal(identifier->identifier.name,
-                    i->envs[index][j].identifier.name, identifier->identifier.length)) {
+        if (identifier->identifier.len != i->envs[index][j].identifier.len) continue;
+        if (string_n_equal(identifier->identifier.str,
+                    i->envs[index][j].identifier.str, identifier->identifier.len)) {
             return i->envs[index][j].value;
         }
     }
@@ -166,10 +147,10 @@ fail:
 }
 
 static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
-    SNUK_ASSERT(identifier->identifier.length > 0, "identifier name is empty");
+    SNUK_ASSERT(identifier->identifier.len > 0, "identifier name is empty");
 
     Value value = snuk_interpreter_eval_expr(i, expr);
-    uint64_t index = (uint64_t)identifier->identifier.name[0];
+    uint64_t index = (uint64_t)identifier->identifier.str[0];
     uint64_t length = snuk_darray_get_length(i->envs);
 
     if (length < index) goto fail;
@@ -177,9 +158,9 @@ static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, Snuk
 
     uint64_t count = snuk_darray_get_length(i->envs[index]);
     for (uint64_t j = 0; j < count; ++j) {
-        if (identifier->identifier.length != i->envs[index][j].identifier.length) continue;
-        if (string_n_equal(identifier->identifier.name,
-                    i->envs[index][j].identifier.name, identifier->identifier.length)) {
+        if (identifier->identifier.len != i->envs[index][j].identifier.len) continue;
+        if (string_n_equal(identifier->identifier.str,
+                    i->envs[index][j].identifier.str, identifier->identifier.len)) {
             i->envs[index][j].value = value;
             return value;
         }
@@ -310,7 +291,7 @@ static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *e
     // TODO: multiple declaration errors
 
     Value value = snuk_interpreter_eval_expr(i, expr);
-    uint64_t index = (uint64_t)identifier->identifier.name[0];
+    uint64_t index = (uint64_t)identifier->identifier.str[0];
     uint64_t length = snuk_darray_get_length(i->envs);
 
     if (length < index)
@@ -319,7 +300,7 @@ static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *e
         i->envs[index] = snuk_darray_create(Env);
 
     Env env = {
-        .identifier = copy_identifier(identifier),
+        .identifier = snuk_string_view_copy(identifier->identifier),
         .value = value,
     };
     snuk_darray_push(&i->envs[index], env);
@@ -355,7 +336,7 @@ void snuk_interpreter_print_value(Value value) {
             break;
         case VALUE_STRING:
             snuk_println("type: %s", SNUK_STRINGIFY(VALUE_STRING));
-            snuk_println("value: %.*s", value.string_value.length, value.string_value.string);
+            snuk_println("value: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(value.string_value));
             break;
         case VALUE_NULL:
             snuk_println("type: %s", SNUK_STRINGIFY(VALUE_NULL));
