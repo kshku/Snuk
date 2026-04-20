@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/github/v/tag/kshku/snuk?label=version&sort=semver)](https://github.com/kshku/snuk/releases)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)]()
 
-Snuk is a lightweight, interpreted programming language written in C.
+Snuk is a interpreted scripting language written in C.
 
 ---
 
@@ -54,81 +54,150 @@ The binary is produced at `build/snuk` (Linux, macOS) or `build/Release/snuk.exe
 ```
 
 ### Run a command
+
 ```bash
-./build/snuk -c <command>
+./build/snuk -c "print 1 + 2"
 ```
 
 ---
 
 ## Language Overview
 
-Snuk is dynamically typed with optional type annotations. Semicolons are optional.
+Snuk is dynamically typed.
+Almost everything is an expression — variables, functions, types, control flow.
+Semicolons are optional.
 
 ### Variables
 
 ```snuk
 var x = 10
 var name = "snuk"
-var ratio: float = 3.14
 const MAX = 100
+
+// optional type annotations
+var speed: float = 2.5
 ```
 
 ### Control flow
 
 ```snuk
-if x > 10 {
-    print "big"
-} else if x > 5 {
-    print "medium"
-} else {
-    print "small"
-}
+// if/else as expression
+var label = if x > 10 { return "big" } else { return "small" }
 
-while x > 0 {
-    x = x - 1
-}
+while x > 0 { x = x - 1 }
 
-for i = 0; i < 10; i = i + 1 {
-    print i
-}
+for var i = 0; i < 10; i = i + 1 { print i }
 
-loop {
+// loop with break value
+var result = loop {
     x = x + 1
-    if x >= 100 { break }
+    if x >= 100 { break x }
 }
+
+do { x = x - 1 } while x > 0
 ```
 
 ### Functions
 
-```snuk
-fn add(a, b) {
-    return a + b
-}
+Functions are values. Both forms are identical in semantics.
 
-fn greet(name: string, greeting = "hello") {
+```snuk
+// statement form
+fn add(a, b) { return a + b }
+
+// expression form
+var add = fn(a, b) { return a + b }
+
+// default parameters
+fn greet(name, greeting = "hello") {
     print greeting + ", " + name
 }
 
-var result = add(3, 4)
-greet("world")
-greet("world", "hi")
+// pass functions as arguments
+fn apply(value, func) { return func(value) }
+var doubled = apply(5, fn(x) { return x * 2 })
+
+// return functions from functions
+fn make_adder(n) {
+    return fn(x) { return x + n }
+}
+var add5 = make_adder(5)
+print add5(3)    // 8
+```
+
+### Blocks as expressions
+
+```snuk
+var result = {
+    var temp = x * 2
+    return temp + 10
+}
 ```
 
 ### Types
 
-```snuk
-type Point {
-    var x: float = 0.0
-    var y: float = 0.0
+Types are structs with methods. No inheritance. Duck typing.
 
-    fn to_string() -> string {
+```snuk
+// statement form
+type Point {
+    var x = 0.0
+    var y = 0.0
+
+    fn to_string() {
         return "(" + self.x + ", " + self.y + ")"
+    }
+}
+
+// expression form — types are values
+var Point = type { var x = 0.0; var y = 0.0 }
+
+// type factory
+fn make_type(default_color) {
+    return type {
+        var color = default_color
+        fn to_string() { return self.color }
     }
 }
 
 var p = Point { x: 3.0, y: 4.0 }
 print p.to_string()
 p.x = 10.0
+```
+
+### Lists
+
+```snuk
+var items = [1, 2, 3, 4, 5]
+items[0] = 99
+items.add(6)
+items.remove(0)
+print items.length
+
+for item in items { print item }
+```
+
+### Duck typing
+
+```snuk
+// any type with area() works here — no declaration needed
+fn print_area(shape) {
+    print shape.area()
+}
+
+type Rectangle {
+    var width = 0.0
+    var height = 0.0
+    fn area() { return self.width * self.height }
+}
+
+type Circle {
+    var radius = 0.0
+    fn area() { return 3.14159 * self.radius * self.radius }
+}
+
+print_area(Rectangle { width: 10.0, height: 5.0 })
+print_area(Circle { radius: 7.0 })
 ```
 
 ### Built-in types
@@ -138,8 +207,11 @@ p.x = 10.0
 | `int` | `42`, `-7` |
 | `float` | `3.14`, `-0.5` |
 | `bool` | `true`, `false` |
-| `string` | `"hello"` |
+| `string` | `"hello"`, `'world'` |
 | `null` | `null` |
+| `fn` | `fn(a, b) { }` |
+| `type` | `type { }` |
+| `list` | `[1, 2, 3]` |
 
 ### Operators
 
@@ -147,17 +219,19 @@ p.x = 10.0
 |----------|-----------|
 | Arithmetic | `+` `-` `*` `/` `%` |
 | Comparison | `==` `!=` `<` `>` `<=` `>=` |
-| Logical | `and` `or` `not` |
+| Logical | `and` `or` `not` / `&&` `\|\|` `!` |
 | Bitwise | `&` `\|` `^` `~` `<<` `>>` |
-| Assignment | `=` `+=` `-=` `*=` `/=` `%=` |
+| Assignment | `=` `+=` `-=` `*=` `/=` `%=` `&=` `\|=` `^=` `<<=` `>>=` |
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for branching strategy, commit conventions, and pull request guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branching strategy, commit
+conventions, and pull request guidelines.
 
-Planned features and ideas that are out of scope for the current version are tracked in [FUTURE.md](FUTURE.md).
+Planned features and ideas that are out of scope for the current
+version are tracked in [FUTURE.md](FUTURE.md).
 
 ---
 
