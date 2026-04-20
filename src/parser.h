@@ -113,7 +113,7 @@ struct SnukExpr {
  */
 typedef struct SnukParam {
     SnukExpr *identifier; /**< Parameter name expression. */
-    // TODO: type
+    SnukExpr *type; /**< Type information of the parameter */
     SnukExpr *default_value; /**< Optional default value expression. */
 } SnukParam;
 
@@ -130,6 +130,7 @@ struct SnukStmt {
 
         struct {
             SnukExpr *identifier; /**< Declared variable or constant name. */
+            SnukExpr *type; /**< Type information of the variable or constant. */
             SnukExpr *init; /**< Initializer expression. */
         } decl_stmt; // var or const
 

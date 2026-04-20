@@ -63,17 +63,18 @@ static SnukStmt *parse_expr_stmt(SnukParser *parser) {
 static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
     SnukExpr *identifier = parse_primary(parser);
+    SnukExpr *type = NULL;
 
     if (parser_match(parser, SNUK_TOKEN_COLON)) {
-        // TODO: types
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
+        type = parse_primary(parser);
     }
 
     SnukExpr *init = NULL;
     if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser);
     else init = build_null_expr(parser);
 
-    return build_decl_stmt(parser, identifier, init, is_const);
+    return build_decl_stmt(parser, identifier, type, init, is_const);
 }
 
 /**
@@ -189,15 +190,20 @@ static SnukStmt *parse_fn_stmt(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
     while (!parser_match(parser, SNUK_TOKEN_RPAREN)) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
+
         SnukExpr *name = parse_primary(parser);
         SnukExpr *default_value = NULL;
+        SnukExpr *type = NULL;
+
         if (parser_match(parser, SNUK_TOKEN_COLON)) {
-            // TODO: types
             parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
+            type = parse_primary(parser);
         }
+
         if (parser_match(parser, SNUK_TOKEN_ASSIGN))
             default_value = parse_expression(parser);
-        snuk_darray_push(&params, build_param(parser, name, default_value));
+
+        snuk_darray_push(&params, build_param(parser,name, type, default_value));
 
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
@@ -457,11 +463,15 @@ void snuk_parser_log_stmt(SnukStmt *stmt) {
         case SNUK_STMT_VAR_DECL:
             log_trace("var: ", NULL);
             snuk_parser_log_expr(stmt->decl_stmt.identifier);
+            if (stmt->decl_stmt.type) log_trace("type: ", NULL);
+            snuk_parser_log_expr(stmt->decl_stmt.type);
             snuk_parser_log_expr(stmt->decl_stmt.init);
             break;
         case SNUK_STMT_CONST_DECL:
             log_trace("const: ", NULL);
             snuk_parser_log_expr(stmt->decl_stmt.identifier);
+            if (stmt->decl_stmt.type) log_trace("type: ", NULL);
+            snuk_parser_log_expr(stmt->decl_stmt.type);
             snuk_parser_log_expr(stmt->decl_stmt.init);
             break;
         case SNUK_STMT_IF:
@@ -608,6 +618,8 @@ void snuk_parser_log_param(SnukParam *param) {
     if (!param) return;
     log_trace("param: ", NULL);
     snuk_parser_log_expr(param->identifier);
+    if (param->type) log_trace("type: ", NULL);
+    snuk_parser_log_expr(param->type);
     snuk_parser_log_expr(param->default_value);
 }
 
