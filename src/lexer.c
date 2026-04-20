@@ -35,9 +35,9 @@ KeyWord keywords[] = {
     {.keyword = {.str = "print",    .len = 5}, .type = SNUK_TOKEN_PRINT},
     {.keyword = {.str = "self",     .len = 4}, .type = SNUK_TOKEN_SELF},
     {.keyword = {.str = "type",     .len = 4}, .type = SNUK_TOKEN_TYPE},
-    {.keyword = {.str = "or",       .len = 2}, .type = SNUK_TOKEN_LOGICAL_OR},
-    {.keyword = {.str = "and",      .len = 3}, .type = SNUK_TOKEN_LOGICAL_AND},
-    {.keyword = {.str = "not",      .len = 3}, .type = SNUK_TOKEN_BANG},
+    {.keyword = {.str = "or",       .len = 2}, .type = SNUK_TOKEN_KW_OR},
+    {.keyword = {.str = "and",      .len = 3}, .type = SNUK_TOKEN_KW_AND},
+    {.keyword = {.str = "not",      .len = 3}, .type = SNUK_TOKEN_KW_NOT},
 };
 
 Value values[] = {
@@ -289,7 +289,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
 
     if (!multi_line) {
         while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n') lexer_advance(lexer);
-        SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_SLCOMMENT);
+        SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_LINE_COMMENT);
         lexer_advance(lexer); // consume newline
         return token;
     }
@@ -300,7 +300,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     if (lexer_is_eof(lexer))
         return lexer_build_error_token(lexer, "unterminated multi-line comment");
 
-    SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_MLCOMMENT);
+    SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_BLOCK_COMMENT);
     lexer_advance(lexer); // consume *
     lexer_advance(lexer); // consume /
     return token;
@@ -364,37 +364,37 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
             return lexer_build_token(lexer, SNUK_TOKEN_PERCENT);
         case '<':
             if (lexer_match(lexer, '<')) {
-                if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_LEFT_SHIFT_ASSIGN);
-                return lexer_build_token(lexer, SNUK_TOKEN_LEFT_SHIFT);
+                if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_LSHIFT_ASSIGN);
+                return lexer_build_token(lexer, SNUK_TOKEN_LSHIFT);
             }
-            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_LESS_THAN_OR_EQUAL);
-            return lexer_build_token(lexer, SNUK_TOKEN_LESS_THAN);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_LESS_EQUAL);
+            return lexer_build_token(lexer, SNUK_TOKEN_LESS);
         case '>':
             if (lexer_match(lexer, '>')) {
-                if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_RIGHT_SHIFT_ASSIGN);
-                return lexer_build_token(lexer, SNUK_TOKEN_RIGHT_SHIFT);
+                if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_RSHIFT_ASSIGN);
+                return lexer_build_token(lexer, SNUK_TOKEN_RSHIFT);
             }
-            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_GREATER_THAN_OR_EQUAL);
-            return lexer_build_token(lexer, SNUK_TOKEN_GREATER_THAN);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_GREATER_EQUAL);
+            return lexer_build_token(lexer, SNUK_TOKEN_GREATER);
         case '=':
             if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_EQUAL);
             return lexer_build_token(lexer, SNUK_TOKEN_ASSIGN);
         case '!':
-            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_NOT_EQUAL);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_BANG_EQUAL);
             return lexer_build_token(lexer, SNUK_TOKEN_BANG);
         case '&':
-            if (lexer_match(lexer, '&')) return lexer_build_token(lexer, SNUK_TOKEN_LOGICAL_AND);
-            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_AND_ASSIGN);
-            return lexer_build_token(lexer, SNUK_TOKEN_AND);
+            if (lexer_match(lexer, '&')) return lexer_build_token(lexer, SNUK_TOKEN_AMP_AMP);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_AMP_ASSIGN);
+            return lexer_build_token(lexer, SNUK_TOKEN_AMP);
         case '|':
-            if (lexer_match(lexer, '|')) return lexer_build_token(lexer, SNUK_TOKEN_LOGICAL_OR);
-            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_OR_ASSIGN);
-            return lexer_build_token(lexer, SNUK_TOKEN_OR);
+            if (lexer_match(lexer, '|')) return lexer_build_token(lexer, SNUK_TOKEN_PIPE_PIPE);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_PIPE_ASSIGN);
+            return lexer_build_token(lexer, SNUK_TOKEN_PIPE);
         case '~':
             return lexer_build_token(lexer, SNUK_TOKEN_TILDE);
         case '^':
-            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_XOR_ASSIGN);
-            return lexer_build_token(lexer, SNUK_TOKEN_XOR);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_CARET_ASSIGN);
+            return lexer_build_token(lexer, SNUK_TOKEN_CARET);
         case ',':
             return lexer_build_token(lexer, SNUK_TOKEN_COMMA);
 
@@ -465,6 +465,8 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_DO);
         case SNUK_TOKEN_FOR:
             return SNUK_STRINGIFY(SNUK_TOKEN_FOR);
+        case SNUK_TOKEN_IN:
+            return SNUK_STRINGIFY(SNUK_TOKEN_IN);
         case SNUK_TOKEN_RETURN:
             return SNUK_STRINGIFY(SNUK_TOKEN_RETURN);
         case SNUK_TOKEN_BREAK:
@@ -473,12 +475,12 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_CONTINUE);
         case SNUK_TOKEN_FN:
             return SNUK_STRINGIFY(SNUK_TOKEN_FN);
-        case SNUK_TOKEN_PRINT:
-            return SNUK_STRINGIFY(SNUK_TOKEN_PRINT);
-        case SNUK_TOKEN_SELF:
-            return SNUK_STRINGIFY(SNUK_TOKEN_SELF);
         case SNUK_TOKEN_TYPE:
             return SNUK_STRINGIFY(SNUK_TOKEN_TYPE);
+        case SNUK_TOKEN_SELF:
+            return SNUK_STRINGIFY(SNUK_TOKEN_SELF);
+        case SNUK_TOKEN_PRINT:
+            return SNUK_STRINGIFY(SNUK_TOKEN_PRINT);
         case SNUK_TOKEN_LPAREN:
             return SNUK_STRINGIFY(SNUK_TOKEN_LPAREN);
         case SNUK_TOKEN_RPAREN:
@@ -511,24 +513,30 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_SLASH);
         case SNUK_TOKEN_PERCENT:
             return SNUK_STRINGIFY(SNUK_TOKEN_PERCENT);
-        case SNUK_TOKEN_LEFT_SHIFT:
-            return SNUK_STRINGIFY(SNUK_TOKEN_LEFT_SHIFT);
-        case SNUK_TOKEN_RIGHT_SHIFT:
-            return SNUK_STRINGIFY(SNUK_TOKEN_RIGHT_SHIFT);
-        case SNUK_TOKEN_OR:
-            return SNUK_STRINGIFY(SNUK_TOKEN_OR);
-        case SNUK_TOKEN_AND:
-            return SNUK_STRINGIFY(SNUK_TOKEN_AND);
+        case SNUK_TOKEN_AMP:
+            return SNUK_STRINGIFY(SNUK_TOKEN_AMP);
+        case SNUK_TOKEN_PIPE:
+            return SNUK_STRINGIFY(SNUK_TOKEN_PIPE);
+        case SNUK_TOKEN_CARET:
+            return SNUK_STRINGIFY(SNUK_TOKEN_CARET);
         case SNUK_TOKEN_TILDE:
             return SNUK_STRINGIFY(SNUK_TOKEN_TILDE);
-        case SNUK_TOKEN_XOR:
-            return SNUK_STRINGIFY(SNUK_TOKEN_XOR);
-        case SNUK_TOKEN_LOGICAL_AND:
-            return SNUK_STRINGIFY(SNUK_TOKEN_LOGICAL_AND);
-        case SNUK_TOKEN_LOGICAL_OR:
-            return SNUK_STRINGIFY(SNUK_TOKEN_LOGICAL_OR);
+        case SNUK_TOKEN_LSHIFT:
+            return SNUK_STRINGIFY(SNUK_TOKEN_LSHIFT);
+        case SNUK_TOKEN_RSHIFT:
+            return SNUK_STRINGIFY(SNUK_TOKEN_RSHIFT);
+        case SNUK_TOKEN_AMP_AMP:
+            return SNUK_STRINGIFY(SNUK_TOKEN_AMP_AMP);
+        case SNUK_TOKEN_PIPE_PIPE:
+            return SNUK_STRINGIFY(SNUK_TOKEN_PIPE_PIPE);
         case SNUK_TOKEN_BANG:
             return SNUK_STRINGIFY(SNUK_TOKEN_BANG);
+        case SNUK_TOKEN_KW_AND:
+            return SNUK_STRINGIFY(SNUK_TOKEN_KW_AND);
+        case SNUK_TOKEN_KW_OR:
+            return SNUK_STRINGIFY(SNUK_TOKEN_KW_OR);
+        case SNUK_TOKEN_KW_NOT:
+            return SNUK_STRINGIFY(SNUK_TOKEN_KW_NOT);
         case SNUK_TOKEN_ASSIGN:
             return SNUK_STRINGIFY(SNUK_TOKEN_ASSIGN);
         case SNUK_TOKEN_PLUS_ASSIGN:
@@ -541,32 +549,32 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_SLASH_ASSIGN);
         case SNUK_TOKEN_PERCENT_ASSIGN:
             return SNUK_STRINGIFY(SNUK_TOKEN_PERCENT_ASSIGN);
-        case SNUK_TOKEN_LEFT_SHIFT_ASSIGN:
-            return SNUK_STRINGIFY(SNUK_TOKEN_LEFT_SHIFT_ASSIGN);
-        case SNUK_TOKEN_RIGHT_SHIFT_ASSIGN:
-            return SNUK_STRINGIFY(SNUK_TOKEN_RIGHT_SHIFT_ASSIGN);
-        case SNUK_TOKEN_OR_ASSIGN:
-            return SNUK_STRINGIFY(SNUK_TOKEN_OR_ASSIGN);
-        case SNUK_TOKEN_AND_ASSIGN:
-            return SNUK_STRINGIFY(SNUK_TOKEN_AND_ASSIGN);
-        case SNUK_TOKEN_XOR_ASSIGN:
-            return SNUK_STRINGIFY(SNUK_TOKEN_XOR_ASSIGN);
+        case SNUK_TOKEN_AMP_ASSIGN:
+            return SNUK_STRINGIFY(SNUK_TOKEN_AMP_ASSIGN);
+        case SNUK_TOKEN_PIPE_ASSIGN:
+            return SNUK_STRINGIFY(SNUK_TOKEN_PIPE_ASSIGN);
+        case SNUK_TOKEN_CARET_ASSIGN:
+            return SNUK_STRINGIFY(SNUK_TOKEN_CARET_ASSIGN);
+        case SNUK_TOKEN_LSHIFT_ASSIGN:
+            return SNUK_STRINGIFY(SNUK_TOKEN_LSHIFT_ASSIGN);
+        case SNUK_TOKEN_RSHIFT_ASSIGN:
+            return SNUK_STRINGIFY(SNUK_TOKEN_RSHIFT_ASSIGN);
         case SNUK_TOKEN_EQUAL:
             return SNUK_STRINGIFY(SNUK_TOKEN_EQUAL);
-        case SNUK_TOKEN_NOT_EQUAL:
-            return SNUK_STRINGIFY(SNUK_TOKEN_NOT_EQUAL);
-        case SNUK_TOKEN_LESS_THAN:
-            return SNUK_STRINGIFY(SNUK_TOKEN_LESS_THAN);
-        case SNUK_TOKEN_GREATER_THAN:
-            return SNUK_STRINGIFY(SNUK_TOKEN_GREATER_THAN);
-        case SNUK_TOKEN_LESS_THAN_OR_EQUAL:
-            return SNUK_STRINGIFY(SNUK_TOKEN_LESS_THAN_OR_EQUAL);
-        case SNUK_TOKEN_GREATER_THAN_OR_EQUAL:
-            return SNUK_STRINGIFY(SNUK_TOKEN_GREATER_THAN_OR_EQUAL);
-        case SNUK_TOKEN_SLCOMMENT:
-            return SNUK_STRINGIFY(SNUK_TOKEN_SLCOMMENT);
-        case SNUK_TOKEN_MLCOMMENT:
-            return SNUK_STRINGIFY(SNUK_TOKEN_MLCOMMENT);
+        case SNUK_TOKEN_BANG_EQUAL:
+            return SNUK_STRINGIFY(SNUK_TOKEN_BANG_EQUAL);
+        case SNUK_TOKEN_LESS:
+            return SNUK_STRINGIFY(SNUK_TOKEN_LESS);
+        case SNUK_TOKEN_GREATER:
+            return SNUK_STRINGIFY(SNUK_TOKEN_GREATER);
+        case SNUK_TOKEN_LESS_EQUAL:
+            return SNUK_STRINGIFY(SNUK_TOKEN_LESS_EQUAL);
+        case SNUK_TOKEN_GREATER_EQUAL:
+            return SNUK_STRINGIFY(SNUK_TOKEN_GREATER_EQUAL);
+        case SNUK_TOKEN_LINE_COMMENT:
+            return SNUK_STRINGIFY(SNUK_TOKEN_LINE_COMMENT);
+        case SNUK_TOKEN_BLOCK_COMMENT:
+            return SNUK_STRINGIFY(SNUK_TOKEN_BLOCK_COMMENT);
         case SNUK_TOKEN_MAX:
             return SNUK_STRINGIFY(SNUK_TOKEN_MAX);
         default:

@@ -142,6 +142,7 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_PERCENT] = {NULL, parse_binary, PRECEDENCE_FACTOR},
 
     [SNUK_TOKEN_BANG] = {parse_unary, NULL, PRECEDENCE_NONE},
+    [SNUK_TOKEN_KW_NOT] = {parse_unary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_TILDE] = {parse_unary, NULL, PRECEDENCE_NONE},
 
     [SNUK_TOKEN_ASSIGN] = {NULL, parse_assignment, PRECEDENCE_ASSIGNMENT},
@@ -151,29 +152,31 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_STAR_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
     [SNUK_TOKEN_SLASH_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
     [SNUK_TOKEN_PERCENT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
-    [SNUK_TOKEN_LEFT_SHIFT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
-    [SNUK_TOKEN_RIGHT_SHIFT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
-    [SNUK_TOKEN_OR_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
-    [SNUK_TOKEN_AND_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
-    [SNUK_TOKEN_XOR_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_LSHIFT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_RSHIFT_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_PIPE_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_AMP_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
+    [SNUK_TOKEN_CARET_ASSIGN] = {NULL, parse_compound_assignment, PRECEDENCE_ASSIGNMENT},
 
     [SNUK_TOKEN_EQUAL] = {NULL, parse_binary, PRECEDENCE_EQUALITY},
-    [SNUK_TOKEN_NOT_EQUAL] = {NULL, parse_binary, PRECEDENCE_EQUALITY},
+    [SNUK_TOKEN_BANG_EQUAL] = {NULL, parse_binary, PRECEDENCE_EQUALITY},
 
-    [SNUK_TOKEN_LESS_THAN] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
-    [SNUK_TOKEN_LESS_THAN_OR_EQUAL] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
-    [SNUK_TOKEN_GREATER_THAN] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
-    [SNUK_TOKEN_GREATER_THAN_OR_EQUAL] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_LESS] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_LESS_EQUAL] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_GREATER] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_GREATER_EQUAL] = {NULL, parse_binary, PRECEDENCE_COMPARISION},
 
-    [SNUK_TOKEN_OR] = {NULL, parse_binary, PRECEDENCE_OR},
-    [SNUK_TOKEN_XOR] = {NULL, parse_binary, PRECEDENCE_XOR},
-    [SNUK_TOKEN_AND] = {NULL, parse_binary, PRECEDENCE_AND},
+    [SNUK_TOKEN_PIPE] = {NULL, parse_binary, PRECEDENCE_OR},
+    [SNUK_TOKEN_CARET] = {NULL, parse_binary, PRECEDENCE_XOR},
+    [SNUK_TOKEN_AMP] = {NULL, parse_binary, PRECEDENCE_AND},
 
-    [SNUK_TOKEN_LOGICAL_OR] = {NULL, parse_binary, PRECEDENCE_LOGICAL_OR},
-    [SNUK_TOKEN_LOGICAL_AND] = {NULL, parse_binary, PRECEDENCE_LOGICAL_AND},
+    [SNUK_TOKEN_PIPE_PIPE] = {NULL, parse_binary, PRECEDENCE_LOGICAL_OR},
+    [SNUK_TOKEN_KW_OR] = {NULL, parse_binary, PRECEDENCE_LOGICAL_OR},
+    [SNUK_TOKEN_AMP_AMP] = {NULL, parse_binary, PRECEDENCE_LOGICAL_AND},
+    [SNUK_TOKEN_KW_AND] = {NULL, parse_binary, PRECEDENCE_LOGICAL_AND},
 
-    [SNUK_TOKEN_LEFT_SHIFT] = {NULL, parse_binary, PRECEDENCE_SHIFT},
-    [SNUK_TOKEN_RIGHT_SHIFT] = {NULL, parse_binary, PRECEDENCE_SHIFT},
+    [SNUK_TOKEN_LSHIFT] = {NULL, parse_binary, PRECEDENCE_SHIFT},
+    [SNUK_TOKEN_RSHIFT] = {NULL, parse_binary, PRECEDENCE_SHIFT},
 };
 
 /**
@@ -606,7 +609,7 @@ SNUK_INLINE SnukStmt *build_block_stmt(SnukParser *parser, SnukStmt *block_stmt,
 SNUK_INLINE SnukStmt *build_comment_stmt(SnukParser *parser, SnukToken comment_token) {
     SnukStmt *comment_stmt = parser_create_stmt(parser);
     *comment_stmt = (SnukStmt){
-        .type = comment_token.type == SNUK_TOKEN_MLCOMMENT ? SNUK_STMT_MLCOMMENT : SNUK_STMT_SLCOMMENT,
+        .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT ? SNUK_STMT_MLCOMMENT : SNUK_STMT_SLCOMMENT,
         .comment = comment_token.string_literal,
     };
     return comment_stmt;
