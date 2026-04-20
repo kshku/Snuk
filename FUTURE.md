@@ -7,16 +7,16 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 
 ## Language
 
+- Map type ?
+- Type casting ?
 - Arbitrary precision integers (bignum) ?
 - Arrays and maps as built-in types
 - Pattern matching (`match` / `case`)
-- Error handling (result type or try/catch)
-- Modules and imports
-- Inheritance or interfaces for types
+- Error handling (result type or try/catch) ?
+- Modules and imports ?
 - Closures and anonymous functions
-- Generator functions
-- String interpolation (`"hello {name}"`)
-- Bitwise operator sugar (`<<`, `>>`, `~`, `^`, `&`, `|`)
+- Generator functions ?
+- String interpolation (`"hello {name}"`) ?
 - Static typing mode (opt-in strict types)
 
 ## Standard Library
