@@ -11,12 +11,12 @@ bool snuk_runtime_execute(Runtime *rt, const char *src) {
     SnukParser parser;
     snuk_parser_init(&parser, src, (void *)(&rt->frame), (alloc_fn)sn_frame_allocator_allocate);
 
-    SnukStmt *stmt;
-    while ((stmt = snuk_parser_next_stmt(&parser))) {
+    SnukItem *item;
+    while ((item = snuk_parser_next_item(&parser))) {
         sn_frame_allocator_begin(&rt->frame);
-        snuk_parser_log_stmt(stmt);
+        snuk_parser_log_item(item);
         log_trace("", NULL);
-        snuk_interpreter_exec_stmt(&rt->interpreter, stmt);
+        snuk_interpreter_exec_item(&rt->interpreter, item);
         sn_frame_allocator_end(&rt->frame);
     }
 

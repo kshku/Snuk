@@ -15,51 +15,39 @@ static Value perform_binary_op(Value left, Value right, SnukTokenType op);
 static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr);
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
-void snuk_interpreter_exec_stmt(SnukInterpreter *i, SnukStmt *stmt) {
-    switch (stmt->type) {
-        case SNUK_STMT_EXPR:
-            snuk_interpreter_print_value(snuk_interpreter_eval_expr(i, stmt->expr_stmt));
+void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
+    switch (item->type) {
+        case SNUK_ITEM_EXPR:
+            snuk_interpreter_print_value(snuk_interpreter_eval_expr(i, item->expr));
             break;
-        case SNUK_STMT_VAR_DECL:
-        case SNUK_STMT_CONST_DECL:
+        case SNUK_ITEM_VAR_DECL:
+        case SNUK_ITEM_CONST_DECL:
             // TODO: const
-            add_identifier(i, stmt->decl_stmt.identifier, stmt->decl_stmt.init);
+            add_identifier(i, item->var_decl.identifier, item->var_decl.init);
             break;
 
         // TODO:
-        case SNUK_STMT_IF:
+        case SNUK_ITEM_RETURN:
             break;
-        case SNUK_STMT_MATCH:
+        case SNUK_ITEM_BREAK:
             break;
-        case SNUK_STMT_WHILE:
+        case SNUK_ITEM_CONTINUE:
             break;
-        case SNUK_STMT_DO_WHILE:
+        case SNUK_ITEM_FN_DECL:
             break;
-        case SNUK_STMT_FOR:
-            break;
-        case SNUK_STMT_RETURN:
-            break;
-        case SNUK_STMT_BREAK:
-            break;
-        case SNUK_STMT_CONTINUE:
-            break;
-        case SNUK_STMT_FN:
-            break;
-        case SNUK_STMT_TYPE:
+        case SNUK_ITEM_TYPE_DECL:
             break;
 
-        case SNUK_STMT_PRINT:
-            print_exprs(i, stmt->print_stmt.exprs);
+        case SNUK_ITEM_PRINT:
+            print_exprs(i, item->print_exprs);
             break;
 
         // TODO:
-        case SNUK_STMT_BLOCK:
+        case SNUK_ITEM_LINE_COMMENT:
             break;
-        case SNUK_STMT_SLCOMMENT:
+        case SNUK_ITEM_BLOCK_COMMENT:
             break;
-        case SNUK_STMT_MLCOMMENT:
-            break;
-        case SNUK_STMT_MAX:
+        case SNUK_ITEM_MAX:
         default:
             break;
     }

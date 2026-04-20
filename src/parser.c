@@ -8,59 +8,49 @@
 #include "darray.h"
 
 /**
- * @brief Parse the next top-level statement.
+ * @brief Parse the next top-level item.
  */
-SnukStmt *snuk_parser_next_stmt(SnukParser *parser) {
+SnukItem *snuk_parser_next_item(SnukParser *parser) {
     if (parser->current.type == SNUK_TOKEN_EOF) return NULL;
-    SnukStmt *stmt = parse_stmt(parser);
+    SnukItem *item = parse_item(parser);
     if (parser->panic_mode) parser_sync(parser);
-    return stmt;
+    return item;
 }
 
 /**
- * @brief Dispatch statement parsing based on the current token.
+ * @brief Dispatch item parsing based on the current token.
  */
-static SnukStmt *parse_stmt(SnukParser *parser) {
+static SnukItem *parse_item(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST))
-        return parse_decl_stmt(parser, parser->previous.type == SNUK_TOKEN_CONST);
-
-    if (parser_match(parser, SNUK_TOKEN_IF)) return parse_if_stmt(parser);
-
-    if (parser_match(parser, SNUK_TOKEN_MATCH)) return parse_match_stmt(parser);
-
-    if (parser_match(parser, SNUK_TOKEN_WHILE)) return parse_while_stmt(parser);
-    if (parser_match(parser, SNUK_TOKEN_DO)) return parse_do_while_stmt(parser);
-    if (parser_match(parser, SNUK_TOKEN_FOR)) return parse_for_stmt(parser);
+        return parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST);
 
     if (parser_match(parser, SNUK_TOKEN_RETURN) || parser_match(parser, SNUK_TOKEN_CONTINUE)
             || parser_match(parser, SNUK_TOKEN_BREAK))
-        return parse_flow_stmt(parser);
+        return parse_flow_item(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_FN)) return parse_fn_stmt(parser);
+    if (parser_match(parser, SNUK_TOKEN_FN)) return parse_fn_item(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_TYPE)) return parse_type_stmt(parser);
+    if (parser_match(parser, SNUK_TOKEN_TYPE)) return parse_type_item(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_stmt(parser);
-
-    if (parser_match(parser, SNUK_TOKEN_LBRACE)) return parse_block_stmt(parser);
+    if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
 
     if (parser_match(parser, SNUK_TOKEN_BLOCK_COMMENT) || parser_match(parser, SNUK_TOKEN_LINE_COMMENT))
-        return parse_comment_stmt(parser);
+        return parse_comment_item(parser);
 
-    return parse_expr_stmt(parser);
+    return parse_expr_item(parser);
 }
 
 /**
- * @brief Parse an expression statement.
+ * @brief Parse an expression item.
  */
-static SnukStmt *parse_expr_stmt(SnukParser *parser) {
-    return build_expr_stmt(parser, parse_expression(parser));
+static SnukItem *parse_expr_item(SnukParser *parser) {
+    return build_expr_item(parser, parse_expression(parser));
 }
 
 /**
- * @brief Parse a variable or constant declaration statement.
+ * @brief Parse a variable or constant declaration item.
  */
-static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
+static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
     SnukExpr *identifier = parse_primary(parser);
     SnukExpr *type = NULL;
@@ -74,115 +64,26 @@ static SnukStmt *parse_decl_stmt(SnukParser *parser, bool is_const) {
     if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser);
     else init = build_null_expr(parser);
 
-    return build_decl_stmt(parser, identifier, type, init, is_const);
+    return build_decl_item(parser, identifier, type, init, is_const);
 }
 
 /**
- * @brief Parse an if or else-if statement.
+ * @brief Parse return, break, or continue items.
  */
-static SnukStmt *parse_if_stmt(SnukParser *parser) {
-    SnukExpr *condition = parse_expression(parser);
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-    SnukStmt *then_branch = parse_block_stmt(parser);
-    SnukStmt *else_branch = NULL;
-    if (parser_match(parser, SNUK_TOKEN_ELSE)) {
-        if (parser_match(parser, SNUK_TOKEN_IF)) {
-            else_branch = parse_if_stmt(parser);
-        } else {
-            parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-            else_branch = parse_block_stmt(parser);
-        }
-    }
-    return build_if_stmt(parser, condition, then_branch, else_branch);
-}
-
-/**
- * @brief Parse a match statement.
- */
-static SnukStmt *parse_match_stmt(SnukParser *parser) {
-    SNUK_UNUSED(parser);
-    // TODO:
-    return NULL;
-}
-
-/**
- * @brief Parse a while loop statement.
- */
-static SnukStmt *parse_while_stmt(SnukParser *parser) {
-    SnukExpr *condition = parse_expression(parser);
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-    SnukStmt *block = parse_block_stmt(parser);
-    return build_while_stmt(parser, condition, block, false);
-}
-
-/**
- * @brief Parse a do-while loop statement.
- */
-static SnukStmt *parse_do_while_stmt(SnukParser *parser) {
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-    SnukStmt *block = parse_block_stmt(parser);
-    parser_expect(parser, SNUK_TOKEN_WHILE, "expected while condition");
-    SnukExpr *condition = parse_expression(parser);
-    return build_while_stmt(parser, condition, block, true);
-}
-
-/**
- * @brief Parse a for loop statement.
- */
-static SnukStmt *parse_for_stmt(SnukParser *parser) {
-    SnukStmt *init = NULL;
-    SnukExpr *cond = NULL;
-    SnukExpr *update = NULL;
-    SnukStmt *block = NULL;
-
-    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
-        // infinite loop
-        block = parse_block_stmt(parser);
-        return build_for_stmt(parser, init, cond, update, block);
-    }
-
-    if (parser_match(parser, SNUK_TOKEN_VAR))
-        init = parse_decl_stmt(parser, false);
-
-    parser_match(parser, SNUK_TOKEN_SEMICOLON);
-    cond = parse_expression(parser);
-    parser_match(parser, SNUK_TOKEN_SEMICOLON);
-
-    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
-        block = parse_block_stmt(parser);
-        return build_for_stmt(parser, init, cond, update, block);
-    }
-
-    update = parse_expression(parser);
-
-    if (parser_match(parser, SNUK_TOKEN_SEMICOLON) && !init) {
-        init = build_expr_stmt(parser, cond);
-        cond = update;
-        update = parse_expression(parser);
-    }
-
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
-
-    block = parse_block_stmt(parser);
-
-    return build_for_stmt(parser, init, cond, update, block);
-}
-
-/**
- * @brief Parse return, break, or continue statements.
- */
-static SnukStmt *parse_flow_stmt(SnukParser *parser) {
+static SnukItem *parse_flow_item(SnukParser *parser) {
     SnukExpr *value = NULL;
-    if (parser->previous.type == SNUK_TOKEN_RETURN)
+    if (parser->previous.type == SNUK_TOKEN_RETURN || parser->previous.type == SNUK_TOKEN_BREAK)
+        // TODO: look for delimiter, value is optional
         value = parse_expression(parser);
 
-    return build_flow_stmt(parser, parser->previous.type, value);
+    return build_flow_item(parser, parser->previous.type, value);
 }
 
 /**
- * @brief Parse a function declaration statement.
+ * @brief Parse a function declaration item.
  */
-static SnukStmt *parse_fn_stmt(SnukParser *parser) {
+static SnukItem *parse_fn_item(SnukParser *parser) {
+    // TODO: return type
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected function name");
     SnukExpr *identifier = parse_primary(parser);
 
@@ -210,20 +111,21 @@ static SnukStmt *parse_fn_stmt(SnukParser *parser) {
     }
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
-    SnukStmt *body = parse_block_stmt(parser);
+    SnukExpr *body = parse_block(parser);
 
-    return build_fn_stmt(parser, identifier, params, body);
+    return build_fn_item(parser, identifier, params, body, NULL);
 }
 
 /**
- * @brief Parse a type declaration statement.
+ * @brief Parse a type declaration item.
  */
-static SnukStmt *parse_type_stmt(SnukParser *parser) {
+static SnukItem *parse_type_item(SnukParser *parser) {
+    // TODO:
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
 
     SnukExpr *identifier = parse_primary(parser);
-    SnukStmt **vars = snuk_darray_create(SnukStmt *);
-    SnukStmt **fns = snuk_darray_create(SnukStmt *);
+    SnukItem **vars = snuk_darray_create(SnukItem *);
+    SnukItem **fns = snuk_darray_create(SnukItem *);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
@@ -232,9 +134,9 @@ static SnukStmt *parse_type_stmt(SnukParser *parser) {
 
         if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST)) {
             snuk_darray_push(&vars,
-                    parse_decl_stmt(parser, parser->previous.type == SNUK_TOKEN_CONST));
+                    parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST));
         } else if (parser_match(parser, SNUK_TOKEN_FN)) {
-            snuk_darray_push(&fns, parse_fn_stmt(parser));
+            snuk_darray_push(&fns, parse_fn_item(parser));
         } else {
             parser_error(parser, "Unexpected token");
         }
@@ -245,40 +147,25 @@ static SnukStmt *parse_type_stmt(SnukParser *parser) {
         return NULL;
     }
 
-    return build_type_stmt(parser, identifier, vars, fns);
+    return build_type_item(parser, identifier, vars, fns);
 }
 
 /**
- * @brief Parse a print statement.
+ * @brief Parse a print item.
  */
-static SnukStmt *parse_print_stmt(SnukParser *parser) {
-    SnukStmt *print_stmt = build_print_stmt(parser, NULL, parse_expression(parser));
+static SnukItem *parse_print_item(SnukParser *parser) {
+    SnukItem *print_item = build_print_item(parser, NULL, parse_expression(parser));
     while (parser_match(parser, SNUK_TOKEN_COMMA))
-        print_stmt = build_print_stmt(parser, print_stmt, parse_expression(parser));
-    return print_stmt;
+        print_item = build_print_item(parser, print_item, parse_expression(parser));
+    return print_item;
 }
 
 /**
- * @brief Parse a block statement.
+ * @brief Parse a source comment as a item.
  */
-static SnukStmt *parse_block_stmt(SnukParser *parser) {
-    SnukStmt *block_stmt = build_block_stmt(parser, NULL, NULL);
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
-            && parser->current.type != SNUK_TOKEN_EOF)
-        block_stmt = build_block_stmt(parser, block_stmt, parse_stmt(parser));
-    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "block was not closed");
-        return NULL;
-    }
-    return block_stmt;
-}
-
-/**
- * @brief Parse a source comment as a statement.
- */
-static SnukStmt *parse_comment_stmt(SnukParser *parser) {
+static SnukItem *parse_comment_item(SnukParser *parser) {
     SnukToken t = parser->previous;
-    return build_comment_stmt(parser, t);
+    return build_comment_item(parser, t);
 }
 
 /**
@@ -396,6 +283,128 @@ static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left) {
 }
 
 /**
+ * @brief Parse an if expression.
+ */
+static SnukExpr *parse_if(SnukParser *parser) {
+    SnukExpr *condition = parse_expression(parser);
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+    SnukExpr *then_block = parse_block(parser);
+    SnukExpr *else_block = NULL;
+    if (parser_match(parser, SNUK_TOKEN_ELSE)) {
+        if (parser_match(parser, SNUK_TOKEN_IF))
+            else_block = parse_if(parser);
+        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+        else_block = parse_block(parser);
+    }
+    return build_if_expr(parser, condition, then_block, else_block);
+}
+
+/**
+ * @brief Parse an match expression.
+ */
+static SnukExpr *parse_match(SnukParser *parser) {
+    // TODO:
+    return build_match_expr(parser, NULL);
+}
+
+/**
+ * @brief Parse an while or do while loop expression.
+ */
+static SnukExpr *parse_while(SnukParser *parser) {
+    SnukExpr *condition = NULL;
+    SnukExpr *body = NULL;
+
+    if (parser->previous.type == SNUK_TOKEN_DO) {
+        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+        body = parse_block(parser);
+        parser_expect(parser, SNUK_TOKEN_WHILE, "expected while");
+        condition = parse_expression(parser);
+        return build_while_expr(parser, condition, body, true);
+    }
+
+    condition = parse_expression(parser);
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+    body = parse_block(parser);
+    return build_while_expr(parser, condition, body, false);
+}
+
+/**
+ * @brief Parse an for loop expression.
+ */
+static SnukExpr *parse_for(SnukParser *parser) {
+    SnukItem *init = NULL;
+    SnukExpr *condition = NULL;
+    SnukExpr *update = NULL;
+    SnukExpr *body = NULL;
+
+    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
+        // infinity loop
+        body = parse_block(parser);
+        return build_for_expr(parser, init, condition, update, body);
+    }
+
+    // TODO: allow const?
+    if (parser_match(parser, SNUK_TOKEN_VAR))
+        parse_decl_item(parser, false);
+
+    parser_match(parser, SNUK_TOKEN_SEMICOLON);
+    condition = parse_expression(parser);
+    parser_match(parser, SNUK_TOKEN_SEMICOLON);
+
+    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
+        body = parse_block(parser);
+        return build_for_expr(parser, init, condition, update, body);
+    }
+
+    update = parse_expression(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_SEMICOLON) && !init) {
+        init = build_expr_item(parser, condition);
+        condition = update;
+        update = parse_expression(parser);
+    }
+
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
+    body = parse_block(parser);
+
+    return build_for_expr(parser, init, condition, update, body);
+}
+
+/**
+ * @brief Parse an function expression.
+ */
+static SnukExpr *parse_fn(SnukParser *parser) {
+    // TODO:
+    return build_fn_expr(parser, NULL, NULL, NULL);
+}
+
+/**
+ * @brief Parse an type expression.
+ */
+static SnukExpr *parse_type(SnukParser *parser) {
+    // TODO:
+    return build_type_expr(parser, NULL, NULL);
+}
+
+/**
+ * @brief Parse an block expression.
+ */
+static SnukExpr *parse_block(SnukParser *parser) {
+    SnukExpr *block_expr = build_block_expr(parser, NULL, NULL);
+
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+            && parser->current.type != SNUK_TOKEN_EOF)
+        block_expr = build_block_expr(parser, block_expr, parse_item(parser));
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "block was not closed");
+        return NULL;
+    }
+
+    return block_expr;
+}
+
+/**
  * @brief Report a parser error and enter panic mode.
  */
 static void parser_error(SnukParser *parser, const char *err_msg) {
@@ -448,103 +457,72 @@ static void parser_sync(SnukParser *parser) {
 }
 
 /**
- * @brief Log a statement tree.
+ * @brief Log a item tree.
  */
-void snuk_parser_log_stmt(SnukStmt *stmt) {
-    if (!stmt) return;
-    log_trace("Statement type: %s", snuk_parser_stmt_type_to_string(stmt->type));
+void snuk_parser_log_item(SnukItem *item) {
+    if (!item) return;
+    log_trace("item type: %s", snuk_parser_item_type_to_string(item->type));
 
     uint64_t count;
-    switch (stmt->type) {
-        case SNUK_STMT_EXPR:
+    switch (item->type) {
+        case SNUK_ITEM_EXPR:
             log_trace("Expr:", NULL);
-            snuk_parser_log_expr(stmt->expr_stmt);
+            snuk_parser_log_expr(item->expr);
             break;
-        case SNUK_STMT_VAR_DECL:
+        case SNUK_ITEM_VAR_DECL:
             log_trace("var: ", NULL);
-            snuk_parser_log_expr(stmt->decl_stmt.identifier);
-            if (stmt->decl_stmt.type) log_trace("type: ", NULL);
-            snuk_parser_log_expr(stmt->decl_stmt.type);
-            snuk_parser_log_expr(stmt->decl_stmt.init);
+            snuk_parser_log_expr(item->var_decl.identifier);
+            if (item->var_decl.type) log_trace("type: ", NULL);
+            snuk_parser_log_expr(item->var_decl.type);
+            snuk_parser_log_expr(item->var_decl.init);
             break;
-        case SNUK_STMT_CONST_DECL:
+        case SNUK_ITEM_CONST_DECL:
             log_trace("const: ", NULL);
-            snuk_parser_log_expr(stmt->decl_stmt.identifier);
-            if (stmt->decl_stmt.type) log_trace("type: ", NULL);
-            snuk_parser_log_expr(stmt->decl_stmt.type);
-            snuk_parser_log_expr(stmt->decl_stmt.init);
+            snuk_parser_log_expr(item->var_decl.identifier);
+            if (item->var_decl.type) log_trace("type: ", NULL);
+            snuk_parser_log_expr(item->var_decl.type);
+            snuk_parser_log_expr(item->var_decl.init);
             break;
-        case SNUK_STMT_IF:
-            log_trace("if:", NULL);
-            snuk_parser_log_expr(stmt->if_stmt.condition);
-            snuk_parser_log_stmt(stmt->if_stmt.then_branch);
-            snuk_parser_log_stmt(stmt->if_stmt.else_branch);
-            break;
-        case SNUK_STMT_MATCH:
-            log_trace("match:", NULL);
-            break;
-        case SNUK_STMT_WHILE:
-            log_trace("while:", NULL);
-            snuk_parser_log_expr(stmt->while_stmt.condition);
-            snuk_parser_log_stmt(stmt->while_stmt.block);
-            break;
-        case SNUK_STMT_DO_WHILE:
-            log_trace("do:", NULL);
-            snuk_parser_log_stmt(stmt->while_stmt.block);
-            snuk_parser_log_expr(stmt->while_stmt.condition);
-            break;
-        case SNUK_STMT_FOR:
-            log_trace("for:", NULL);
-            snuk_parser_log_stmt(stmt->for_stmt.init);
-            snuk_parser_log_expr(stmt->for_stmt.cond);
-            snuk_parser_log_expr(stmt->for_stmt.update);
-            snuk_parser_log_stmt(stmt->for_stmt.block);
-            break;
-        case SNUK_STMT_RETURN:
+        case SNUK_ITEM_RETURN:
             log_trace("return:", NULL);
-            snuk_parser_log_expr(stmt->return_stmt);
+            snuk_parser_log_expr(item->expr);
             break;
-        case SNUK_STMT_BREAK:
+        case SNUK_ITEM_BREAK:
             log_trace("break", NULL);
+            snuk_parser_log_expr(item->expr);
             break;
-        case SNUK_STMT_CONTINUE:
+        case SNUK_ITEM_CONTINUE:
             log_trace("continue", NULL);
             break;
-        case SNUK_STMT_FN:
+        case SNUK_ITEM_FN_DECL:
             log_trace("function:", NULL);
-            snuk_parser_log_expr(stmt->fn_stmt.identifier);
-            count = snuk_darray_get_length(stmt->fn_stmt.params);
+            snuk_parser_log_expr(item->fn_decl.identifier);
+            count = snuk_darray_get_length(item->fn_decl.params);
             for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_param(stmt->fn_stmt.params[i]);
-            snuk_parser_log_stmt(stmt->fn_stmt.body);
+                snuk_parser_log_param(item->fn_decl.params[i]);
+            snuk_parser_log_expr(item->fn_decl.body);
             break;
-        case SNUK_STMT_TYPE:
+        case SNUK_ITEM_TYPE_DECL:
             log_trace("type:", NULL);
-            snuk_parser_log_expr(stmt->type_stmt.identifier);
-            count = snuk_darray_get_length(stmt->type_stmt.vars);
+            snuk_parser_log_expr(item->type_decl.identifier);
+            count = snuk_darray_get_length(item->type_decl.vars);
             for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_stmt(stmt->type_stmt.vars[i]);
-            count = snuk_darray_get_length(stmt->type_stmt.fns);
+                snuk_parser_log_item(item->type_decl.vars[i]);
+            count = snuk_darray_get_length(item->type_decl.fns);
             for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_stmt(stmt->type_stmt.fns[i]);
+                snuk_parser_log_item(item->type_decl.fns[i]);
             break;
-        case SNUK_STMT_PRINT:
+        case SNUK_ITEM_PRINT:
             log_trace("print:", NULL);
-            count = snuk_darray_get_length(stmt->print_stmt.exprs);
+            count = snuk_darray_get_length(item->print_exprs);
             for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_expr(stmt->print_stmt.exprs[i]);
+                snuk_parser_log_expr(item->print_exprs[i]);
             break;
-        case SNUK_STMT_BLOCK:
-            log_trace("block:", NULL);
-            count = snuk_darray_get_length(stmt->block_stmt.stmts);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_stmt(stmt->block_stmt.stmts[i]);
+        case SNUK_ITEM_LINE_COMMENT:
+            log_trace("single line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->comment));
             break;
-        case SNUK_STMT_SLCOMMENT:
-            log_trace("single line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(stmt->comment));
-            break;
-        case SNUK_STMT_MLCOMMENT:
-            log_trace("multi-line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(stmt->comment));
+        case SNUK_ITEM_BLOCK_COMMENT:
+            log_trace("multi-line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->comment));
             break;
         default:
             break;
@@ -624,48 +602,36 @@ void snuk_parser_log_param(SnukParam *param) {
 }
 
 /**
- * @brief Convert a statement type to a string.
+ * @brief Convert a item type to a string.
  */
-const char *snuk_parser_stmt_type_to_string(SnukStmtType type) {
+const char *snuk_parser_item_type_to_string(SnukItemType type) {
     switch (type) {
-        case SNUK_STMT_EXPR:
-            return SNUK_STRINGIFY(SNUK_STMT_EXPR);
-        case SNUK_STMT_VAR_DECL:
-            return SNUK_STRINGIFY(SNUK_STMT_VAR_DECL);
-        case SNUK_STMT_CONST_DECL:
-            return SNUK_STRINGIFY(SNUK_STMT_CONST_DECL);
-        case SNUK_STMT_IF:
-            return SNUK_STRINGIFY(SNUK_STMT_IF);
-        case SNUK_STMT_MATCH:
-            return SNUK_STRINGIFY(SNUK_STMT_MATCH);
-        case SNUK_STMT_WHILE:
-            return SNUK_STRINGIFY(SNUK_STMT_WHILE);
-        case SNUK_STMT_DO_WHILE:
-            return SNUK_STRINGIFY(SNUK_STMT_DO_WHILE);
-        case SNUK_STMT_FOR:
-            return SNUK_STRINGIFY(SNUK_STMT_FOR);
-        case SNUK_STMT_RETURN:
-            return SNUK_STRINGIFY(SNUK_STMT_RETURN);
-        case SNUK_STMT_BREAK:
-            return SNUK_STRINGIFY(SNUK_STMT_BREAK);
-        case SNUK_STMT_CONTINUE:
-            return SNUK_STRINGIFY(SNUK_STMT_CONTINUE);
-        case SNUK_STMT_FN:
-            return SNUK_STRINGIFY(SNUK_STMT_FN);
-        case SNUK_STMT_TYPE:
-            return SNUK_STRINGIFY(SNUK_STMT_TYPE);
-        case SNUK_STMT_PRINT:
-            return SNUK_STRINGIFY(SNUK_STMT_PRINT);
-        case SNUK_STMT_BLOCK:
-            return SNUK_STRINGIFY(SNUK_STMT_BLOCK);
-        case SNUK_STMT_SLCOMMENT:
-            return SNUK_STRINGIFY(SNUK_STMT_SLCOMMENT);
-        case SNUK_STMT_MLCOMMENT:
-            return SNUK_STRINGIFY(SNUK_STMT_MLCOMMENT);
-        case SNUK_STMT_MAX:
-            return SNUK_STRINGIFY(SNUK_STMT_MAX);
+        case SNUK_ITEM_EXPR:
+            return SNUK_STRINGIFY(SNUK_ITEM_EXPR);
+        case SNUK_ITEM_VAR_DECL:
+            return SNUK_STRINGIFY(SNUK_ITEM_VAR_DECL);
+        case SNUK_ITEM_CONST_DECL:
+            return SNUK_STRINGIFY(SNUK_ITEM_CONST_DECL);
+        case SNUK_ITEM_FN_DECL:
+            return SNUK_STRINGIFY(SNUK_ITEM_FN_DECL);
+        case SNUK_ITEM_TYPE_DECL:
+            return SNUK_STRINGIFY(SNUK_ITEM_TYPE_DECL);
+        case SNUK_ITEM_PRINT:
+            return SNUK_STRINGIFY(SNUK_ITEM_PRINT);
+        case SNUK_ITEM_RETURN:
+            return SNUK_STRINGIFY(SNUK_ITEM_RETURN);
+        case SNUK_ITEM_BREAK:
+            return SNUK_STRINGIFY(SNUK_ITEM_BREAK);
+        case SNUK_ITEM_CONTINUE:
+            return SNUK_STRINGIFY(SNUK_ITEM_CONTINUE);
+        case SNUK_ITEM_LINE_COMMENT:
+            return SNUK_STRINGIFY(SNUK_ITEM_LINE_COMMENT);
+        case SNUK_ITEM_BLOCK_COMMENT:
+            return SNUK_STRINGIFY(SNUK_ITEM_BLOCK_COMMENT);
+        case SNUK_ITEM_MAX:
+            return SNUK_STRINGIFY(SNUK_ITEM_MAX);
         default:
-            return "Unkown statement type";
+            return "Unkown item type";
     }
 }
 
@@ -694,6 +660,24 @@ const char *snuk_parser_expr_type_to_string(SnukExprType type) {
             return SNUK_STRINGIFY(SNUK_EXPR_BINARY);
         case SNUK_EXPR_ASSIGN:
             return SNUK_STRINGIFY(SNUK_EXPR_ASSIGN);
+        case SNUK_EXPR_COMPOUND_ASSIGN:
+            return SNUK_STRINGIFY(SNUK_EXPR_COMPOUND_ASSIGN);
+        case SNUK_EXPR_IF:
+            return SNUK_STRINGIFY(SNUK_EXPR_IF);
+        case SNUK_EXPR_MATCH:
+            return SNUK_STRINGIFY(SNUK_EXPR_MATCH);
+        case SNUK_EXPR_WHILE:
+            return SNUK_STRINGIFY(SNUK_EXPR_WHILE);
+        case SNUK_EXPR_DO_WHILE:
+            return SNUK_STRINGIFY(SNUK_EXPR_DO_WHILE);
+        case SNUK_EXPR_FOR:
+            return SNUK_STRINGIFY(SNUK_EXPR_FOR);
+        case SNUK_EXPR_FN:
+            return SNUK_STRINGIFY(SNUK_EXPR_FN);
+        case SNUK_EXPR_TYPE:
+            return SNUK_STRINGIFY(SNUK_EXPR_TYPE);
+        case SNUK_EXPR_BLOCK:
+            return SNUK_STRINGIFY(SNUK_EXPR_BLOCK);
         case SNUK_EXPR_CALL:
             return SNUK_STRINGIFY(SNUK_EXPR_CALL);
         case SNUK_EXPR_MEMBER:
