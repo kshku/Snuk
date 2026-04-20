@@ -1,6 +1,11 @@
 // ─────────────────────────────────────────────────────────────
-//  SNUK LANGUAGE SYNTAX  —  standalone reference
+//  SNUK LANGUAGE SYNTAX REFERENCE
 //  Run with:  snuk myfile.snuk
+//  Or in REPL: snuk
+//
+//  Almost everything in Snuk is an expression.
+//  If nothing catches the value, it is discarded.
+//  In the REPL, every expression result is printed automatically.
 // ─────────────────────────────────────────────────────────────
 
 
@@ -13,22 +18,33 @@
 */
 
 
-// ── 2. VARIABLES ─────────────────────────────────────────────
+// ── 2. VARIABLES AND CONSTANTS ───────────────────────────────
 
-var x                    // declared, value is null
-var count = 0            // inferred as int
-var name = "snuk"        // inferred as string
-var ratio = 3.14         // inferred as float
-var visible = true       // inferred as bool
+// declaration — var returns the assigned value
+var x                    // value is null
+var count = 0            // int
+var name = "snuk"        // string
+var ratio = 3.14         // float
+var visible = true       // bool
 var nothing = null       // null
-var multi_line_str = 'Does
-This Work?
-'
 
-var speed: float = 2.5   // explicit type
-var label: string = "hi" // explicit type
+// strings — single or double quotes, supports multiline
+var greeting = "hello, world"
+var also_greeting = 'hello, world'
+
+var poem = "roses are red
+violets are blue"
+
+var poem2 = 'roses are red
+violets are blue'
+
+// type annotations — optional, enforced at runtime when present
+// no implicit conversions — casting syntax TBD, use explicit cast when available
+var speed: float = 2.5
+var label: string = "hi"
 
 // assignment — var only on first declaration
+// assignment returns the assigned value
 count = count + 1
 name = "world"
 
@@ -39,42 +55,46 @@ const APP = "snuk"
 
 // ── 3. BUILT-IN TYPES ────────────────────────────────────────
 
-// int      42, -7, 0
-// float    3.14, -0.5, 0.0
-// bool     true, false
-// string   "hello", ""
-// null     null
+// int       42, -7, 0          int64_t
+// float     3.14, -0.5, 0.0   double
+// bool      true, false
+// string    "hello", 'world'
+// null      null
+// fn        fn(a, b) { }
+// type      type { }
+// list      [1, 2, 3]
 
 
 // ── 4. OPERATORS ─────────────────────────────────────────────
 
 // arithmetic
-var a = 10 + 3    // 13
-var b = 10 - 3    // 7
-var c = 10 * 3    // 30
-var d = 10 / 3    // 3.333...
-var e = 10 % 3    // 1
-var f = 2 ** 3    // 8
+var r1 = 10 + 3     // 13
+var r2 = 10 - 3     // 7
+var r3 = 10 * 3     // 30
+var r4 = 10 / 3     // 3.333...
+var r5 = 10 % 3     // 1
 
-a += 4
-b -= 10
-c *= 4
-d /= 5
-e %= 8
+// compound assignment
+count += 1
+count -= 1
+count *= 2
+count /= 2
+count %= 3
 
-var g = 1 << 5
-var h = 10 >> 2
-var i = 1 ^ 2
-var j = 1 | 4
-var k = 1 & 5
-var l = ~3
+// bitwise
+var b1 = 1 << 5     // 32
+var b2 = 32 >> 2    // 8
+var b3 = 1 ^ 2      // 3
+var b4 = 1 | 4      // 5
+var b5 = 1 & 5      // 1
+var b6 = ~3         // bitwise NOT
 
-g <<= 5
-h >>= 1
-i ^= 9
-j |= 12
-k &= 5
-
+// bitwise compound assignment
+b1 <<= 1
+b2 >>= 1
+b3 ^= 9
+b4 |= 12
+b5 &= 5
 
 // comparison — always produces bool
 var eq  = a == b
@@ -84,22 +104,22 @@ var lt  = a < b
 var gte = a >= b
 var lte = a <= b
 
-// logical
-var both    = true and false   // false
-var either  = true or false    // true
-var flipped = not true         // false
-var both2 = true && false
-var either2 = true || false
-var flipped = !true
+// logical — two equivalent spellings
+var both    = true and false    // false
+var either  = true or false     // true
+var flipped = not true          // false
 
+var both2   = true && false     // false
+var either2 = true || false     // true
+var flip2   = !true             // false
 
-// string joining with +
-var greeting = "hello" + " " + "world"
+// string concatenation with +
+var s = "hello" + " " + "world"
 
 
 // ── 5. CONTROL FLOW ──────────────────────────────────────────
 
-// if / else if / else
+// if/else — expression, returns value of taken branch
 if count > 10 {
     print "big"
 } else if count > 5 {
@@ -108,37 +128,91 @@ if count > 10 {
     print "small"
 }
 
-// while
+// if as expression — branches return values via return
+var label = if count > 10 {
+    return "big"
+} else if count > 5 {
+    return "medium"
+} else {
+    return "small"
+}
+
+// while — expression, returns value via break value
 while count < 100 {
     count = count + 1
 }
 
-// do / while  (runs at least once)
+var found = while count < 100 {
+    count = count + 1
+    if count == 42 { break count }
+}
+// found is 42
+
+// do/while — always runs at least once
 do {
     count = count - 1
 } while count > 0
 
-// for  (C-style)
-for i = 0; i < 10; i = i + 1 {
+// for — C-style, variable must be declared
+for var i = 0; i < 10; i = i + 1 {
     print i
 }
 
-// loop  (infinite — use break to exit)
-loop {
+// i declared outside — visible after loop
+var i = 0
+for i = 0; i < 10; i = i + 1 {
+    print i
+}
+// i is 10 here
+
+// for without condition is infinite loop, use break to exit
+for {
     count = count + 1
-    if count >= 100 {
-        break
-    }
+    if count >= 100 { break }
 }
 
-// break    — exit current loop
+// loop as expression — break carries the value
+var result = for {
+    count = count + 1
+    if count >= 100 { break count }
+}
+// result is 100
+
+// break    — exit current loop, optionally with a value
 // continue — skip to next iteration
 
 
-// ── 6. FUNCTIONS ─────────────────────────────────────────────
+// ── 6. BLOCKS AS EXPRESSIONS ─────────────────────────────────
 
-// basic
+// a block executes immediately and returns a value via return
+// variables declared inside are not visible outside
+
+var computed = {
+    var temp = count * 2
+    var adjusted = temp + 10
+    return adjusted
+}
+
+// if no return — block returns null
+var nothing2 = {
+    var temp = 10
+    temp = temp + 1
+    // no return — null
+}
+
+
+// ── 7. FUNCTIONS ─────────────────────────────────────────────
+
+// fn is an expression — produces a function value
+// both forms are identical in semantics
+
+// statement form — sugar for var declaration
 fn greet() {
+    print "hello"
+}
+
+// expression form — explicit
+var greet2 = fn() {
     print "hello"
 }
 
@@ -147,7 +221,7 @@ fn add(a, b) {
     return a + b
 }
 
-// typed parameters and return type
+// typed parameters and return type — optional, enforced at runtime when present
 fn multiply(a: int, b: int) -> int {
     return a * b
 }
@@ -159,39 +233,80 @@ fn move(x, y, speed = 1.0) {
 
 // calling
 greet()
-var result = add(3, 4)
+var res = add(3, 4)
 move(10, 20)          // speed defaults to 1.0
 move(10, 20, 2.5)     // speed is 2.5
 
-// functions are values
+// functions are values — assign, pass, return
 var do_thing = greet
-do_thing()            // same as greet()
+do_thing()
+
+// pass as argument
+fn apply(value, func) {
+    return func(value)
+}
+var doubled = apply(5, fn(x) { return x * 2 })
+
+// return from function
+fn make_adder(n) {
+    return fn(x) {
+        return x + n
+    }
+}
+var add5 = make_adder(5)
+print add5(3)    // 8
+
+// print displays function signature
+print add        // fn(a, b)
+print fn(x) { return x }   // fn(x)
 
 
-// ── 7. TYPES ─────────────────────────────────────────────────
+// ── 8. TYPES ─────────────────────────────────────────────────
 
-// A type is a blueprint for creating objects.
-// Fields have optional types and optional default values.
-// Methods use self to refer to the current instance.
+// type is an expression — produces a type value
+// types are structs with methods, no inheritance
+// duck typing — behavior defined by what methods exist
 
+// statement form — sugar for var declaration
 type Point {
     var x: float = 0.0
     var y: float = 0.0
 
-    fn distance_to(other: Point) -> float {
+    fn distance_to(other) {
         var dx = self.x - other.x
         var dy = self.y - other.y
         return dx * dx + dy * dy
     }
 
-    fn to_string() -> string {
+    fn to_string() {
         return "(" + self.x + ", " + self.y + ")"
     }
 }
 
+// expression form
+var Point2 = type {
+    var x = 0.0
+    var y = 0.0
+}
+
+// type factory — types created at runtime
+fn make_type(default_color) {
+    return type {
+        var color = default_color
+        var x = 0.0
+
+        fn to_string() {
+            return self.color + " at " + self.x
+        }
+    }
+}
+
+var RedThing = make_type("red")
+var BlueThing = make_type("blue")
+
 // instantiation — named fields, any order
 // fields with defaults can be omitted
-var origin = Point {}                   // x=0.0, y=0.0 (defaults)
+var origin = Point {}                  // x=0.0, y=0.0
 var p = Point { x: 3.0, y: 4.0 }
 
 // field access and method calls
@@ -202,44 +317,126 @@ var d = p.distance_to(origin)
 // mutation
 p.x = 10.0
 
+// functions stored as type fields — event handler pattern
+type Button {
+    var label = ""
+    var on_click = fn() {}    // default no-op
 
-// ── 8. PRINT ─────────────────────────────────────────────────
-
-// print outputs to the terminal
-print "hello"
-print 42
-print true
-print p.to_string()
-
-
-// ── 9. A COMPLETE EXAMPLE ────────────────────────────────────
-
-// Compute fibonacci numbers and print them.
-
-fn fib(n: int) -> int {
-    if n <= 1 {
-        return n
+    fn click() {
+        self.on_click()
     }
+}
+
+var btn = Button { label: "Submit" }
+btn.on_click = fn() { print "clicked!" }
+btn.click()    // clicked!
+
+// print displays type shape
+print Point     // type { x, y }
+print type { var z = 0 }   // type { z }
+
+
+// ── 9. LISTS ─────────────────────────────────────────────────
+
+// ordered collection, 0-indexed
+var numbers = [1, 2, 3, 4, 5]
+var mixed   = [1, "hello", true, null]
+var empty   = []
+
+// access and mutation
+var first = numbers[0]
+numbers[0] = 99
+
+// built-in properties and methods
+var len = numbers.length
+numbers.add(6)          // append to end
+numbers.remove(0)       // remove by index
+
+// iteration
+for item in numbers {
+    print item
+}
+
+// list as expression
+var squares = [1, 4, 9, 16, 25]
+
+
+// ── 10. DUCK TYPING ──────────────────────────────────────────
+
+// Snuk uses duck typing — types are defined by what they can do
+// not by what they are declared to be
+
+type Rectangle {
+    var width = 0.0
+    var height = 0.0
+
+    fn area() {
+        return self.width * self.height
+    }
+
+    fn to_string() {
+        return "Rectangle(" + self.width + "x" + self.height + ")"
+    }
+}
+
+type Circle {
+    var radius = 0.0
+
+    fn area() {
+        return 3.14159 * self.radius * self.radius
+    }
+
+    fn to_string() {
+        return "Circle(r=" + self.radius + ")"
+    }
+}
+
+// works on anything with area() and to_string()
+// no shared base type, no interface declaration needed
+fn print_shape(shape) {
+    print shape.to_string()
+    print "area: " + shape.area()
+}
+
+print_shape(Rectangle { width: 10.0, height: 5.0 })
+print_shape(Circle { radius: 7.0 })
+
+
+// ── 11. PRINT ────────────────────────────────────────────────
+
+print "hello"           // hello
+print 42                // 42
+print true              // true
+print null              // null
+print [1, 2, 3]         // [1, 2, 3]
+print add               // fn(a, b)
+print Point             // type { x, y }
+
+
+// ── 12. COMPLETE EXAMPLES ────────────────────────────────────
+
+// fibonacci
+fn fib(n) {
+    if n <= 1 { return n }
     return fib(n - 1) + fib(n - 2)
 }
 
-for i = 0; i < 10; i = i + 1 {
+for var i = 0; i < 10; i = i + 1 {
     print fib(i)
 }
 
 // ─────────────────────────────────────────────────────────────
 
-// Model a simple bank account using a type.
-
+// bank account
 type Account {
-    var owner: string = ""
-    var balance: float = 0.0
+    var owner = ""
+    var balance = 0.0
 
-    fn deposit(amount: float) {
+    fn deposit(amount) {
         self.balance = self.balance + amount
     }
 
-    fn withdraw(amount: float) -> bool {
+    fn withdraw(amount) {
         if amount > self.balance {
             print "insufficient funds"
             return false
@@ -248,7 +445,7 @@ type Account {
         return true
     }
 
-    fn to_string() -> string {
+    fn to_string() {
         return self.owner + ": " + self.balance
     }
 }
@@ -256,4 +453,18 @@ type Account {
 var acc = Account { owner: "alice", balance: 100.0 }
 acc.deposit(50.0)
 acc.withdraw(30.0)
-print acc.to_string()     // alice: 120.0
+print acc.to_string()    // alice: 120.0
+
+// ─────────────────────────────────────────────────────────────
+
+// find first value matching condition using loop expression
+var data = [3, 7, 1, 9, 4, 6, 2]
+var idx = 0
+
+var first_over_5 = for {
+    if idx >= data.length { break null }
+    if data[idx] > 5 { break data[idx] }
+    idx = idx + 1
+}
+
+print first_over_5    // 7
