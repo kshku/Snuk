@@ -9,6 +9,7 @@ set(HEADERS
     parser_helper.h
     darray.h
     interpreter.h
+    runtime.h
 )
 
 set(SRCS
@@ -20,6 +21,7 @@ set(SRCS
     parser.c
     darray.c
     interpreter.c
+    runtime.c
 )
 
 target_sources(snuk PRIVATE ${HEADERS} ${SRCS})
