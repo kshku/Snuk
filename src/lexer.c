@@ -342,7 +342,6 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
         case ';':
             return lexer_build_token(lexer, SNUK_TOKEN_SEMICOLON);
         case '+':
-            if (lexer_match(lexer, '+')) return lexer_build_token(lexer, SNUK_TOKEN_INCREMENT);
             if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_PLUS_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_PLUS);
         case '-':
@@ -567,10 +566,6 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_SLCOMMENT);
         case SNUK_TOKEN_MLCOMMENT:
             return SNUK_STRINGIFY(SNUK_TOKEN_MLCOMMENT);
-        case SNUK_TOKEN_INCREMENT:
-            return SNUK_STRINGIFY(SNUK_TOKEN_INCREMENT);
-        case SNUK_TOKEN_DECREMENT:
-            return SNUK_STRINGIFY(SNUK_TOKEN_DECREMENT);
         case SNUK_TOKEN_MAX:
             return SNUK_STRINGIFY(SNUK_TOKEN_MAX);
         default:

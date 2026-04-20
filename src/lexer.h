@@ -89,9 +89,6 @@ typedef enum SnukTokenType {
     SNUK_TOKEN_AND_ASSIGN,
     SNUK_TOKEN_XOR_ASSIGN,
 
-    SNUK_TOKEN_INCREMENT,
-    SNUK_TOKEN_DECREMENT,
-
     // relational
     SNUK_TOKEN_EQUAL,
     SNUK_TOKEN_NOT_EQUAL,
