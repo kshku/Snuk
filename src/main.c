@@ -1,11 +1,7 @@
 #include "logger.h"
 #include "memory.h"
 #include "io.h"
-#include "snuk_string.h"
-#include "parser.h"
-#include "interpreter.h"
-
-#include <snmemory/frame.h>
+#include "runtime.h"
 
 #define PROMPT_STR ">>> "
 #define LINE_BUFFER_SIZE 1024
@@ -35,15 +31,10 @@ int main(int argc, char *argv[]) {
 #endif
     if (!snuk_memory_init(GIB(1))) return -1;
 
-    void *mem = snuk_allocate_pages(10);
-    void *mem2 = snuk_allocate_pages(10);
-
-    snuk_free_pages(mem2, 10);
-    snuk_free_pages(mem, 10);
-
     char *data;
     OpMode mode = parse_args(argc, argv, &data);
     log_info("Hello, World!, Program name: %s", program_name);
+
     switch (mode) {
         case OP_MODE_FILE:
             log_info("Running the file: %s", data);
@@ -64,7 +55,6 @@ int main(int argc, char *argv[]) {
         default:
             break;
     }
-
 
     snuk_memory_deinit();
     snuk_logger_deinit();
@@ -105,106 +95,36 @@ OpMode parse_args(int argc, char *argv[], char **data) {
 }
 
 void run_repl(void) {
-    snFrameAllocator falloc;
-    void *mem = snuk_allocate_pages(10);
-    sn_frame_allocator_init(&falloc, mem, 10 * snuk_page_size());
+    char *line_buffer = (char *)snuk_alloc(LINE_BUFFER_SIZE, alignof(char));
+    Runtime rt = snuk_runtime_init();
 
-
-    // allocate before begin (doesn't get deallocated when calling end
-    char *line_buffer = (char *)sn_frame_allocator_allocate(&falloc, LINE_BUFFER_SIZE, alignof(char));
-    SnukInterpreter intpret;
-    snuk_interpreter_init(&intpret);
-
-    while (true) {
-        sn_frame_allocator_begin(&falloc);
-
+    const char *line;
+    do {
         snuk_print(PROMPT_STR);
-        char *line = snuk_read_line(line_buffer, LINE_BUFFER_SIZE);
+        line = snuk_read_line(line_buffer, LINE_BUFFER_SIZE);
+    } while (!snuk_runtime_execute(&rt, line));
 
-        SnukParser parser;
-        snuk_parser_init(&parser, line, (void *)(&falloc), (alloc_fn)sn_frame_allocator_allocate);
+    snuk_runtime_deinit(&rt);
 
-        SnukStmt *stmt;
-        while (true) {
-            stmt = snuk_parser_next_stmt(&parser);
-            if (!stmt) break;
-            snuk_parser_log_stmt(stmt);
-            log_trace("", NULL);
-            snuk_interpreter_exec_stmt(&intpret, stmt);
-        }
-
-        snuk_parser_deinit(&parser);
-
-        sn_frame_allocator_end(&falloc);
-
-        if (string_equal("exit\n", line)) {
-            snuk_println("Bye!");
-            break;
-        }
-    }
-
-    snuk_interpreter_deinit(&intpret);
-
-    sn_frame_allocator_deinit(&falloc);
-    snuk_free_pages(mem, 10);
+    snuk_println("Bye!");
 }
 
 void run_file(const char *path) {
     const char *content = snuk_read_file(path);
 
-    snFrameAllocator falloc;
-    void *mem = snuk_allocate_pages(10);
-    sn_frame_allocator_init(&falloc, mem, 10 * snuk_page_size());
-    sn_frame_allocator_begin(&falloc);
+    Runtime rt = snuk_runtime_init();
 
-    SnukParser parser;
-    snuk_parser_init(&parser, content, (void *)(&falloc), (alloc_fn)sn_frame_allocator_allocate);
+    snuk_runtime_execute(&rt, content);
 
-    SnukInterpreter intpret;
-    snuk_interpreter_init(&intpret);
-
-    SnukStmt *stmt;
-    while (true) {
-        stmt = snuk_parser_next_stmt(&parser);
-        if (!stmt) break;
-        snuk_parser_log_stmt(stmt);
-        log_trace("", NULL);
-        snuk_interpreter_exec_stmt(&intpret, stmt);
-    }
-
-    snuk_parser_deinit(&parser);
-    sn_frame_allocator_end(&falloc);
-
-    snuk_interpreter_deinit(&intpret);
-
-    sn_frame_allocator_deinit(&falloc);
-    snuk_free_pages(mem, 10);
+    snuk_runtime_deinit(&rt);
 
     snuk_free((void *)content);
 }
 
 static void run_command(const char *command) {
-    snFrameAllocator falloc;
-    void *mem = snuk_allocate_pages(10);
-    sn_frame_allocator_init(&falloc, mem, 10 * snuk_page_size());
-    sn_frame_allocator_begin(&falloc);
-
-    SnukParser parser;
-    snuk_parser_init(&parser, command, (void *)(&falloc), (alloc_fn)sn_frame_allocator_allocate);
-
-    SnukStmt *stmt;
-    while (true) {
-        stmt = snuk_parser_next_stmt(&parser);
-        if (!stmt) break;
-        snuk_parser_log_stmt(stmt);
-        log_trace("", NULL);
-    }
-
-    snuk_parser_deinit(&parser);
-    sn_frame_allocator_end(&falloc);
-
-    sn_frame_allocator_deinit(&falloc);
-    snuk_free_pages(mem, 10);
+    Runtime rt = snuk_runtime_init();
+    snuk_runtime_execute(&rt, command);
+    snuk_runtime_deinit(&rt);
 }
 
 static void print_help(void) {
