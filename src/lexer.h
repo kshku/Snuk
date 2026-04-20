@@ -34,6 +34,7 @@ typedef enum SnukTokenType {
     SNUK_TOKEN_DO,
     SNUK_TOKEN_FOR,
 
+    SNUK_TOKEN_IN,
     SNUK_TOKEN_RETURN,
     SNUK_TOKEN_BREAK,
     SNUK_TOKEN_CONTINUE,

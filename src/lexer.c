@@ -27,6 +27,7 @@ KeyWord keywords[] = {
     {.keyword = {.str = "while",    .len = 5}, .type = SNUK_TOKEN_WHILE},
     {.keyword = {.str = "do",       .len = 2}, .type = SNUK_TOKEN_DO},
     {.keyword = {.str = "for",      .len = 3}, .type = SNUK_TOKEN_FOR},
+    {.keyword = {.str = "in",       .len = 2}, .type = SNUK_TOKEN_IN},
     {.keyword = {.str = "return",   .len = 6}, .type = SNUK_TOKEN_RETURN},
     {.keyword = {.str = "break",    .len = 5}, .type = SNUK_TOKEN_BREAK},
     {.keyword = {.str = "continue", .len = 8}, .type = SNUK_TOKEN_CONTINUE},
