@@ -396,19 +396,17 @@ SNUK_INLINE SnukStmt *build_expr_stmt(SnukParser *parser, SnukExpr *expr) {
  *
  * @param parser Parser context to operate on.
  * @param identifier Declared identifier expression.
+ * @param type Type of the variable or constant.
  * @param init Initializer expression.
  * @param is_const True to build a const declaration.
  *
  * @return Newly allocated declaration statement node.
  */
-SNUK_INLINE SnukStmt *build_decl_stmt(SnukParser *parser, SnukExpr *identifier, SnukExpr *init, bool is_const) {
+SNUK_INLINE SnukStmt *build_decl_stmt(SnukParser *parser, SnukExpr *identifier, SnukExpr *type, SnukExpr *init, bool is_const) {
     SnukStmt *decl_stmt = parser_create_stmt(parser);
     *decl_stmt = (SnukStmt){
         .type = is_const ? SNUK_STMT_CONST_DECL : SNUK_STMT_VAR_DECL,
-        .decl_stmt = {
-            .identifier = identifier,
-            .init = init,
-        },
+        .decl_stmt = {.identifier = identifier, .type = type, .init = init},
     };
     return decl_stmt;
 }
@@ -788,14 +786,16 @@ SNUK_INLINE SnukExpr *build_compound_assign_expr(SnukParser *parser, SnukTokenTy
  *
  * @param parser Parser context to operate on.
  * @param identifier Parameter name expression.
+ * @param type Type of the parameter
  * @param default_value Optional default value expression.
  *
  * @return Newly allocated parameter node.
  */
-SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukExpr *default_value) {
+SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukExpr *type, SnukExpr *default_value) {
     SnukParam *param = parser_create_param(parser);
     *param = (SnukParam){
         .identifier = identifier,
+        .type = type,
         .default_value = default_value,
     };
     return param;
