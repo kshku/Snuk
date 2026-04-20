@@ -44,7 +44,7 @@ static SnukStmt *parse_stmt(SnukParser *parser) {
 
     if (parser_match(parser, SNUK_TOKEN_LBRACE)) return parse_block_stmt(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_MLCOMMENT) || parser_match(parser, SNUK_TOKEN_SLCOMMENT))
+    if (parser_match(parser, SNUK_TOKEN_BLOCK_COMMENT) || parser_match(parser, SNUK_TOKEN_LINE_COMMENT))
         return parse_comment_stmt(parser);
 
     return parse_expr_stmt(parser);
@@ -422,8 +422,8 @@ static void parser_sync(SnukParser *parser) {
     while (parser->current.type != SNUK_TOKEN_EOF) {
         switch (parser->previous.type) {
             case SNUK_TOKEN_SEMICOLON:
-            case SNUK_TOKEN_SLCOMMENT:
-            case SNUK_TOKEN_MLCOMMENT:
+            case SNUK_TOKEN_LINE_COMMENT:
+            case SNUK_TOKEN_BLOCK_COMMENT:
                 return;
             default:
                 break;
