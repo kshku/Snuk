@@ -5,57 +5,73 @@
 #include "lexer.h"
 #include "string_view.h"
 
-/**
- * @brief Parser statement node kinds.
+/*
+ * We will have Items similar to Rust.
+ * But since this is interpreted language, items cannot appear in any order.
+ * Items should be defined or declared first before it can be used.
+ *
+ * In Snuk items are actually special kind of expressions, that may have some
+ * restrictions (var, const declaration statements, cannot appear everywhere)
+ * or may be syntax sugars (fn function() {} is syntax sugar of var function = fn () {})
+ * or keywords with special purpose (like print keyword)
+ * or may be just expressions.
+ *
+ * Parser parses the source and returns items.
+ * Everything else that produces a value is a `SnukExpr`.
  */
-typedef enum SnukStmtType {
-    SNUK_STMT_EXPR, /**< Expression statement. */
 
-    SNUK_STMT_VAR_DECL, /**< Mutable variable declaration. */
-    SNUK_STMT_CONST_DECL, /**< Constant declaration. */
+/**
+ * @brief Parser items kinds.
+ */
+typedef enum SnukItemType {
+    SNUK_ITEM_EXPR, /**< Expression items */
 
-    SNUK_STMT_IF, /**< If or else-if conditional statement. */
-    SNUK_STMT_MATCH, /**< Match statement. */
+    SNUK_ITEM_VAR_DECL, /**< Variable declaration (expression with restriction) */
+    SNUK_ITEM_CONST_DECL, /**< Constant declaration (expression with restriction) */
 
-    SNUK_STMT_WHILE, /**< While loop statement. */
-    SNUK_STMT_DO_WHILE, /**< Do-while loop statement. */
-    SNUK_STMT_FOR, /**< For loop statement. */
+    SNUK_ITEM_FN_DECL, /**< Function declaration (syntax sugar) */
+    SNUK_ITEM_TYPE_DECL, /**< Type declaration (syntax sugar) */
 
-    SNUK_STMT_RETURN, /**< Return control-flow statement. */
-    SNUK_STMT_BREAK, /**< Break control-flow statement. */
-    SNUK_STMT_CONTINUE, /**< Continue control-flow statement. */
+    SNUK_ITEM_PRINT, /**< Printing expression (special expression, always returns null) */
 
-    SNUK_STMT_FN, /**< Function declaration statement. */
+    SNUK_ITEM_RETURN, /**< Return expression, transfer control out of function, may carry value with them */
+    SNUK_ITEM_BREAK, /**< Transfer control out of loop, may carray value with them. */
+    SNUK_ITEM_CONTINUE, /**< Transfer control to next iteration. */
 
-    SNUK_STMT_TYPE, /**< Type declaration statement. */
+    SNUK_ITEM_LINE_COMMENT, /**< Single line comment */
+    SNUK_ITEM_BLOCK_COMMENT, /**< Multi line comment */
 
-    SNUK_STMT_PRINT, /**< Print statement. */
-
-    SNUK_STMT_BLOCK, /**< Statement block. */
-
-    SNUK_STMT_SLCOMMENT, /**< Single-line comment statement. */
-    SNUK_STMT_MLCOMMENT, /**< Multi-line comment statement. */
-
-    SNUK_STMT_MAX /**< Sentinel value for statement kinds. */
-} SnukStmtType;
+    SNUK_ITEM_MAX /**< Sentinel value for item kinds. */
+} SnukItemType;
 
 /**
  * @brief Parser expression node kinds.
  */
 typedef enum SnukExprType {
     SNUK_EXPR_IDENTIFIER, /**< Identifier reference expression. */
-    SNUK_EXPR_INT_LITERAL, /**< Integer literal expression. */
-    SNUK_EXPR_FLOAT_LITERAL, /**< Floating-point literal expression. */
-    SNUK_EXPR_STRING_LITERAL, /**< String literal expression. */
-    SNUK_EXPR_TRUE_LITERAL, /**< Boolean true literal expression. */
-    SNUK_EXPR_FALSE_LITERAL, /**< Boolean false literal expression. */
-    SNUK_EXPR_NULL_LITERAL, /**< Null literal expression. */
+    SNUK_EXPR_INT, /**< Integer literal expression. */
+    SNUK_EXPR_FLOAT, /**< Floating-point literal expression. */
+    SNUK_EXPR_STRING, /**< String literal expression. */
+    SNUK_EXPR_BOOL, /**< Boolean literal expression. */
+    SNUK_EXPR_NULL, /**< Null literal expression. */
 
     SNUK_EXPR_UNARY, /**< Unary operator expression. */
     SNUK_EXPR_BINARY, /**< Binary operator expression. */
 
     SNUK_EXPR_ASSIGN, /**< Assignment expression. */
     SNUK_EXPR_COMPOUND_ASSIGN, /**< Compound assignment expression. */
+
+    SNUK_EXPR_IF, /**< If expression. */
+    SNUK_EXPR_MATCH, /**< Match expression. */
+
+    SNUK_EXPR_WHILE, /**< while loop expression. */
+    SNUK_EXPR_DO_WHILE, /**< do-while loop expression. */
+    SNUK_EXPR_FOR, /**< for loop expression. */
+
+    SNUK_EXPR_FN, /**< Funtion expression */
+    SNUK_EXPR_TYPE, /**< Type expression */
+
+    SNUK_EXPR_BLOCK, /**< Block expression */
 
     SNUK_EXPR_CALL, /**< Function call expression. */
     SNUK_EXPR_MEMBER, /**< Member access expression. */
@@ -64,7 +80,53 @@ typedef enum SnukExprType {
     SNUK_EXPR_MAX /**< Sentinel value for expression kinds. */
 } SnukExprType;
 
+typedef struct SnukItem SnukItem;
 typedef struct SnukExpr SnukExpr;
+
+/**
+ * @brief Parsed function parameter.
+ */
+typedef struct SnukParam {
+    SnukExpr *identifier; /**< Parameter name expression. */
+    SnukExpr *type; /**< Type information of the parameter */
+    SnukExpr *default_value; /**< Optional default value expression. */
+} SnukParam;
+
+/**
+ * @brief Parsed item.
+ */
+struct SnukItem {
+    SnukItemType type; /**< Discriminant selecting the active item payload. */
+
+    union {
+        SnukExpr *expr; /**< expression item payload (also used for return and break). */
+
+        struct {
+            SnukExpr *identifier; /**< Declared variable or constant name. */
+            SnukExpr *type; /**< Type information of the variable or constant. */
+            SnukExpr *init; /**< Initializer expression. */
+        } var_decl; // var or const
+
+        struct {
+            SnukExpr *identifier; /**< Name of function. */
+            SnukParam **params; /**< Darray of parameters. */
+            SnukExpr *body; /**< Body of function */
+            // TODO:
+            SnukExpr *return_type; /**< Return type of function. */
+        } fn_decl;
+
+        struct {
+            // TODO:
+            SnukExpr *identifier; /**< Name of the type. */
+            SnukItem **vars; //**< Dynamic array of field declarations. */
+            SnukItem **fns; //**< Dynamic array of method declarations. */
+        } type_decl;
+
+        SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
+
+        SnukStringView comment; /**< Comment */
+    };
+};
 
 /**
  * @brief Parsed expression node.
@@ -73,10 +135,11 @@ struct SnukExpr {
     SnukExprType type; /**< Discriminant selecting the active expression payload. */
 
     union {
-        SnukStringView string_literal;
+        SnukStringView identifier;
         int64_t int_literal;
         double float_literal;
-        SnukStringView identifier;
+        SnukStringView string_literal;
+        bool bool_literal;
 
         struct {
             SnukTokenType op; /**< Unary operator token. */
@@ -101,85 +164,47 @@ struct SnukExpr {
         } compound_assign;
 
         struct {
-            // TODO:
-            SnukExpr **params; /**< Call argument expressions. */
-            uint64_t count; /**< Number of call argument expressions. */
-        } call;
-    };
-};
-
-/**
- * @brief Parsed function parameter.
- */
-typedef struct SnukParam {
-    SnukExpr *identifier; /**< Parameter name expression. */
-    SnukExpr *type; /**< Type information of the parameter */
-    SnukExpr *default_value; /**< Optional default value expression. */
-} SnukParam;
-
-typedef struct SnukStmt SnukStmt;
-
-/**
- * @brief Parsed statement node.
- */
-struct SnukStmt {
-    SnukStmtType type; /**< Discriminant selecting the active statement payload. */
-
-    union {
-        SnukExpr *expr_stmt; /**< Expression statement payload. */
-
-        struct {
-            SnukExpr *identifier; /**< Declared variable or constant name. */
-            SnukExpr *type; /**< Type information of the variable or constant. */
-            SnukExpr *init; /**< Initializer expression. */
-        } decl_stmt; // var or const
-
-        struct {
-            SnukExpr * condition; /**< Condition expression. */
-            SnukStmt *then_branch; /**< Statement executed when the condition is true. */
-            SnukStmt *else_branch; /**< Optional statement executed otherwise. */
-        } if_stmt;
+            SnukExpr *condition; /**< Condition expression. */
+            SnukExpr *then_block; /**< Block expression to execute on true condition */
+            SnukExpr *else_block; /**< Block expression to execute on false condition */
+        } if_else;
 
         struct {
             SnukExpr *value; /**< Value expression being matched. */
             // TODO:
-        } match_stmt;
+        } match;
 
         struct {
             SnukExpr *condition; /**< Loop condition expression. */
-            SnukStmt *block; /**< Loop body block. */
-        } while_stmt;
+            SnukExpr *body; /**< Loop body block. */
+        } while_loop; // while, do while
 
         struct {
-            SnukStmt *init; /**< Optional initializer statement. */
-            SnukExpr *cond; /**< Optional loop condition expression. */
+            SnukItem *init; /**< Optional initializer. */
+            SnukExpr *condition; /**< Optional loop condition expression. */
             SnukExpr *update; /**< Optional loop update expression. */
-            SnukStmt *block; /**< Loop body block. */
-        } for_stmt;
-
-        SnukExpr *return_stmt; /**< Optional return value expression. */
+            SnukExpr *body; /**< Loop body block. */
+        } for_loop;
 
         struct {
-            SnukExpr *identifier; /**< Function name expression. */
-            SnukParam **params; /**< Dynamic array of parameter nodes. */
-            SnukStmt *body; /**< Function body block. */
-        } fn_stmt;
+            SnukParam **params; /**< Darray of parameters. */
+            SnukExpr *body; /**< Body of function */
+            // TODO: return type
+            SnukExpr *return_type;
+        } fn_expr;
 
         struct {
-            SnukExpr *identifier; /**< Type name expression. */
-            SnukStmt **vars; /**< Dynamic array of field declarations. */
-            SnukStmt **fns; /**< Dynamic array of method declarations. */
-        } type_stmt;
+            // TODO:
+            SnukItem **vars; //**< Dynamic array of field declarations. */
+            SnukItem **fns; //**< Dynamic array of method declarations. */
+        } type_expr;
+
+        SnukItem **block_items; /**< Dynamic array of items in the block. */
 
         struct {
-            SnukExpr **exprs; /**< Dynamic array of expressions to print. */
-        } print_stmt;
-
-        struct {
-            SnukStmt **stmts; /**< Dynamic array of statements in the block. */
-        } block_stmt;
-
-        SnukStringView comment;
+            // TODO:
+            SnukExpr **params; /**< Darray of call argument expressions. */
+        } call;
     };
 };
 
@@ -245,24 +270,24 @@ SNUK_INLINE void snuk_parser_deinit(SnukParser *parser) {
 }
 
 /**
- * @brief Parse and return the next statement from the source.
+ * @brief Parse and return the next item from the source.
  *
  * @param parser Parser context to operate on.
  *
- * @return Parsed statement, or NULL when the parser reaches EOF.
+ * @return Parsed item, or NULL when the parser reaches EOF.
  *
- * @note Returned nodes are allocated with the parser allocation callback.
+ * @note Returned items are allocated with the parser allocation callback.
  */
-SnukStmt *snuk_parser_next_stmt(SnukParser *parser);
+SnukItem *snuk_parser_next_item(SnukParser *parser);
 
 /**
- * @brief Get a string name for a statement type.
+ * @brief Get a string name for a item type.
  *
- * @param type Statement type to convert.
+ * @param type Item type to convert.
  *
- * @return Static string describing the statement type.
+ * @return Static string describing the item type.
  */
-const char *snuk_parser_stmt_type_to_string(SnukStmtType type);
+const char *snuk_parser_item_type_to_string(SnukItemType type);
 
 /**
  * @brief Get a string name for an expression type.
@@ -274,11 +299,11 @@ const char *snuk_parser_stmt_type_to_string(SnukStmtType type);
 const char *snuk_parser_expr_type_to_string(SnukExprType type);
 
 /**
- * @brief Log a parsed statement tree.
+ * @brief Log a parsed item tree.
  *
- * @param stmt Statement to log.
+ * @param item item to log.
  */
-void snuk_parser_log_stmt(SnukStmt *stmt);
+void snuk_parser_log_item(SnukItem *item);
 
 /**
  * @brief Log a parsed expression tree.
