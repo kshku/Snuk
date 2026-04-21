@@ -49,12 +49,11 @@ typedef enum SnukItemType {
  */
 typedef enum SnukExprType {
     SNUK_EXPR_IDENTIFIER, /**< Identifier reference expression. */
-    SNUK_EXPR_INT_LITERAL, /**< Integer literal expression. */
-    SNUK_EXPR_FLOAT_LITERAL, /**< Floating-point literal expression. */
-    SNUK_EXPR_STRING_LITERAL, /**< String literal expression. */
-    SNUK_EXPR_TRUE_LITERAL, /**< Boolean true literal expression. */
-    SNUK_EXPR_FALSE_LITERAL, /**< Boolean false literal expression. */
-    SNUK_EXPR_NULL_LITERAL, /**< Null literal expression. */
+    SNUK_EXPR_INT, /**< Integer literal expression. */
+    SNUK_EXPR_FLOAT, /**< Floating-point literal expression. */
+    SNUK_EXPR_STRING, /**< String literal expression. */
+    SNUK_EXPR_BOOL, /**< Boolean literal expression. */
+    SNUK_EXPR_NULL, /**< Null literal expression. */
 
     SNUK_EXPR_UNARY, /**< Unary operator expression. */
     SNUK_EXPR_BINARY, /**< Binary operator expression. */
@@ -136,10 +135,11 @@ struct SnukExpr {
     SnukExprType type; /**< Discriminant selecting the active expression payload. */
 
     union {
-        SnukStringView string_literal;
+        SnukStringView identifier;
         int64_t int_literal;
         double float_literal;
-        SnukStringView identifier;
+        SnukStringView string_literal;
+        bool bool_literal;
 
         struct {
             SnukTokenType op; /**< Unary operator token. */

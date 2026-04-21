@@ -55,6 +55,7 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
     SnukExpr *identifier = parse_primary(parser);
     SnukExpr *type = NULL;
 
+    // TODO: type
     if (parser_match(parser, SNUK_TOKEN_COLON)) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
         type = parse_primary(parser);
@@ -74,6 +75,7 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
     SnukExpr *value = NULL;
     if (parser->previous.type == SNUK_TOKEN_RETURN || parser->previous.type == SNUK_TOKEN_BREAK)
         // TODO: look for delimiter, value is optional
+        // TODO: break and return items should be at the end of block only?
         value = parse_expression(parser);
 
     return build_flow_item(parser, parser->previous.type, value);
@@ -97,6 +99,7 @@ static SnukItem *parse_fn_item(SnukParser *parser) {
         SnukExpr *type = NULL;
 
         if (parser_match(parser, SNUK_TOKEN_COLON)) {
+            // TODO: type
             parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
             type = parse_primary(parser);
         }
@@ -537,20 +540,19 @@ void snuk_parser_log_expr(SnukExpr *expr) {
         case SNUK_EXPR_IDENTIFIER:
             log_trace("Identifier: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
             break;
-        case SNUK_EXPR_INT_LITERAL:
+        case SNUK_EXPR_INT:
             log_trace("Integer: %ld", expr->int_literal);
             break;
-        case SNUK_EXPR_FLOAT_LITERAL:
+        case SNUK_EXPR_FLOAT:
             log_trace("Float: %lf", expr->float_literal);
             break;
-        case SNUK_EXPR_STRING_LITERAL:
+        case SNUK_EXPR_STRING:
             log_trace("String: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->string_literal));
             break;
-        case SNUK_EXPR_TRUE_LITERAL:
-        case SNUK_EXPR_FALSE_LITERAL:
-            log_trace("Bool: %s", expr->type == SNUK_EXPR_TRUE_LITERAL? "true" : "false");
+        case SNUK_EXPR_BOOL:
+            log_trace("Bool: %s", expr->bool_literal ? "true" : "false");
             break;
-        case SNUK_EXPR_NULL_LITERAL:
+        case SNUK_EXPR_NULL:
             log_trace("Null", NULL);
             break;
         case SNUK_EXPR_UNARY:
@@ -689,18 +691,16 @@ const char *snuk_parser_expr_type_to_string(SnukExprType type) {
     switch (type) {
         case SNUK_EXPR_IDENTIFIER:
             return SNUK_STRINGIFY(SNUK_EXPR_IDENTIFIER);
-        case SNUK_EXPR_INT_LITERAL:
-            return SNUK_STRINGIFY(SNUK_EXPR_INT_LITERAL);
-        case SNUK_EXPR_FLOAT_LITERAL:
-            return SNUK_STRINGIFY(SNUK_EXPR_FLOAT_LITERAL);
-        case SNUK_EXPR_STRING_LITERAL:
-            return SNUK_STRINGIFY(SNUK_EXPR_STRING_LITERAL);
-        case SNUK_EXPR_TRUE_LITERAL:
-            return SNUK_STRINGIFY(SNUK_EXPR_TRUE_LITERAL);
-        case SNUK_EXPR_FALSE_LITERAL:
-            return SNUK_STRINGIFY(SNUK_EXPR_FALSE_LITERAL);
-        case SNUK_EXPR_NULL_LITERAL:
-            return SNUK_STRINGIFY(SNUK_EXPR_NULL_LITERAL);
+        case SNUK_EXPR_INT:
+            return SNUK_STRINGIFY(SNUK_EXPR_INT);
+        case SNUK_EXPR_FLOAT:
+            return SNUK_STRINGIFY(SNUK_EXPR_FLOAT);
+        case SNUK_EXPR_STRING:
+            return SNUK_STRINGIFY(SNUK_EXPR_STRING);
+        case SNUK_EXPR_BOOL:
+            return SNUK_STRINGIFY(SNUK_EXPR_BOOL);
+        case SNUK_EXPR_NULL:
+            return SNUK_STRINGIFY(SNUK_EXPR_NULL);
         case SNUK_EXPR_UNARY:
             return SNUK_STRINGIFY(SNUK_EXPR_UNARY);
         case SNUK_EXPR_BINARY:

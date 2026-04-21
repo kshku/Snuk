@@ -558,7 +558,7 @@ SNUK_INLINE SnukItem *build_comment_item(SnukParser *parser, SnukToken comment_t
 SNUK_INLINE SnukExpr *build_null_expr(SnukParser *parser) {
     SnukExpr *null_expr = parser_create_expr(parser);
     *null_expr = (SnukExpr){
-        .type = SNUK_EXPR_NULL_LITERAL,
+        .type = SNUK_EXPR_NULL,
     };
     return null_expr;
 }
@@ -573,8 +573,8 @@ SNUK_INLINE SnukExpr *build_null_expr(SnukParser *parser) {
 SNUK_INLINE SnukExpr *build_bool_expr(SnukParser *parser) {
     SnukExpr *bool_expr = parser_create_expr(parser);
     *bool_expr = (SnukExpr){
-        .type = parser->previous.type == SNUK_TOKEN_TRUE
-            ? SNUK_EXPR_TRUE_LITERAL : SNUK_EXPR_FALSE_LITERAL,
+        .type = SNUK_EXPR_BOOL,
+        .bool_literal = parser->previous.type == SNUK_TOKEN_TRUE,
     };
     return bool_expr;
 }
@@ -589,7 +589,7 @@ SNUK_INLINE SnukExpr *build_bool_expr(SnukParser *parser) {
 SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
     SnukExpr *string_expr = parser_create_expr(parser);
     *string_expr = (SnukExpr){
-        .type = SNUK_EXPR_STRING_LITERAL,
+        .type = SNUK_EXPR_STRING,
         .string_literal = parser->previous.string_literal,
     };
     return string_expr;
@@ -621,7 +621,7 @@ SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
 SNUK_INLINE SnukExpr *build_int_literal_expr(SnukParser *parser) {
     SnukExpr *int_expr = parser_create_expr(parser);
     *int_expr = (SnukExpr){
-        .type = SNUK_EXPR_INT_LITERAL,
+        .type = SNUK_EXPR_INT,
         .int_literal = parser->previous.int_literal,
     };
     return int_expr;
@@ -637,7 +637,7 @@ SNUK_INLINE SnukExpr *build_int_literal_expr(SnukParser *parser) {
 SNUK_INLINE SnukExpr *build_float_literal_expr(SnukParser *parser) {
     SnukExpr *float_expr = parser_create_expr(parser);
     *float_expr = (SnukExpr){
-        .type = SNUK_EXPR_FLOAT_LITERAL,
+        .type = SNUK_EXPR_FLOAT,
         .float_literal = parser->previous.float_literal,
     };
     return float_expr;

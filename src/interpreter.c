@@ -58,32 +58,31 @@ Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
         case SNUK_EXPR_IDENTIFIER:
             return get_identifier_value(i, expr);
 
-        case SNUK_EXPR_INT_LITERAL:
+        case SNUK_EXPR_INT:
             return (Value){
                 .type = VALUE_INT,
                 .int_value = expr->int_literal,
             };
 
-        case SNUK_EXPR_FLOAT_LITERAL:
+        case SNUK_EXPR_FLOAT:
             return (Value){
                 .type = VALUE_FLOAT,
                 .float_value = expr->float_literal,
             };
 
-        case SNUK_EXPR_STRING_LITERAL:
+        case SNUK_EXPR_STRING:
             return (Value){
                 .type = VALUE_STRING, 
                 .string_value = snuk_string_view_copy(expr->string_literal),
             };
 
-        case SNUK_EXPR_TRUE_LITERAL:
-        case SNUK_EXPR_FALSE_LITERAL:
+        case SNUK_EXPR_BOOL:
             return (Value){
                 .type = VALUE_BOOL,
-                .bool_value = expr->type == SNUK_EXPR_TRUE_LITERAL,
+                .bool_value = expr->bool_literal,
             };
 
-        case SNUK_EXPR_NULL_LITERAL:
+        case SNUK_EXPR_NULL:
             return (Value){
                 .type = VALUE_NULL,
             };
