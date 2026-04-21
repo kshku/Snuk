@@ -16,7 +16,7 @@ bool snuk_runtime_execute(Runtime *rt, const char *src) {
         sn_frame_allocator_begin(&rt->frame);
         snuk_parser_log_item(item);
         log_trace("", NULL);
-        Value value = snuk_interpreter_exec_item(&rt->interpreter, item);
+        SnukValue value = snuk_interpreter_exec_item(&rt->interpreter, item);
         snuk_interpreter_print_value(value);
         snuk_println("");
         sn_frame_allocator_end(&rt->frame);
