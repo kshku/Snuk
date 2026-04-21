@@ -5,25 +5,25 @@
 #include "snuk_string.h"
 #include "io.h"
 
-static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier);
-static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *value);
+static SnukValue get_identifier_value(SnukInterpreter *i, SnukExpr *identifier);
+static SnukValue set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *value);
 
-static Value get_unary_value(SnukInterpreter *i, SnukExpr *expr);
-static Value get_binary_value(SnukInterpreter *i, SnukExpr *expr);
-static Value perform_binary_op(Value left, Value right, SnukTokenType op);
+static SnukValue get_unary_value(SnukInterpreter *i, SnukExpr *expr);
+static SnukValue get_binary_value(SnukInterpreter *i, SnukExpr *expr);
+static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenType op);
 
-static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr);
+static SnukValue add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr);
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
-void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
+SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
         case SNUK_ITEM_EXPR:
-            snuk_interpreter_print_value(snuk_interpreter_eval_expr(i, item->expr));
+            return snuk_interpreter_eval_expr(i, item->expr);
             break;
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
             // TODO: const
-            add_identifier(i, item->var_decl.identifier, item->var_decl.init);
+            return add_identifier(i, item->var_decl.identifier, item->var_decl.init);
             break;
 
         // TODO:
@@ -40,6 +40,8 @@ void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
 
         case SNUK_ITEM_PRINT:
             print_exprs(i, item->print_exprs);
+            // TODO: return something else?
+            return (SnukValue){.type = SNUK_VALUE_NULL};
             break;
 
         // TODO:
@@ -51,40 +53,41 @@ void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
         default:
             break;
     }
+    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
-Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
+SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
             return get_identifier_value(i, expr);
 
         case SNUK_EXPR_INT:
-            return (Value){
-                .type = VALUE_INT,
+            return (SnukValue){
+                .type = SNUK_VALUE_INT,
                 .int_value = expr->int_literal,
             };
 
         case SNUK_EXPR_FLOAT:
-            return (Value){
-                .type = VALUE_FLOAT,
+            return (SnukValue){
+                .type = SNUK_VALUE_FLOAT,
                 .float_value = expr->float_literal,
             };
 
         case SNUK_EXPR_STRING:
-            return (Value){
-                .type = VALUE_STRING, 
+            return (SnukValue){
+                .type = SNUK_VALUE_STRING, 
                 .string_value = snuk_string_view_copy(expr->string_literal),
             };
 
         case SNUK_EXPR_BOOL:
-            return (Value){
-                .type = VALUE_BOOL,
+            return (SnukValue){
+                .type = SNUK_VALUE_BOOL,
                 .bool_value = expr->bool_literal,
             };
 
         case SNUK_EXPR_NULL:
-            return (Value){
-                .type = VALUE_NULL,
+            return (SnukValue){
+                .type = SNUK_VALUE_NULL,
             };
 
         case SNUK_EXPR_UNARY:
@@ -108,10 +111,10 @@ Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
     }
 
-    return (Value){.type = VALUE_UNKOWN};
+    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
-static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier) {
+static SnukValue get_identifier_value(SnukInterpreter *i, SnukExpr *identifier) {
     SNUK_ASSERT(identifier->identifier.len > 0, "identifier name is empty");
 
     uint64_t index = (uint64_t)identifier->identifier.str[0];
@@ -130,13 +133,13 @@ static Value get_identifier_value(SnukInterpreter *i, SnukExpr *identifier) {
     }
 
 fail:
-    return (Value){.type = VALUE_UNKOWN};
+    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
-static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
+static SnukValue set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
     SNUK_ASSERT(identifier->identifier.len > 0, "identifier name is empty");
 
-    Value value = snuk_interpreter_eval_expr(i, expr);
+    SnukValue value = snuk_interpreter_eval_expr(i, expr);
     uint64_t index = (uint64_t)identifier->identifier.str[0];
     uint64_t length = snuk_darray_get_length(i->envs);
 
@@ -156,20 +159,21 @@ static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, Snuk
     // TODO: errors
 fail:
     SNUK_SHOULD_NOT_REACH_HERE;
+    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
-static Value get_unary_value(SnukInterpreter *i, SnukExpr *expr) {
-    Value val = snuk_interpreter_eval_expr(i, expr->unary.operand);
+static SnukValue get_unary_value(SnukInterpreter *i, SnukExpr *expr) {
+    SnukValue val = snuk_interpreter_eval_expr(i, expr->unary.operand);
 
     switch (expr->unary.op) {
         case SNUK_TOKEN_PLUS:
         case SNUK_TOKEN_MINUS:
             switch (val.type) {
-                case VALUE_INT:
+                case SNUK_VALUE_INT:
                     if (expr->unary.op == SNUK_TOKEN_MINUS)
                         val.int_value *= -1;
                     break;
-                case VALUE_FLOAT:
+                case SNUK_VALUE_FLOAT:
                     if (expr->unary.op == SNUK_TOKEN_MINUS)
                         val.float_value *= -1;
                     break;
@@ -185,27 +189,27 @@ static Value get_unary_value(SnukInterpreter *i, SnukExpr *expr) {
             break;
     }
 
-    return (Value){.type = VALUE_UNKOWN};
+    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
-static Value perform_binary_op(Value left, Value right, SnukTokenType op) {
-    if (left.type != VALUE_INT && left.type != VALUE_FLOAT) goto fail;
-    if (right.type != VALUE_INT && right.type != VALUE_FLOAT) goto fail;
+static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenType op) {
+    if (left.type != SNUK_VALUE_INT && left.type != SNUK_VALUE_FLOAT) goto fail;
+    if (right.type != SNUK_VALUE_INT && right.type != SNUK_VALUE_FLOAT) goto fail;
 
-    Value res = {0};
+    SnukValue res = {0};
 
-    if (left.type == VALUE_FLOAT || right.type == VALUE_FLOAT) res.type = VALUE_FLOAT;
-    else res.type = VALUE_INT;
+    if (left.type == SNUK_VALUE_FLOAT || right.type == SNUK_VALUE_FLOAT) res.type = SNUK_VALUE_FLOAT;
+    else res.type = SNUK_VALUE_INT;
 
     // TODO: better way to do this
     switch (op) {
         case SNUK_TOKEN_PLUS:
-            if (res.type == VALUE_INT) {
+            if (res.type == SNUK_VALUE_INT) {
                 res.int_value = left.int_value + right.int_value;
             } else {
-                if (left.type == VALUE_INT)
+                if (left.type == SNUK_VALUE_INT)
                     res.float_value = (double)left.int_value + right.float_value;
-                else if (right.type == VALUE_INT)
+                else if (right.type == SNUK_VALUE_INT)
                     res.float_value = left.float_value + (double)right.int_value;
                 else
                     res.float_value = left.float_value + right.float_value;
@@ -213,12 +217,12 @@ static Value perform_binary_op(Value left, Value right, SnukTokenType op) {
             return res;
 
         case SNUK_TOKEN_MINUS:
-            if (res.type == VALUE_INT) {
+            if (res.type == SNUK_VALUE_INT) {
                 res.int_value = left.int_value - right.int_value;
             } else {
-                if (left.type == VALUE_INT)
+                if (left.type == SNUK_VALUE_INT)
                     res.float_value = (double)left.int_value - right.float_value;
-                else if (right.type == VALUE_INT)
+                else if (right.type == SNUK_VALUE_INT)
                     res.float_value = left.float_value - (double)right.int_value;
                 else
                     res.float_value = left.float_value - right.float_value;
@@ -226,12 +230,12 @@ static Value perform_binary_op(Value left, Value right, SnukTokenType op) {
             return res;
 
         case SNUK_TOKEN_STAR:
-            if (res.type == VALUE_INT) {
+            if (res.type == SNUK_VALUE_INT) {
                 res.int_value = left.int_value * right.int_value;
             } else {
-                if (left.type == VALUE_INT)
+                if (left.type == SNUK_VALUE_INT)
                     res.float_value = (double)left.int_value * right.float_value;
-                else if (right.type == VALUE_INT)
+                else if (right.type == SNUK_VALUE_INT)
                     res.float_value = left.float_value * (double)right.int_value;
                 else
                     res.float_value = left.float_value * right.float_value;
@@ -239,12 +243,12 @@ static Value perform_binary_op(Value left, Value right, SnukTokenType op) {
             return res;
 
         case SNUK_TOKEN_SLASH:
-            if (res.type == VALUE_INT) {
+            if (res.type == SNUK_VALUE_INT) {
                 res.int_value = left.int_value / right.int_value;
             } else {
-                if (left.type == VALUE_INT)
+                if (left.type == SNUK_VALUE_INT)
                     res.float_value = (double)left.int_value / right.float_value;
-                else if (right.type == VALUE_INT)
+                else if (right.type == SNUK_VALUE_INT)
                     res.float_value = left.float_value / (double)right.int_value;
                 else
                     res.float_value = left.float_value / right.float_value;
@@ -252,7 +256,7 @@ static Value perform_binary_op(Value left, Value right, SnukTokenType op) {
             return res;
 
         case SNUK_TOKEN_PERCENT:
-            if (res.type != VALUE_INT) goto fail;
+            if (res.type != SNUK_VALUE_INT) goto fail;
             res.int_value = left.int_value % right.int_value;
             return res;
 
@@ -263,34 +267,36 @@ static Value perform_binary_op(Value left, Value right, SnukTokenType op) {
     }
 
 fail:
-    return (Value){.type = VALUE_UNKOWN};
+    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
-static Value get_binary_value(SnukInterpreter *i, SnukExpr *expr) {
-    Value left = snuk_interpreter_eval_expr(i, expr->binary.left);
-    Value right = snuk_interpreter_eval_expr(i, expr->binary.right);
+static SnukValue get_binary_value(SnukInterpreter *i, SnukExpr *expr) {
+    SnukValue left = snuk_interpreter_eval_expr(i, expr->binary.left);
+    SnukValue right = snuk_interpreter_eval_expr(i, expr->binary.right);
     
     // TODO: Errors, type checking
     return perform_binary_op(left, right, expr->binary.op);
 }
 
-static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
+static SnukValue add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
     // TODO: multiple declaration errors
 
-    Value value = snuk_interpreter_eval_expr(i, expr);
+    SnukValue value = snuk_interpreter_eval_expr(i, expr);
     uint64_t index = (uint64_t)identifier->identifier.str[0];
     uint64_t length = snuk_darray_get_length(i->envs);
 
     if (length < index)
-        snuk_darray_push_at(&i->envs, index, snuk_darray_create(Env));
+        snuk_darray_push_at(&i->envs, index, snuk_darray_create(SnukEnv));
     else if (!i->envs[index])
-        i->envs[index] = snuk_darray_create(Env);
+        i->envs[index] = snuk_darray_create(SnukEnv);
 
-    Env env = {
+    SnukEnv env = {
         .identifier = snuk_string_view_copy(identifier->identifier),
         .value = value,
     };
     snuk_darray_push(&i->envs[index], env);
+
+    return value;
 }
 
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
@@ -304,29 +310,35 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
     snuk_darray_destroy(exprs);
 }
 
-void snuk_interpreter_print_value(Value value) {
+void snuk_interpreter_print_value(SnukValue value) {
     switch (value.type) {
-        case VALUE_UNKOWN:
-            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_UNKOWN));
+        case SNUK_VALUE_UNKOWN:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_UNKOWN));
             break;
-        case VALUE_INT:
-            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_INT));
+        case SNUK_VALUE_INT:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_INT));
             snuk_println("value: %ld", value.int_value);
             break;
-        case VALUE_FLOAT:
-            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_FLOAT));
+        case SNUK_VALUE_FLOAT:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_FLOAT));
             snuk_println("value: %lf", value.float_value);
             break;
-        case VALUE_BOOL:
-            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_BOOL));
+        case SNUK_VALUE_BOOL:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_BOOL));
             snuk_println("value: %s", value.bool_value ? "true" : "false");
             break;
-        case VALUE_STRING:
-            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_STRING));
+        case SNUK_VALUE_STRING:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_STRING));
             snuk_println("value: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(value.string_value));
             break;
-        case VALUE_NULL:
-            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_NULL));
+        case SNUK_VALUE_NULL:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_NULL));
+            break;
+        case SNUK_VALUE_FN:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_FN));
+            break;
+        case SNUK_VALUE_TYPE:
+            snuk_println("type: %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE));
             break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;

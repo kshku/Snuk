@@ -6,14 +6,18 @@
 #include "parser.h"
 #include "string_view.h"
 
-typedef struct Value {
+typedef struct SnukValue {
     enum {
-        VALUE_UNKOWN,
-        VALUE_INT,
-        VALUE_FLOAT,
-        VALUE_BOOL,
-        VALUE_STRING,
-        VALUE_NULL,
+        SNUK_VALUE_UNKOWN,
+        SNUK_VALUE_INT,
+        SNUK_VALUE_FLOAT,
+        SNUK_VALUE_BOOL,
+        SNUK_VALUE_STRING,
+        SNUK_VALUE_NULL,
+        SNUK_VALUE_FN,
+        SNUK_VALUE_TYPE,
+
+        SNUK_VALUE_MAX
     } type;
 
     union {
@@ -21,21 +25,22 @@ typedef struct Value {
         double float_value;
         bool bool_value;
         SnukStringView string_value;
+        // TODO: function and type
     };
-} Value;
+} SnukValue;
 
-typedef struct Env {
+typedef struct SnukEnv {
     SnukStringView identifier;
-    Value value;
-} Env;
+    SnukValue value;
+} SnukEnv;
 
 typedef struct SnukInterpreter {
-    Env **envs; // darray
+    SnukEnv **envs; // darray
 } SnukInterpreter;
 
 SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
     *i = (SnukInterpreter){
-        .envs = snuk_darray_create_with_capacity(128, Env *),
+        .envs = snuk_darray_create_with_capacity(128, SnukEnv *),
     };
 }
 
@@ -50,7 +55,7 @@ SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
     *i = (SnukInterpreter){0};
 }
 
-void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
-Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr);
+SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
+SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr);
 
-void snuk_interpreter_print_value(Value value);
+void snuk_interpreter_print_value(SnukValue value);
