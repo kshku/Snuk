@@ -536,6 +536,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
     if (!expr) return;
     log_trace("Expression type: %s", snuk_parser_expr_type_to_string(expr->type));
 
+    uint64_t count;
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
             log_trace("Identifier: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
@@ -567,15 +568,6 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             log_trace("%s", snuk_lexer_token_type_to_string(expr->binary.op));
             snuk_parser_log_expr(expr->binary.right);
             break;
-        case SNUK_EXPR_CALL:
-            log_trace("call: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
-            break;
-        case SNUK_EXPR_MEMBER:
-            log_trace("Member:", NULL);
-            break;
-        case SNUK_EXPR_INDEX:
-            log_trace("Index:", NULL);
-            break;
         case SNUK_EXPR_ASSIGN:
             snuk_parser_log_expr(expr->assign.identifier);
             snuk_parser_log_expr(expr->assign.value);
@@ -584,6 +576,65 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             snuk_parser_log_expr(expr->compound_assign.identifier);
             log_trace("%s", snuk_lexer_token_type_to_string(expr->compound_assign.op));
             snuk_parser_log_expr(expr->compound_assign.value);
+            break;
+        case SNUK_EXPR_IF:
+            log_trace("if:", NULL);
+            snuk_parser_log_expr(expr->if_else.condition);
+            log_trace("then:", NULL);
+            snuk_parser_log_expr(expr->if_else.then_block);
+            log_trace("else:", NULL);
+            snuk_parser_log_expr(expr->if_else.else_block);
+            break;
+        case SNUK_EXPR_MATCH:
+            // TODO:
+            log_trace("match expression:", NULL);
+            break;
+        case SNUK_EXPR_WHILE:
+            log_trace("while:", NULL);
+            snuk_parser_log_expr(expr->while_loop.condition);
+            log_trace("run:", NULL);
+            snuk_parser_log_expr(expr->while_loop.body);
+            break;
+        case SNUK_EXPR_DO_WHILE:
+            log_trace("do:", NULL);
+            snuk_parser_log_expr(expr->while_loop.body);
+            log_trace("while:", NULL);
+            snuk_parser_log_expr(expr->while_loop.condition);
+            break;
+        case SNUK_EXPR_FOR:
+            log_trace("for:", NULL);
+            snuk_parser_log_item(expr->for_loop.init);
+            snuk_parser_log_expr(expr->for_loop.condition);
+            snuk_parser_log_expr(expr->for_loop.update);
+            log_trace("run:", NULL);
+            snuk_parser_log_expr(expr->for_loop.body);
+            break;
+        case SNUK_EXPR_FN:
+            // TODO:
+            log_trace("fn expression:", NULL);
+            break;
+        case SNUK_EXPR_TYPE:
+            // TODO:
+            log_trace("type expression:", NULL);
+            break;
+        case SNUK_EXPR_BLOCK:
+            log_trace("block expression:", NULL);
+            count = snuk_darray_get_length(expr->block_items);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_item(expr->block_items[i]);
+            break;
+        case SNUK_EXPR_CALL:
+            // TODO:
+            log_trace("call: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
+            break;
+        case SNUK_EXPR_MEMBER:
+            // TODO:
+            log_trace("Member:", NULL);
+            break;
+        case SNUK_EXPR_INDEX:
+            // TODO:
+            log_trace("Index:", NULL);
+            break;
         default:
             break;
     }
