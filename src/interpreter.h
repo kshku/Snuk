@@ -14,6 +14,10 @@ typedef struct Value {
         VALUE_BOOL,
         VALUE_STRING,
         VALUE_NULL,
+        VALUE_FN,
+        VALUE_TYPE,
+
+        VALUE_MAX
     } type;
 
     union {
@@ -21,6 +25,7 @@ typedef struct Value {
         double float_value;
         bool bool_value;
         SnukStringView string_value;
+        // TODO: function and type
     };
 } Value;
 
@@ -50,7 +55,7 @@ SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
     *i = (SnukInterpreter){0};
 }
 
-void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
+Value snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
 Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr);
 
 void snuk_interpreter_print_value(Value value);

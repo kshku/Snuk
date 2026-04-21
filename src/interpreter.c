@@ -12,18 +12,18 @@ static Value get_unary_value(SnukInterpreter *i, SnukExpr *expr);
 static Value get_binary_value(SnukInterpreter *i, SnukExpr *expr);
 static Value perform_binary_op(Value left, Value right, SnukTokenType op);
 
-static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr);
+static Value add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr);
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
-void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
+Value snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
         case SNUK_ITEM_EXPR:
-            snuk_interpreter_print_value(snuk_interpreter_eval_expr(i, item->expr));
+            return snuk_interpreter_eval_expr(i, item->expr);
             break;
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
             // TODO: const
-            add_identifier(i, item->var_decl.identifier, item->var_decl.init);
+            return add_identifier(i, item->var_decl.identifier, item->var_decl.init);
             break;
 
         // TODO:
@@ -40,6 +40,8 @@ void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
 
         case SNUK_ITEM_PRINT:
             print_exprs(i, item->print_exprs);
+            // TODO: return something else?
+            return (Value){.type = VALUE_NULL};
             break;
 
         // TODO:
@@ -51,6 +53,7 @@ void snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
         default:
             break;
     }
+    return (Value){.type = VALUE_UNKOWN};
 }
 
 Value snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
@@ -156,6 +159,7 @@ static Value set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, Snuk
     // TODO: errors
 fail:
     SNUK_SHOULD_NOT_REACH_HERE;
+    return (Value){.type = VALUE_UNKOWN};
 }
 
 static Value get_unary_value(SnukInterpreter *i, SnukExpr *expr) {
@@ -274,7 +278,7 @@ static Value get_binary_value(SnukInterpreter *i, SnukExpr *expr) {
     return perform_binary_op(left, right, expr->binary.op);
 }
 
-static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
+static Value add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
     // TODO: multiple declaration errors
 
     Value value = snuk_interpreter_eval_expr(i, expr);
@@ -291,6 +295,8 @@ static void add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *e
         .value = value,
     };
     snuk_darray_push(&i->envs[index], env);
+
+    return value;
 }
 
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
@@ -327,6 +333,12 @@ void snuk_interpreter_print_value(Value value) {
             break;
         case VALUE_NULL:
             snuk_println("type: %s", SNUK_STRINGIFY(VALUE_NULL));
+            break;
+        case VALUE_FN:
+            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_FN));
+            break;
+        case VALUE_TYPE:
+            snuk_println("type: %s", SNUK_STRINGIFY(VALUE_TYPE));
             break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;
