@@ -429,14 +429,8 @@ static void parser_sync(SnukParser *parser) {
     return;
 
     while (parser->current.type != SNUK_TOKEN_EOF) {
-        switch (parser->previous.type) {
-            case SNUK_TOKEN_SEMICOLON:
-            case SNUK_TOKEN_LINE_COMMENT:
-            case SNUK_TOKEN_BLOCK_COMMENT:
-                return;
-            default:
-                break;
-        }
+        if (parser->previous.type == SNUK_TOKEN_SEMICOLON)
+            return;
 
         switch (parser->current.type) {
             case SNUK_TOKEN_IF:
@@ -447,6 +441,8 @@ static void parser_sync(SnukParser *parser) {
             case SNUK_TOKEN_VAR:
             case SNUK_TOKEN_CONST:
             case SNUK_TOKEN_LBRACE:
+            case SNUK_TOKEN_LINE_COMMENT:
+            case SNUK_TOKEN_BLOCK_COMMENT:
                 return;
             default:
                 break;
