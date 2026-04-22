@@ -285,7 +285,7 @@ static SnukValue add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukEx
     uint64_t index = (uint64_t)identifier->identifier.str[0];
     uint64_t length = snuk_darray_get_length(i->envs);
 
-    if (length < index)
+    if (length <= index)
         snuk_darray_push_at(&i->envs, index, snuk_darray_create(SnukEnv));
     else if (!i->envs[index])
         i->envs[index] = snuk_darray_create(SnukEnv);
