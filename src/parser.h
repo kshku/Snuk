@@ -133,9 +133,7 @@ struct SnukItem {
 
         struct {
             SnukExpr *identifier; /**< Name of function. */
-            SnukParam **params; /**< Darray of parameters. */
-            SnukExpr *body; /**< Body of function */
-            SnukType *return_type; /**< Return type of function. */
+            SnukExpr *fn_expr; /**< Function expression. */
         } fn_decl;
 
         struct {
@@ -212,7 +210,7 @@ struct SnukExpr {
         struct {
             SnukParam **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
-            SnukType *return_type;
+            SnukType *return_type; /**< Return type of function */
         } fn_expr;
 
         struct {
