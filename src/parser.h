@@ -82,15 +82,39 @@ typedef enum SnukExprType {
 
 typedef struct SnukItem SnukItem;
 typedef struct SnukExpr SnukExpr;
+typedef struct SnukParam SnukParam;
+typedef struct SnukType SnukType;
 
 /**
  * @brief Parsed function parameter.
  */
-typedef struct SnukParam {
+struct SnukParam {
     SnukExpr *identifier; /**< Parameter name expression. */
-    SnukExpr *type; /**< Type information of the parameter */
+    SnukType *type; /**< Type information of the parameter */
     SnukExpr *default_value; /**< Optional default value expression. */
-} SnukParam;
+};
+
+/**
+ * @brief Parsed type.
+ */
+struct SnukType {
+    enum {
+        TYPE_ANY, /**< No type annotation */
+        TYPE_NAMED, /**< Named type */
+        TYPE_FN, /**< Function type */
+
+        TYPE_MAX /**< Sentinel value for type kinds. */
+    } type;
+
+    union {
+        SnukStringView name; /**< Type name (for named parameters) */
+
+        struct {
+            SnukType *return_type; /**< The return type of function */
+            SnukType **param_types; /**< Darray of parameter types */
+        } fn;
+    };
+};
 
 /**
  * @brief Parsed item.
@@ -103,7 +127,7 @@ struct SnukItem {
 
         struct {
             SnukExpr *identifier; /**< Declared variable or constant name. */
-            SnukExpr *type; /**< Type information of the variable or constant. */
+            SnukType *type; /**< Type information of the variable or constant. */
             SnukExpr *init; /**< Initializer expression. */
         } var_decl; // var or const
 
@@ -111,8 +135,7 @@ struct SnukItem {
             SnukExpr *identifier; /**< Name of function. */
             SnukParam **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
-            // TODO:
-            SnukExpr *return_type; /**< Return type of function. */
+            SnukType *return_type; /**< Return type of function. */
         } fn_decl;
 
         struct {
@@ -318,3 +341,10 @@ void snuk_parser_log_expr(SnukExpr *expr);
  * @param param Parameter to log.
  */
 void snuk_parser_log_param(SnukParam *param);
+
+/**
+ * @brief Log a parsed type annotation.
+ *
+ * @param type The type to log.
+ */
+void snuk_parser_log_type(SnukType *type);

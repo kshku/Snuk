@@ -26,6 +26,7 @@ typedef enum SnukTokenType {
     // keywords
     SNUK_TOKEN_VAR,
     SNUK_TOKEN_CONST,
+    SNUK_TOKEN_ANY,
     SNUK_TOKEN_IF,
     SNUK_TOKEN_ELSE,
     SNUK_TOKEN_MATCH,

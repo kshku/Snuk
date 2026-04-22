@@ -20,6 +20,7 @@ typedef struct Value {
 KeyWord keywords[] = {
     {.keyword = {.str = "var",      .len = 3}, .type = SNUK_TOKEN_VAR},
     {.keyword = {.str = "const",    .len = 5}, .type = SNUK_TOKEN_CONST},
+    {.keyword = {.str = "any",      .len = 3}, .type = SNUK_TOKEN_ANY},
     {.keyword = {.str = "if",       .len = 2}, .type = SNUK_TOKEN_IF},
     {.keyword = {.str = "else",     .len = 4}, .type = SNUK_TOKEN_ELSE},
     {.keyword = {.str = "match",    .len = 5}, .type = SNUK_TOKEN_MATCH},

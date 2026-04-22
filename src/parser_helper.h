@@ -364,6 +364,15 @@ static SnukItem *parse_print_item(SnukParser *parser);
 static SnukItem *parse_comment_item(SnukParser *parser);
 
 /**
+ * @breif Parse a type annotation.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed type, or NULL on parse failure.
+ */
+static SnukType *parse_type_annot(SnukParser *parser);
+
+/**
  * @brief Allocate a item.
  *
  * @param parser Parser context to operate on.
@@ -400,6 +409,18 @@ SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
 }
 
 /**
+ * @brief Allocate a type node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated expression storage.
+ */
+SNUK_INLINE SnukType *parser_create_type(SnukParser *parser) {
+    return (SnukType *)parser->alloc(parser->alloc_data,
+            sizeof(SnukType), alignof(SnukType));
+}
+
+/**
  * @brief Build an expression item.
  *
  * @param parser Parser context to operate on.
@@ -427,7 +448,7 @@ SNUK_INLINE SnukItem *build_expr_item(SnukParser *parser, SnukExpr *expr) {
  *
  * @return Newly allocated declaration item.
  */
-SNUK_INLINE SnukItem *build_decl_item(SnukParser *parser, SnukExpr *identifier, SnukExpr *type, SnukExpr *init, bool is_const) {
+SNUK_INLINE SnukItem *build_decl_item(SnukParser *parser, SnukExpr *identifier, SnukType *type, SnukExpr *init, bool is_const) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = is_const ? SNUK_ITEM_CONST_DECL : SNUK_ITEM_VAR_DECL,
@@ -482,7 +503,7 @@ SNUK_INLINE SnukItem *build_flow_item(SnukParser *parser, SnukTokenType type, Sn
  *
  * @return Newly allocated function item.
  */
-SNUK_INLINE SnukItem *build_fn_item(SnukParser *parser, SnukExpr *identifier, SnukParam **params, SnukExpr *body, SnukExpr *return_type) {
+SNUK_INLINE SnukItem *build_fn_item(SnukParser *parser, SnukExpr *identifier, SnukParam **params, SnukExpr *body, SnukType *return_type) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = SNUK_ITEM_FN_DECL,
@@ -871,7 +892,7 @@ SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser) {
  *
  * @return Newly allocated parameter node.
  */
-SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukExpr *type, SnukExpr *default_value) {
+SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukType *type, SnukExpr *default_value) {
     SnukParam *param = parser_create_param(parser);
     *param = (SnukParam){
         .identifier = identifier,
@@ -879,6 +900,63 @@ SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, Snu
         .default_value = default_value,
     };
     return param;
+}
+
+/**
+ * @brief Build a any type.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated type node.
+ */
+SNUK_INLINE SnukType *build_any_type(SnukParser *parser) {
+    SnukType *type = parser_create_type(parser);
+    *type = (SnukType){
+        .type = TYPE_ANY,
+    };
+    return type;
+}
+
+/**
+ * @brief Build a named type.
+ *
+ * @param parser Parser context to operate on.
+ * @param name The type name.
+ *
+ * @return Newly allocated type node.
+ */
+SNUK_INLINE SnukType *build_named_type(SnukParser *parser, SnukStringView name) {
+    SnukType *type = parser_create_type(parser);
+    *type = (SnukType){
+        .type = TYPE_NAMED,
+        .name = name,
+    };
+    return type;
+}
+
+/**
+ * @brief Build a fn type.
+ *
+ * @param parser Parser context to operate on.
+ * @param type Existing fn type to append param type or NULL to create one.
+ * @param param The parameter type to append.
+ * @param ret The return type of function.
+ *
+ * @return Newly allocated type node.
+ *
+ * @note param and ret will be only used if they are not NULL.
+ */
+SNUK_INLINE SnukType *build_fn_type(SnukParser *parser, SnukType *type, SnukType *param, SnukType *ret) {
+    if (!type) {
+        type = parser_create_type(parser);
+        *type = (SnukType){
+            .type = TYPE_FN,
+            .fn = {.param_types = snuk_darray_create(SnukType *)},
+        };
+    }
+    if (param) snuk_darray_push(&type->fn.param_types, param);
+    if (ret) type->fn.return_type = ret;
+    return type;
 }
 
 /**
