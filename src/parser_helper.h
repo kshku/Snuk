@@ -503,11 +503,11 @@ SNUK_INLINE SnukItem *build_flow_item(SnukParser *parser, SnukTokenType type, Sn
  *
  * @return Newly allocated function item.
  */
-SNUK_INLINE SnukItem *build_fn_item(SnukParser *parser, SnukExpr *identifier, SnukParam **params, SnukExpr *body, SnukType *return_type) {
+SNUK_INLINE SnukItem *build_fn_item(SnukParser *parser, SnukExpr *identifier, SnukExpr *fn_expr) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = SNUK_ITEM_FN_DECL,
-        .fn_decl = {.identifier = identifier, .params = params, .body = body, .return_type = return_type},
+        .fn_decl = {.identifier = identifier, .fn_expr = fn_expr},
     };
     return item;
 }

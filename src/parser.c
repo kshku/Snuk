@@ -87,44 +87,8 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
 static SnukItem *parse_fn_item(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected function name");
     SnukExpr *identifier = parse_primary(parser);
-
-    SnukParam **params = snuk_darray_create(SnukParam *);
-    parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
-    while (!parser_match(parser, SNUK_TOKEN_RPAREN)
-            && parser->current.type != SNUK_TOKEN_EOF) {
-        parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
-
-        SnukExpr *name = parse_primary(parser);
-        SnukExpr *default_value = NULL;
-        SnukType *type = NULL;
-
-        if (parser_match(parser, SNUK_TOKEN_COLON))
-            type = parse_type_annot(parser);
-        else
-            type = build_any_type(parser);
-
-        if (parser_match(parser, SNUK_TOKEN_ASSIGN))
-            default_value = parse_expression(parser);
-
-        snuk_darray_push(&params, build_param(parser,name, type, default_value));
-
-        if (!parser_check(parser, SNUK_TOKEN_RPAREN))
-            parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
-    }
-
-    if (parser->previous.type != SNUK_TOKEN_RPAREN) {
-        parser_error(parser, "expected ')'");
-        return NULL;
-    }
-
-    SnukType *ret_type = NULL;
-    if (parser_match(parser, SNUK_TOKEN_ARROW))
-        ret_type = parse_type_annot(parser);
-
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
-    SnukExpr *body = parse_block(parser);
-
-    return build_fn_item(parser, identifier, params, body, ret_type);
+    SnukExpr *fn_expr = parse_fn(parser);
+    return build_fn_item(parser, identifier, fn_expr);
 }
 
 /**
@@ -575,10 +539,7 @@ void snuk_parser_log_item(SnukItem *item) {
         case SNUK_ITEM_FN_DECL:
             log_trace("function:", NULL);
             snuk_parser_log_expr(item->fn_decl.identifier);
-            count = snuk_darray_get_length(item->fn_decl.params);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_param(item->fn_decl.params[i]);
-            snuk_parser_log_expr(item->fn_decl.body);
+            snuk_parser_log_expr(item->fn_decl.fn_expr);
             break;
         case SNUK_ITEM_TYPE_DECL:
             log_trace("type:", NULL);
