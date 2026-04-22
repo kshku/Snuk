@@ -90,7 +90,7 @@ typedef struct SnukType SnukType;
  */
 struct SnukParam {
     SnukExpr *identifier; /**< Parameter name expression. */
-    SnukExpr *type; /**< Type information of the parameter */
+    SnukType *type; /**< Type information of the parameter */
     SnukExpr *default_value; /**< Optional default value expression. */
 };
 
@@ -127,7 +127,7 @@ struct SnukItem {
 
         struct {
             SnukExpr *identifier; /**< Declared variable or constant name. */
-            SnukExpr *type; /**< Type information of the variable or constant. */
+            SnukType *type; /**< Type information of the variable or constant. */
             SnukExpr *init; /**< Initializer expression. */
         } var_decl; // var or const
 
@@ -135,8 +135,7 @@ struct SnukItem {
             SnukExpr *identifier; /**< Name of function. */
             SnukParam **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
-            // TODO:
-            SnukExpr *return_type; /**< Return type of function. */
+            SnukType *return_type; /**< Return type of function. */
         } fn_decl;
 
         struct {

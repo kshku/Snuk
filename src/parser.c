@@ -53,13 +53,12 @@ static SnukItem *parse_expr_item(SnukParser *parser) {
 static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
     SnukExpr *identifier = parse_primary(parser);
-    SnukExpr *type = NULL;
 
-    // TODO: type
-    if (parser_match(parser, SNUK_TOKEN_COLON)) {
-        parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
-        type = parse_primary(parser);
-    }
+    SnukType *type = NULL;
+    if (parser_match(parser, SNUK_TOKEN_COLON))
+        type = parse_type_annot(parser);
+    else
+        type = build_any_type(parser);
 
     SnukExpr *init = NULL;
     if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser);
@@ -85,7 +84,6 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
  * @brief Parse a function declaration item.
  */
 static SnukItem *parse_fn_item(SnukParser *parser) {
-    // TODO: return type
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected function name");
     SnukExpr *identifier = parse_primary(parser);
 
@@ -96,13 +94,12 @@ static SnukItem *parse_fn_item(SnukParser *parser) {
 
         SnukExpr *name = parse_primary(parser);
         SnukExpr *default_value = NULL;
-        SnukExpr *type = NULL;
+        SnukType *type = NULL;
 
-        if (parser_match(parser, SNUK_TOKEN_COLON)) {
-            // TODO: type
-            parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a type");
-            type = parse_primary(parser);
-        }
+        if (parser_match(parser, SNUK_TOKEN_COLON))
+            type = parse_type_annot(parser);
+        else
+            type = build_any_type(parser);
 
         if (parser_match(parser, SNUK_TOKEN_ASSIGN))
             default_value = parse_expression(parser);
@@ -113,10 +110,14 @@ static SnukItem *parse_fn_item(SnukParser *parser) {
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
     }
 
+    SnukType *ret_type = NULL;
+    if (parser_match(parser, SNUK_TOKEN_ARROW))
+        ret_type = parse_type_annot(parser);
+
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
     SnukExpr *body = parse_block(parser);
 
-    return build_fn_item(parser, identifier, params, body, NULL);
+    return build_fn_item(parser, identifier, params, body, ret_type);
 }
 
 /**
@@ -196,7 +197,9 @@ static SnukType *parse_type_annot(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_ANY))
         return build_any_type(parser);
 
-    return build_named_type(parser, parse_primary(parser));
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "unexpected type");
+
+    return build_named_type(parser, parser->previous.string_literal);
 }
 
 /**
@@ -500,14 +503,14 @@ void snuk_parser_log_item(SnukItem *item) {
             log_trace("var: ", NULL);
             snuk_parser_log_expr(item->var_decl.identifier);
             if (item->var_decl.type) log_trace("type: ", NULL);
-            snuk_parser_log_expr(item->var_decl.type);
+            snuk_parser_log_type(item->var_decl.type);
             snuk_parser_log_expr(item->var_decl.init);
             break;
         case SNUK_ITEM_CONST_DECL:
             log_trace("const: ", NULL);
             snuk_parser_log_expr(item->var_decl.identifier);
             if (item->var_decl.type) log_trace("type: ", NULL);
-            snuk_parser_log_expr(item->var_decl.type);
+            snuk_parser_log_type(item->var_decl.type);
             snuk_parser_log_expr(item->var_decl.init);
             break;
         case SNUK_ITEM_RETURN:
