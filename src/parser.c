@@ -674,8 +674,36 @@ void snuk_parser_log_param(SnukParam *param) {
     log_trace("param: ", NULL);
     snuk_parser_log_expr(param->identifier);
     if (param->type) log_trace("type: ", NULL);
-    snuk_parser_log_expr(param->type);
+    snuk_parser_log_type(param->type);
     snuk_parser_log_expr(param->default_value);
+}
+
+/**
+ * @brief Log a type annotation.
+ */
+void snuk_parser_log_type(SnukType *type) {
+    if (!type) log_trace("void type", NULL);
+    uint64_t count;
+    switch (type->type) {
+        case TYPE_ANY:
+            log_trace("type type: %s", SNUK_STRINGIFY(TYPE_ANY));
+            break;
+        case TYPE_NAMED:
+            log_trace("type type: %s", SNUK_STRINGIFY(TYPE_NAMED));
+            log_trace("type name: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(type->name));
+            break;
+        case TYPE_FN:
+            log_trace("type type: %s", SNUK_STRINGIFY(TYPE_FN));
+            log_trace("param types:", NULL);
+            count = snuk_darray_get_length(type->fn.param_types);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_type(type->fn.param_types[i]);
+            log_trace("return type:", NULL);
+            snuk_parser_log_type(type->fn.return_type);
+            break;
+        default:
+            break;
+    }
 }
 
 /**

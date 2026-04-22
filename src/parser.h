@@ -342,3 +342,10 @@ void snuk_parser_log_expr(SnukExpr *expr);
  * @param param Parameter to log.
  */
 void snuk_parser_log_param(SnukParam *param);
+
+/**
+ * @brief Log a parsed type annotation.
+ *
+ * @param type The type to log.
+ */
+void snuk_parser_log_type(SnukType *type);
