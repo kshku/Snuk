@@ -212,8 +212,7 @@ struct SnukExpr {
         struct {
             SnukParam **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
-            // TODO: return type
-            SnukExpr *return_type;
+            SnukType *return_type;
         } fn_expr;
 
         struct {
