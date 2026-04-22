@@ -954,7 +954,7 @@ SNUK_INLINE SnukType *build_fn_type(SnukParser *parser, SnukType *type, SnukType
             .fn = {.param_types = snuk_darray_create(SnukType *)},
         };
     }
-    if (param) snuk_darray_push(type->fn.param_types, param);
+    if (param) snuk_darray_push(&type->fn.param_types, param);
     if (ret) type->fn.return_type = ret;
     return type;
 }

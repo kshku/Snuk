@@ -71,13 +71,14 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
  * @brief Parse return, break, or continue items.
  */
 static SnukItem *parse_flow_item(SnukParser *parser) {
+    SnukTokenType type = parser->previous.type;
     SnukExpr *value = NULL;
     if (parser->previous.type == SNUK_TOKEN_RETURN || parser->previous.type == SNUK_TOKEN_BREAK)
         // TODO: look for delimiter, value is optional
         // TODO: break and return items should be at the end of block only?
         value = parse_expression(parser);
 
-    return build_flow_item(parser, parser->previous.type, value);
+    return build_flow_item(parser, type, value);
 }
 
 /**
@@ -685,7 +686,11 @@ void snuk_parser_log_param(SnukParam *param) {
  * @brief Log a type annotation.
  */
 void snuk_parser_log_type(SnukType *type) {
-    if (!type) log_trace("void type", NULL);
+    if (!type) {
+        log_trace("void type", NULL);
+        return;
+    }
+
     uint64_t count;
     switch (type->type) {
         case TYPE_ANY:
