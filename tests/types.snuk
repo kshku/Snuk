@@ -1,0 +1,11 @@
+var x: any = 10
+var y: string = "Hello"
+var z: int = 10
+var p: Point
+fn add(a: int, b: int) -> int { return a + b }
+// yet to implement parse_fn_expr()
+// var on_click: fn() = fn() {}
+var transform: fn(float) -> float
+var n: fn()
+var o: fn(int, any)
+var z: fn(any, fn ()) -> fn (int) -> int
