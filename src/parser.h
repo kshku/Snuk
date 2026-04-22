@@ -82,15 +82,39 @@ typedef enum SnukExprType {
 
 typedef struct SnukItem SnukItem;
 typedef struct SnukExpr SnukExpr;
+typedef struct SnukParam SnukParam;
+typedef struct SnukType SnukType;
 
 /**
  * @brief Parsed function parameter.
  */
-typedef struct SnukParam {
+struct SnukParam {
     SnukExpr *identifier; /**< Parameter name expression. */
     SnukExpr *type; /**< Type information of the parameter */
     SnukExpr *default_value; /**< Optional default value expression. */
-} SnukParam;
+};
+
+/**
+ * @brief Parsed type.
+ */
+struct SnukType {
+    enum {
+        TYPE_ANY, /**< No type annotation */
+        TYPE_NAMED, /**< Named type */
+        TYPE_FN, /**< Function type */
+
+        TYPE_MAX /**< Sentinel value for type kinds. */
+    } type;
+
+    union {
+        SnukStringView name; /**< Type name (for named parameters) */
+
+        struct {
+            SnukType *return_type; /**< The return type of function */
+            SnukType **param_types; /**< Darray of parameter types */
+        } fn;
+    };
+};
 
 /**
  * @brief Parsed item.

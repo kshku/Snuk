@@ -172,6 +172,34 @@ static SnukItem *parse_comment_item(SnukParser *parser) {
 }
 
 /**
+ * @breif Parse a type annotation.
+ */
+static SnukType *parse_type_annot(SnukParser *parser) {
+    if (parser_match(parser, SNUK_TOKEN_FN)) {
+        SnukType *type = build_fn_type(parser, NULL, NULL, NULL);
+        parser_expect(parser, SNUK_TOKEN_LPAREN, "exptected '('");
+        while (!parser_match(parser, SNUK_TOKEN_RPAREN)) {
+            SnukType *param = parse_type_annot(parser);
+            type = build_fn_type(parser, type, param, NULL);
+            if (!parser_check(parser, SNUK_TOKEN_RPAREN))
+                parser_expect(parser, SNUK_TOKEN_COMMA, "expected ','");
+        }
+
+        SnukType *ret_type = NULL;
+        if (parser_match(parser, SNUK_TOKEN_ARROW))
+            ret_type = parse_type_annot(parser);
+
+        type = build_fn_type(parser, type, NULL, ret_type);
+        return type;
+    }
+
+    if (parser_match(parser, SNUK_TOKEN_ANY))
+        return build_any_type(parser);
+
+    return build_named_type(parser, parse_primary(parser));
+}
+
+/**
  * @brief Parse an expression from the lowest precedence.
  */
 static SnukExpr *parse_expression(SnukParser *parser) {
