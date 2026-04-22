@@ -822,7 +822,7 @@ SNUK_INLINE SnukExpr *build_for_expr(SnukParser *parser, SnukItem *init, SnukExp
  *
  * @return Newly allocated fn expression node.
  */
-SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, SnukExpr *body, SnukExpr *return_type) {
+SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, SnukExpr *body, SnukType *return_type) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FN,

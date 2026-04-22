@@ -90,7 +90,8 @@ static SnukItem *parse_fn_item(SnukParser *parser) {
 
     SnukParam **params = snuk_darray_create(SnukParam *);
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
-    while (!parser_match(parser, SNUK_TOKEN_RPAREN)) {
+    while (!parser_match(parser, SNUK_TOKEN_RPAREN)
+            && parser->current.type != SNUK_TOKEN_EOF) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
 
         SnukExpr *name = parse_primary(parser);
@@ -109,6 +110,11 @@ static SnukItem *parse_fn_item(SnukParser *parser) {
 
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RPAREN) {
+        parser_error(parser, "expected ')'");
+        return NULL;
     }
 
     SnukType *ret_type = NULL;
@@ -180,11 +186,17 @@ static SnukType *parse_type_annot(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_FN)) {
         SnukType *type = build_fn_type(parser, NULL, NULL, NULL);
         parser_expect(parser, SNUK_TOKEN_LPAREN, "exptected '('");
-        while (!parser_match(parser, SNUK_TOKEN_RPAREN)) {
+        while (!parser_match(parser, SNUK_TOKEN_RPAREN)
+                && parser->current.type != SNUK_TOKEN_EOF) {
             SnukType *param = parse_type_annot(parser);
             type = build_fn_type(parser, type, param, NULL);
             if (!parser_check(parser, SNUK_TOKEN_RPAREN))
                 parser_expect(parser, SNUK_TOKEN_COMMA, "expected ','");
+        }
+
+        if (parser->previous.type != SNUK_TOKEN_RPAREN) {
+            parser_error(parser, "expected ')'");
+            return NULL;
         }
 
         SnukType *ret_type = NULL;
@@ -409,8 +421,43 @@ static SnukExpr *parse_for(SnukParser *parser) {
  * @brief Parse an function expression.
  */
 static SnukExpr *parse_fn(SnukParser *parser) {
-    // TODO:
-    return build_fn_expr(parser, NULL, NULL, NULL);
+    SnukParam **params = snuk_darray_create(SnukParam *);
+    parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
+    while (!parser_match(parser, SNUK_TOKEN_RPAREN)
+            && parser->current.type != SNUK_TOKEN_EOF) {
+        parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
+
+        SnukExpr *name = parse_primary(parser);
+        SnukExpr *default_value = NULL;
+        SnukType *type = NULL;
+
+        if (parser_match(parser, SNUK_TOKEN_COLON))
+            type = parse_type_annot(parser);
+        else
+            type = build_any_type(parser);
+
+        if (parser_match(parser, SNUK_TOKEN_ASSIGN))
+            default_value = parse_expression(parser);
+
+        snuk_darray_push(&params, build_param(parser,name, type, default_value));
+
+        if (!parser_check(parser, SNUK_TOKEN_RPAREN))
+            parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RPAREN) {
+        parser_error(parser, "expected ')'");
+        return NULL;
+    }
+
+    SnukType *ret_type = NULL;
+    if (parser_match(parser, SNUK_TOKEN_ARROW))
+        ret_type = parse_type_annot(parser);
+
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
+    SnukExpr *body = parse_block(parser);
+
+    return build_fn_expr(parser, params, body, ret_type);
 }
 
 /**
