@@ -579,6 +579,15 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
             if (op == SNUK_TOKEN_BANG_EQUAL) res.bool_value = !res.bool_value;
             return res;
 
+        case SNUK_TOKEN_PLUS:
+            if (res.type == SNUK_VALUE_STRING) {
+                return (SnukValue){
+                    .type = SNUK_VALUE_STRING,
+                    .string_value = snuk_string_view_concat(left.string_value, right.string_value),
+                };
+            }
+            break;
+
         default:
             break;
     }
