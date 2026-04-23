@@ -10,7 +10,6 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 - Map type ?
 - Type casting ?
 - Arbitrary precision integers (bignum) ?
-- Arrays and maps as built-in types
 - Pattern matching (`match` / `case`)
 - Error handling (result type or try/catch) ?
 - Modules and imports ?
@@ -23,13 +22,8 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 
 - Math functions (`sin`, `cos`, `sqrt`, `abs`, ...)
 - String functions (`split`, `trim`, `replace`, ...)
-- Collections (`list`, `map`, `set`)
 - File I/O from Snuk code ?
 - Random number generation
-
-## Memory
-
-- Growable arenas for larger programs (or argument specifying the size) ?
 
 ## Tooling
 
@@ -37,10 +31,50 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 - `snuk check` — static analysis without running ?
 - `snuk doc` — documentation generator from comments ?
 - Language server protocol (LSP) support ?
-- Syntax highlighting definitions (VSCode, Neovim, etc.) ?
+- Syntax highlighting definitions ?
 
 ## Platform
 
 - Windows, Linux, macOS build verification
 - Pre-built binaries for major platforms
-- Package manager integration (brew, scoop, apt)
+- Package manager integration
+
+
+# Language additions ?
+
+## Interfaces
+
+Interface similar to go.
+Named method contracts, satisfied implicitly through duck typing.
+No `implements` declaration needed — if a type has the methods, it satisfies the interface.
+
+### Syntax
+
+```snuk
+interface Drawable {
+    fn draw()
+    fn update(dt)
+}
+
+// parameter annotated with interface — runtime checked
+fn render(obj: Drawable) {
+    obj.draw()
+}
+```
+
+- Interfaces provide explicit API contracts for libraries.
+- Allows extending the existing types.
+- Requires external method definitions (fn TypeName.method)
+- Can add `extend` keyword as syntax sugar
+```snuk
+extend string {
+    fn shout() {
+        print string.uppercase() + '!!!'
+    }
+}
+// equivalent to
+fn string.shout() {
+    print string.uppercase() + '!!!'
+}
+```
+- Language syntax grows
