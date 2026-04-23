@@ -91,3 +91,10 @@ SNUK_INLINE bool char_in_string(char c, const char *s) {
     for (uint64_t i = 0; s[i] || i == 0; ++i) if (s[i] == c) return true;
     return false;
 }
+
+SNUK_INLINE char* snuk_string_concat(SnukStringView left, SnukStringView right) {
+    return(strcat(
+        snuk_string_view_get_cstr(left),
+        snuk_string_view_get_cstr(right)
+        ));
+}
