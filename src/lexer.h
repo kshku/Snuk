@@ -6,6 +6,12 @@
 
 SNUK_STATIC_ASSERT(sizeof(double) == 8, "Expected sizeof(double) to be 8 bytes.");
 
+/**
+ * @brief Token categories emitted by the Snuk lexer.
+ *
+ * Includes literal values, keywords, punctuation, operators, comments, errors,
+ * and end-of-file markers.
+ */
 typedef enum SnukTokenType {
     SNUK_TOKEN_EOF = 0,
     SNUK_TOKEN_ERROR,
@@ -109,6 +115,16 @@ typedef enum SnukTokenType {
     SNUK_TOKEN_MAX
 } SnukTokenType;
 
+/**
+ * @brief Lexical token produced from Snuk source text.
+ *
+ * The token type selects which union member is meaningful: string_literal for
+ * textual tokens and error context, int_literal for integer literals, and
+ * float_literal for floating-point literals. The line and column fields record
+ * the token start using zero-based source coordinates.
+ *
+ * @note String views point into the source buffer owned by the caller.
+ */
 typedef struct SnukToken {
     SnukTokenType type;
     union {
@@ -122,6 +138,14 @@ typedef struct SnukToken {
     uint64_t line, col;
 } SnukToken;
 
+/**
+ * @brief Mutable scanner state for a null-terminated Snuk source string.
+ *
+ * Tracks the original source, the current cursor, the current token start, and
+ * zero-based line and column positions for both cursor and token start.
+ *
+ * @note The source buffer must remain valid for the lifetime of the lexer.
+ */
 typedef struct SnukLexer {
     const char *src;
 
@@ -134,6 +158,15 @@ typedef struct SnukLexer {
     uint64_t col;
 } SnukLexer;
 
+/**
+ * @brief Initialize a lexer for the given source string.
+ *
+ * @param lexer Lexer state to initialize.
+ * @param src Null-terminated source buffer to scan.
+ *
+ * @note The source buffer is borrowed and must outlive all tokens produced by
+ * the lexer.
+ */
 SNUK_INLINE void snuk_lexer_init(SnukLexer *lexer, const char *src) {
     *lexer = (SnukLexer){
         .src = src,
@@ -146,11 +179,38 @@ SNUK_INLINE void snuk_lexer_init(SnukLexer *lexer, const char *src) {
     };
 }
 
+/**
+ * @brief Reset a lexer to an empty state.
+ *
+ * @param lexer Lexer state to clear, or NULL.
+ */
 SNUK_INLINE void snuk_lexer_deinit(SnukLexer *lexer) {
     if (lexer) *lexer = (SnukLexer){0};
 }
 
+/**
+ * @brief Scan and return the next token from the lexer.
+ *
+ * Advances the lexer past leading whitespace and the returned token.
+ *
+ * @param lexer Lexer state to scan from.
+ *
+ * @return The next token, including comments, errors, or end-of-file.
+ */
 SnukToken snuk_lexer_next_token(SnukLexer *lexer);
 
+/**
+ * @brief Convert a token type to a readable string.
+ *
+ * @param type Token type to convert.
+ *
+ * @return String literal naming the token type.
+ */
 const char *snuk_lexer_token_type_to_string(SnukTokenType type);
+
+/**
+ * @brief Log a token for debugging.
+ *
+ * @param token Token to log.
+ */
 void snuk_lexer_log_token(SnukToken token);

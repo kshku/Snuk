@@ -51,19 +51,49 @@ Value values[] = {
     {.value = {.str = "infinity", .len = 8}, .type = SNUK_TOKEN_INF,   .ignore_case = true},
 };
 
+/**
+ * @brief Check whether the lexer cursor is at the end of the source.
+ *
+ * @param lexer Lexer state to inspect.
+ *
+ * @return True when the cursor points at the null terminator.
+ */
 SNUK_INLINE bool lexer_is_eof(SnukLexer *lexer) {
     return *lexer->cur == '\0';
 }
 
+/**
+ * @brief Read the current source character without advancing.
+ *
+ * @param lexer Lexer state to inspect.
+ *
+ * @return The current source character.
+ */
 SNUK_INLINE char lexer_peek(SnukLexer *lexer) {
     return *lexer->cur;
 }
 
+/**
+ * @brief Read the next source character without advancing.
+ *
+ * @param lexer Lexer state to inspect.
+ *
+ * @return The next source character, or '\0' when already at EOF.
+ */
 SNUK_INLINE char lexer_peek_next(SnukLexer *lexer) {
     if (lexer_is_eof(lexer)) return '\0';
     return *(lexer->cur + 1);
 }
 
+/**
+ * @brief Consume the current source character and update cursor position.
+ *
+ * @param lexer Lexer state to advance.
+ *
+ * @return The consumed character, or '\0' when already at EOF.
+ *
+ * @note Newlines increment the line counter and reset the column to zero.
+ */
 SNUK_INLINE char lexer_advance(SnukLexer *lexer) {
     if (lexer_is_eof(lexer)) return '\0';
 
@@ -81,16 +111,37 @@ SNUK_INLINE char lexer_advance(SnukLexer *lexer) {
     return c;
 }
 
+/**
+ * @brief Consume the expected character when it is next in the source.
+ *
+ * @param lexer Lexer state to inspect and possibly advance.
+ * @param expected Character to match.
+ *
+ * @return True when the expected character was consumed.
+ */
 SNUK_INLINE bool lexer_match(SnukLexer *lexer, char expected) {
     if (lexer_peek(lexer) != expected) return false;
     lexer_advance(lexer);
     return true;
 }
 
+/**
+ * @brief Consume whitespace before the next token.
+ *
+ * @param lexer Lexer state to advance.
+ */
 SNUK_INLINE void lexer_skip_white_spaces(SnukLexer *lexer) {
     while (char_in_string(lexer_peek(lexer), " \t\r\n")) lexer_advance(lexer);
 }
 
+/**
+ * @brief Build a token spanning from token_start to the current cursor.
+ *
+ * @param lexer Lexer state containing the token bounds.
+ * @param type Token type to assign.
+ *
+ * @return Token with a source slice and starting position.
+ */
 SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
     uint64_t len = lexer->cur - lexer->token_start;
     return (SnukToken){
@@ -102,6 +153,14 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
     };
 }
 
+/**
+ * @brief Build an error token for the current source line.
+ *
+ * @param lexer Lexer state at the error location.
+ * @param err_msg Static error message describing the failure.
+ *
+ * @return Error token containing the current line text and location.
+ */
 SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_msg) {
     const char *line_start = lexer->cur - lexer->col;
     uint64_t len = 0;
@@ -123,6 +182,13 @@ static SnukToken lexer_scan_number(SnukLexer *lexer);
 static SnukToken lexer_scan_string(SnukLexer *lexer, char quote);
 static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line);
 
+/**
+ * @brief Scan an identifier-like word and classify keywords or literal values.
+ *
+ * @param lexer Lexer state positioned at the first word character.
+ *
+ * @return Identifier, keyword, or value token.
+ */
 static SnukToken lexer_scan_word(SnukLexer *lexer) {
     // assumes the first character is valid for identifier
     lexer->token_start = lexer->cur;
@@ -146,6 +212,14 @@ static SnukToken lexer_scan_word(SnukLexer *lexer) {
     return lexer_build_token(lexer, SNUK_TOKEN_IDENTIFIER);
 }
 
+/**
+ * @brief Scan an integer or floating-point numeric literal.
+ *
+ * @param lexer Lexer state positioned at the first numeric character or a
+ * leading decimal point.
+ *
+ * @return Integer, float, or error token.
+ */
 static SnukToken lexer_scan_number(SnukLexer *lexer) {
     lexer->token_start = lexer->cur;
     lexer->token_start_line = lexer->line;
@@ -247,6 +321,16 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
     return token;
 }
 
+/**
+ * @brief Scan a quoted string literal.
+ *
+ * @param lexer Lexer state positioned after the opening quote.
+ * @param quote Quote character that terminates the string.
+ *
+ * @return String or error token.
+ *
+ * @note The caller must have already consumed the opening quote.
+ */
 static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
     // starting quote is consumed
 
@@ -260,6 +344,14 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
     return lexer_build_token(lexer, SNUK_TOKEN_STRING);
 }
 
+/**
+ * @brief Check whether a word is a reserved keyword.
+ *
+ * @param s Start of the word.
+ * @param len Length of the word.
+ *
+ * @return Keyword token type, or SNUK_TOKEN_EOF when the word is not a keyword.
+ */
 static SnukTokenType check_keyword(const char *s, uint64_t len) {
     for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i) {
         if (len != keywords[i].keyword.len) continue;
@@ -270,6 +362,14 @@ static SnukTokenType check_keyword(const char *s, uint64_t len) {
     return SNUK_TOKEN_EOF;
 }
 
+/**
+ * @brief Check whether a word is a built-in literal value.
+ *
+ * @param s Start of the word.
+ * @param len Length of the word.
+ *
+ * @return Value token type, or SNUK_TOKEN_EOF when the word is not a value.
+ */
 static SnukTokenType check_values(const char *s, uint64_t len) {
     for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
         if (len != values[i].value.len) continue;
@@ -283,6 +383,16 @@ static SnukTokenType check_values(const char *s, uint64_t len) {
     return SNUK_TOKEN_EOF;
 }
 
+/**
+ * @brief Scan a line or block comment body.
+ *
+ * @param lexer Lexer state positioned after the comment opener.
+ * @param multi_line True for block comments, false for line comments.
+ *
+ * @return Comment or error token.
+ *
+ * @note The caller must have already consumed both opener characters.
+ */
 static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     lexer->token_start = lexer->cur;
     lexer->token_start_line = lexer->line;
