@@ -211,12 +211,11 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
         case SNUK_TOKEN_PLUS:
             if (res.type == SNUK_VALUE_INT) {
                 res.int_value = left.int_value + right.int_value;
-            } 
+            }
+            // TODO: memory leak caused by adding a string literal to a string variable
             else if (res.type == SNUK_VALUE_STRING) {
                 res.string_value = snuk_string_view_create(
-                    strcat(snuk_string_view_get_cstr(left.string_value),
-                    snuk_string_view_get_cstr(right.string_value)
-                    ));
+                    snuk_string_concat(left.string_value,right.string_value));
                 
             } else {
                 if (left.type == SNUK_VALUE_INT)
