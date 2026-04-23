@@ -193,12 +193,17 @@ static SnukValue get_unary_value(SnukInterpreter *i, SnukExpr *expr) {
 }
 
 static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenType op) {
-    if (left.type != SNUK_VALUE_INT && left.type != SNUK_VALUE_FLOAT) goto fail;
-    if (right.type != SNUK_VALUE_INT && right.type != SNUK_VALUE_FLOAT) goto fail;
+    if (left.type == SNUK_VALUE_STRING && right.type == SNUK_VALUE_STRING);
+    else{
+        if (left.type != SNUK_VALUE_INT && left.type != SNUK_VALUE_FLOAT) goto fail;
+        if (right.type != SNUK_VALUE_INT && right.type != SNUK_VALUE_FLOAT) goto fail;
+    }
+    
 
     SnukValue res = {0};
 
     if (left.type == SNUK_VALUE_FLOAT || right.type == SNUK_VALUE_FLOAT) res.type = SNUK_VALUE_FLOAT;
+    else if (left.type == SNUK_VALUE_STRING) res.type = SNUK_VALUE_STRING;
     else res.type = SNUK_VALUE_INT;
 
     // TODO: better way to do this
@@ -206,6 +211,13 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
         case SNUK_TOKEN_PLUS:
             if (res.type == SNUK_VALUE_INT) {
                 res.int_value = left.int_value + right.int_value;
+            } 
+            else if (res.type == SNUK_VALUE_STRING) {
+                res.string_value = snuk_string_view_create(
+                    strcat(snuk_string_view_get_cstr(left.string_value),
+                    snuk_string_view_get_cstr(right.string_value)
+                    ));
+                
             } else {
                 if (left.type == SNUK_VALUE_INT)
                     res.float_value = (double)left.int_value + right.float_value;
@@ -285,7 +297,7 @@ static SnukValue add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukEx
     uint64_t index = (uint64_t)identifier->identifier.str[0];
     uint64_t length = snuk_darray_get_length(i->envs);
 
-    if (length <= index)
+    if (length < index)
         snuk_darray_push_at(&i->envs, index, snuk_darray_create(SnukEnv));
     else if (!i->envs[index])
         i->envs[index] = snuk_darray_create(SnukEnv);
