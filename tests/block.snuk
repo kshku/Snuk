@@ -8,4 +8,14 @@ print "Before block", x
     print "Inside block", x, y
 }
 
-print "Outside block", x, y
+var y = {
+    var a = 5
+    a / 5
+}
+
+var z = {
+    var a = 5
+    return a / 5
+}
+
+print "Outside block", x, y, z

@@ -27,6 +27,8 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
 
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
+static SnukValue execute_block(SnukInterpreter *i, SnukItem **items);
+
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
         case SNUK_ITEM_EXPR:
@@ -144,17 +146,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
 
         case SNUK_EXPR_BLOCK:
-            {
-                snuk_scope_push(i);
-                uint64_t count = snuk_darray_get_length(expr->block_items);
-                for (uint64_t j = 0; j < count; ++j) {
-                    // TODO: break/return things
-                    snuk_interpreter_exec_item(i, expr->block_items[j]);
-                }
-                snuk_scope_pop(i);
-            }
-            // TODO:
-            return (SnukValue){.type = SNUK_VALUE_NULL};
+            return execute_block(i, expr->block_items);
 
         // TODO:
         case SNUK_EXPR_CALL:
@@ -453,3 +445,35 @@ static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name) {
     return NULL;
 }
 
+static SnukValue execute_block(SnukInterpreter *i, SnukItem **items) {
+    snuk_scope_push(i);
+
+    uint64_t count = snuk_darray_get_length(items);
+    SnukValue value = {.type = SNUK_VALUE_NULL};
+
+    for (uint64_t j = 0; j < count; ++j) {
+        snuk_interpreter_exec_item(i, items[j]);
+        switch (i->signal) {
+            case SNUK_SIGNAL_RETURN:
+                value = i->signaled_value;
+                i->signaled_value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+                goto out;
+
+            case SNUK_SIGNAL_BREAK:
+                value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+                goto out;
+
+            case SNUK_SIGNAL_CONTINUE:
+                SNUK_SHOULD_NOT_REACH_HERE;
+            case SNUK_SIGNAL_NONE:
+            default:
+                break;
+        }
+    }
+
+out:
+    snuk_darray_destroy(items);
+    snuk_scope_pop(i);
+
+    return value;
+}
