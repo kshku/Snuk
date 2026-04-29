@@ -6,7 +6,7 @@
 #include "logger.h"
 
 bool snuk_runtime_execute(Runtime *rt, const char *src) {
-    if (string_equal(src, "exit\n")) return true;
+    if (snuk_string_equal(src, "exit\n")) return true;
 
     SnukParser parser;
     snuk_parser_init(&parser, src, (void *)(&rt->frame), (alloc_fn)sn_frame_allocator_allocate);
