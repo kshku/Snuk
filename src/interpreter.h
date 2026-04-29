@@ -72,4 +72,5 @@ SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr);
 
+void snuk_interpreter_log_value(SnukValue value);
 void snuk_interpreter_print_value(SnukValue value);
