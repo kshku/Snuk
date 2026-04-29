@@ -2,6 +2,10 @@
 
 #include "defines.h"
 
+#include "memory.h"
+
+#include <string.h>
+
 SNUK_INLINE bool is_alpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
@@ -90,4 +94,17 @@ SNUK_INLINE bool char_in_string(char c, const char *s) {
     if (!s) return false;
     for (uint64_t i = 0; s[i] || i == 0; ++i) if (s[i] == c) return true;
     return false;
+}
+
+// if len == 0 (of any string), snuk_string_length will be called.
+SNUK_INLINE char *snuk_string_concat(const char *a, uint64_t alen, const char *b, uint64_t blen) {
+    if (!alen) alen = string_length(a);
+    if (!blen) blen = string_length(b);
+
+    char *new = snuk_alloc((alen + blen + 1) * sizeof(char), alignof(char));
+    memcpy(new, a, alen);
+    memcpy(new + alen, b, blen);
+    new[alen + blen] = 0;
+
+    return new;
 }

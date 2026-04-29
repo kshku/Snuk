@@ -41,3 +41,10 @@ SNUK_INLINE SnukStringView snuk_string_view_copy(SnukStringView view) {
         .len = view.len,
     };
 }
+
+SNUK_INLINE SnukStringView snuk_string_view_concat(SnukStringView a, SnukStringView b) {
+    return (SnukStringView){
+        .str = snuk_string_concat(a.str, a.len, b.str, b.len),
+        .len = a.len + b.len,
+    };
+}
