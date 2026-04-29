@@ -99,6 +99,7 @@ static SnukItem *parse_type_item(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
 
     SnukExpr *identifier = parse_primary(parser);
+
     SnukItem **vars = snuk_darray_create(SnukItem *);
     SnukItem **fns = snuk_darray_create(SnukItem *);
 
@@ -428,8 +429,30 @@ static SnukExpr *parse_fn(SnukParser *parser) {
  * @brief Parse an type expression.
  */
 static SnukExpr *parse_type(SnukParser *parser) {
-    // TODO:
-    return build_type_expr(parser, NULL, NULL);
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+
+    SnukItem **vars = snuk_darray_create(SnukItem *);
+    SnukItem **fns = snuk_darray_create(SnukItem *);
+
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+            && parser->current.type !=  SNUK_TOKEN_EOF) {
+
+        if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST)) {
+            snuk_darray_push(&vars,
+                    parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST));
+        } else if (parser_match(parser, SNUK_TOKEN_FN)) {
+            snuk_darray_push(&fns, parse_fn_item(parser));
+        } else {
+            parser_error(parser, "Unexpected token");
+        }
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "expected '}'");
+        return NULL;
+    }
+
+    return build_type_expr(parser, vars, fns);
 }
 
 /**
