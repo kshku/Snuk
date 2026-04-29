@@ -53,10 +53,13 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
 
         // TODO:
         case SNUK_ITEM_RETURN:
-            break;
         case SNUK_ITEM_BREAK:
+            if (item->expr)
+                i->signaled_value = snuk_interpreter_eval_expr(i, item->expr);
+            i->signal = item->type == SNUK_ITEM_RETURN ? SNUK_SIGNAL_RETURN : SNUK_SIGNAL_BREAK;
             break;
         case SNUK_ITEM_CONTINUE:
+            i->signal = SNUK_SIGNAL_CONTINUE;
             break;
 
         // ignoring comments for now
