@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 }
 
 static inline bool is_option(const char *opt, const char *short_opt, const char *long_opt) {
-    return string_equal(opt, short_opt) || string_equal(opt, long_opt);
+    return snuk_string_equal(opt, short_opt) || snuk_string_equal(opt, long_opt);
 }
 
 OpMode parse_args(int argc, char *argv[], char **data) {

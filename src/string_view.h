@@ -22,7 +22,7 @@ SNUK_INLINE SnukStringView snuk_string_view_create_with_len(const char *str, uin
 }
 
 SNUK_INLINE SnukStringView snuk_string_view_create(const char *str) {
-    return snuk_string_view_create_with_len(str, string_length(str));
+    return snuk_string_view_create_with_len(str, snuk_string_length(str));
 }
 
 SNUK_INLINE char *snuk_string_view_get_cstr(SnukStringView view) {

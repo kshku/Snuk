@@ -326,7 +326,7 @@ static SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t j = 0; j < count; ++j) {
         if (name.len != scope->vars[j]->name.len) continue;
-        if (string_n_equal(name.str, scope->vars[j]->name.str, name.len))
+        if (snuk_string_n_equal(name.str, scope->vars[j]->name.str, name.len))
             return scope->vars[j];
     }
     return NULL;

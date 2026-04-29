@@ -131,7 +131,7 @@ SNUK_INLINE bool lexer_match(SnukLexer *lexer, char expected) {
  * @param lexer Lexer state to advance.
  */
 SNUK_INLINE void lexer_skip_white_spaces(SnukLexer *lexer) {
-    while (char_in_string(lexer_peek(lexer), " \t\r\n")) lexer_advance(lexer);
+    while (snuk_char_in_string(lexer_peek(lexer), " \t\r\n")) lexer_advance(lexer);
 }
 
 /**
@@ -196,7 +196,7 @@ static SnukToken lexer_scan_word(SnukLexer *lexer) {
     lexer->token_start_col = lexer->col;
     char c;
     while ((c = lexer_peek(lexer))) {
-        if (!is_alpha_numeric(c) && c != '_') break;
+        if (!snuk_is_alpha_numeric(c) && c != '_') break;
         lexer_advance(lexer);
     }
 
@@ -240,25 +240,25 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
                 base = 16;
                 lexer_advance(lexer);
                 lexer_advance(lexer);
-                if (!is_hex_digit(lexer_peek(lexer)))
+                if (!snuk_is_hex_digit(lexer_peek(lexer)))
                     return lexer_build_error_token(lexer, "invalid hex literal");
-                while (is_hex_digit(lexer_peek(lexer))) lexer_advance(lexer);
+                while (snuk_is_hex_digit(lexer_peek(lexer))) lexer_advance(lexer);
                 break;
             case 'b':
                 base = 2;
                 lexer_advance(lexer);
                 lexer_advance(lexer);
 
-                if (!is_binary_digit(lexer_peek(lexer)))
+                if (!snuk_is_binary_digit(lexer_peek(lexer)))
                     return lexer_build_error_token(lexer, "invalid binary literal");
-                while (is_binary_digit(lexer_peek(lexer))) lexer_advance(lexer);
+                while (snuk_is_binary_digit(lexer_peek(lexer))) lexer_advance(lexer);
                 break;
             default:
-                if (is_octal_digit(lexer_peek(lexer))) {
+                if (snuk_is_octal_digit(lexer_peek(lexer))) {
                     base = 8;
                     lexer_advance(lexer);
 
-                    while (is_octal_digit(lexer_peek(lexer))) lexer_advance(lexer);
+                    while (snuk_is_octal_digit(lexer_peek(lexer))) lexer_advance(lexer);
                     break;
                 }
                 // single 0
@@ -266,7 +266,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
                 break;
         }
     } else {
-        while (is_digit(lexer_peek(lexer))) lexer_advance(lexer);
+        while (snuk_is_digit(lexer_peek(lexer))) lexer_advance(lexer);
     }
 
     // fraction
@@ -274,18 +274,18 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
         is_float = true;
         lexer_advance(lexer);
 
-        while (is_digit(lexer_peek(lexer))) lexer_advance(lexer);
+        while (snuk_is_digit(lexer_peek(lexer))) lexer_advance(lexer);
     }
 
     if (base == 10 && (lexer_peek(lexer) | (1 << 5) ) == 'e') {
         is_float = true;
         lexer_advance(lexer);
 
-        if (char_in_string(lexer_peek(lexer), "+-")) lexer_advance(lexer);
+        if (snuk_char_in_string(lexer_peek(lexer), "+-")) lexer_advance(lexer);
 
-        if (!is_digit(lexer_peek(lexer))) return lexer_build_error_token(lexer, "invalid exponent");
+        if (!snuk_is_digit(lexer_peek(lexer))) return lexer_build_error_token(lexer, "invalid exponent");
 
-        while (is_digit(lexer_peek(lexer))) lexer_advance(lexer);
+        while (snuk_is_digit(lexer_peek(lexer))) lexer_advance(lexer);
     }
 
     errno = 0;
@@ -302,7 +302,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
         if (base == 2) {
             token.int_literal = 0;
             const char *p = lexer->token_start + 2;
-            while (char_in_string(*p, "01")) {
+            while (snuk_char_in_string(*p, "01")) {
                 if (token.int_literal > (INT64_MAX >> 1)) 
                     return lexer_build_error_token(lexer, "integer literal out of range");
                 token.int_literal = (token.int_literal << 1) | (*p - '0');
@@ -356,7 +356,7 @@ static SnukTokenType check_keyword(const char *s, uint64_t len) {
     for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i) {
         if (len != keywords[i].keyword.len) continue;
 
-        if (string_n_equal(s, keywords[i].keyword.str, keywords[i].keyword.len))
+        if (snuk_string_n_equal(s, keywords[i].keyword.str, keywords[i].keyword.len))
             return keywords[i].type;
     }
     return SNUK_TOKEN_EOF;
@@ -374,9 +374,9 @@ static SnukTokenType check_values(const char *s, uint64_t len) {
     for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
         if (len != values[i].value.len) continue;
 
-        if (values[i].ignore_case && string_n_equal_ignore_case(s, values[i].value.str, values[i].value.len))
+        if (values[i].ignore_case && snuk_string_n_equal_ignore_case(s, values[i].value.str, values[i].value.len))
             return values[i].type;
-        else if (string_n_equal(s, values[i].value.str, values[i].value.len))
+        else if (snuk_string_n_equal(s, values[i].value.str, values[i].value.len))
             return values[i].type;
     }
 
@@ -425,11 +425,11 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
 
     char c = lexer_peek(lexer);
 
-    if (is_digit(c)) return lexer_scan_number(lexer);
-    if (c == '.' && is_digit(lexer_peek_next(lexer)))
+    if (snuk_is_digit(c)) return lexer_scan_number(lexer);
+    if (c == '.' && snuk_is_digit(lexer_peek_next(lexer)))
         return lexer_scan_number(lexer);
 
-    if (is_alpha_numeric(c) || c == '_')
+    if (snuk_is_alpha_numeric(c) || c == '_')
         return lexer_scan_word(lexer);
 
     switch (lexer_advance(lexer)) {
