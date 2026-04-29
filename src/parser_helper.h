@@ -441,18 +441,18 @@ SNUK_INLINE SnukItem *build_expr_item(SnukParser *parser, SnukExpr *expr) {
  * @brief Build a variable or constant declaration item.
  *
  * @param parser Parser context to operate on.
- * @param identifier Declared identifier expression.
+ * @param name Declared name expression.
  * @param type Type of the variable or constant.
- * @param init Initializer expression.
- * @param is_const True to build a const declaration.
+ * @param expr Expression value.
+ * @param item_type Type of the item.
  *
  * @return Newly allocated declaration item.
  */
-SNUK_INLINE SnukItem *build_decl_item(SnukParser *parser, SnukExpr *identifier, SnukType *type, SnukExpr *init, bool is_const) {
+SNUK_INLINE SnukItem *build_decl_item(SnukParser *parser, SnukStringView name, SnukType *type, SnukExpr *expr, SnukItemType item_type) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
-        .type = is_const ? SNUK_ITEM_CONST_DECL : SNUK_ITEM_VAR_DECL,
-        .var_decl = {.identifier = identifier, .type = type, .init = init},
+        .type = item_type,
+        .decl_item = {.name = name, .type = type, .expr = expr},
     };
     return item;
 }
@@ -490,44 +490,6 @@ SNUK_INLINE SnukItem *build_flow_item(SnukParser *parser, SnukTokenType type, Sn
             SNUK_SHOULD_NOT_REACH_HERE;
             break;
     }
-    return item;
-}
-
-/**
- * @brief Build a function declaration item.
- *
- * @param parser Parser context to operate on.
- * @param identifier Function name expression.
- * @param params Dynamic array of parameter nodes.
- * @param body Function body block.
- *
- * @return Newly allocated function item.
- */
-SNUK_INLINE SnukItem *build_fn_item(SnukParser *parser, SnukExpr *identifier, SnukExpr *fn_expr) {
-    SnukItem *item = parser_create_item(parser);
-    *item = (SnukItem){
-        .type = SNUK_ITEM_FN_DECL,
-        .fn_decl = {.identifier = identifier, .fn_expr = fn_expr},
-    };
-    return item;
-}
-
-/**
- * @brief Build a type declaration item.
- *
- * @param parser Parser context to operate on.
- * @param identifier Type name expression.
- * @param vars Dynamic array of field declarations.
- * @param fns Dynamic array of method declarations.
- *
- * @return Newly allocated type item.
- */
-SNUK_INLINE SnukItem *build_type_item(SnukParser *parser, SnukExpr *identifier, SnukItem **vars, SnukItem **fns) {
-    SnukItem *item = parser_create_item(parser);
-    *item = (SnukItem){
-        .type = SNUK_ITEM_TYPE_DECL,
-        .type_decl = {.identifier = identifier, .vars = vars, .fns = fns},
-    };
     return item;
 }
 

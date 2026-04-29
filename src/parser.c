@@ -52,7 +52,7 @@ static SnukItem *parse_expr_item(SnukParser *parser) {
  */
 static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
-    SnukExpr *identifier = parse_primary(parser);
+    SnukStringView identifier = parser->previous.string_literal;
 
     SnukType *type = NULL;
     if (parser_match(parser, SNUK_TOKEN_COLON))
@@ -64,7 +64,7 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
     if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser);
     else init = build_null_expr(parser);
 
-    return build_decl_item(parser, identifier, type, init, is_const);
+    return build_decl_item(parser, identifier, type, init, is_const ? SNUK_ITEM_CONST_DECL : SNUK_ITEM_VAR_DECL);
 }
 
 /**
@@ -86,43 +86,19 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
  */
 static SnukItem *parse_fn_item(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected function name");
-    SnukExpr *identifier = parse_primary(parser);
+    SnukStringView identifier = parser->previous.string_literal;
     SnukExpr *fn_expr = parse_fn(parser);
-    return build_fn_item(parser, identifier, fn_expr);
+    return build_decl_item(parser, identifier, NULL, fn_expr, SNUK_ITEM_FN_DECL);
 }
 
 /**
  * @brief Parse a type declaration item.
  */
 static SnukItem *parse_type_item(SnukParser *parser) {
-    // TODO:
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
-
-    SnukExpr *identifier = parse_primary(parser);
-    SnukItem **vars = snuk_darray_create(SnukItem *);
-    SnukItem **fns = snuk_darray_create(SnukItem *);
-
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
-            && parser->current.type !=  SNUK_TOKEN_EOF) {
-
-        if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST)) {
-            snuk_darray_push(&vars,
-                    parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST));
-        } else if (parser_match(parser, SNUK_TOKEN_FN)) {
-            snuk_darray_push(&fns, parse_fn_item(parser));
-        } else {
-            parser_error(parser, "Unexpected token");
-        }
-    }
-
-    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "expected '}'");
-        return NULL;
-    }
-
-    return build_type_item(parser, identifier, vars, fns);
+    SnukStringView identifier = parser->previous.string_literal;
+    SnukExpr *type_expr = parse_type(parser);
+    return build_decl_item(parser, identifier, NULL, type_expr, SNUK_ITEM_TYPE_DECL);
 }
 
 /**
@@ -428,8 +404,30 @@ static SnukExpr *parse_fn(SnukParser *parser) {
  * @brief Parse an type expression.
  */
 static SnukExpr *parse_type(SnukParser *parser) {
-    // TODO:
-    return build_type_expr(parser, NULL, NULL);
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+
+    SnukItem **vars = snuk_darray_create(SnukItem *);
+    SnukItem **fns = snuk_darray_create(SnukItem *);
+
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+            && parser->current.type !=  SNUK_TOKEN_EOF) {
+
+        if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST)) {
+            snuk_darray_push(&vars,
+                    parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST));
+        } else if (parser_match(parser, SNUK_TOKEN_FN)) {
+            snuk_darray_push(&fns, parse_fn_item(parser));
+        } else {
+            parser_error(parser, "Unexpected token");
+        }
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "expected '}'");
+        return NULL;
+    }
+
+    return build_type_expr(parser, vars, fns);
 }
 
 /**
@@ -512,18 +510,29 @@ void snuk_parser_log_item(SnukItem *item) {
             snuk_parser_log_expr(item->expr);
             break;
         case SNUK_ITEM_VAR_DECL:
-            log_trace("var: ", NULL);
-            snuk_parser_log_expr(item->var_decl.identifier);
-            if (item->var_decl.type) log_trace("type: ", NULL);
-            snuk_parser_log_type(item->var_decl.type);
-            snuk_parser_log_expr(item->var_decl.init);
-            break;
         case SNUK_ITEM_CONST_DECL:
-            log_trace("const: ", NULL);
-            snuk_parser_log_expr(item->var_decl.identifier);
-            if (item->var_decl.type) log_trace("type: ", NULL);
-            snuk_parser_log_type(item->var_decl.type);
-            snuk_parser_log_expr(item->var_decl.init);
+        case SNUK_ITEM_TYPE_DECL:
+        case SNUK_ITEM_FN_DECL:
+            switch (item->type) {
+                case SNUK_ITEM_VAR_DECL:
+                    log_trace("var:", NULL);
+                    break;
+                case SNUK_ITEM_CONST_DECL:
+                    log_trace("const:", NULL);
+                    break;
+                case SNUK_ITEM_FN_DECL:
+                    log_trace("function:", NULL);
+                    break;
+                case SNUK_ITEM_TYPE_DECL:
+                    log_trace("type:", NULL);
+                    break;
+                default:
+                    break;
+            }
+            log_trace("identifier: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->decl_item.name));
+            if (item->decl_item.type) log_trace("type: ", NULL);
+            snuk_parser_log_type(item->decl_item.type);
+            snuk_parser_log_expr(item->decl_item.expr);
             break;
         case SNUK_ITEM_RETURN:
             log_trace("return:", NULL);
@@ -535,21 +544,6 @@ void snuk_parser_log_item(SnukItem *item) {
             break;
         case SNUK_ITEM_CONTINUE:
             log_trace("continue", NULL);
-            break;
-        case SNUK_ITEM_FN_DECL:
-            log_trace("function:", NULL);
-            snuk_parser_log_expr(item->fn_decl.identifier);
-            snuk_parser_log_expr(item->fn_decl.fn_expr);
-            break;
-        case SNUK_ITEM_TYPE_DECL:
-            log_trace("type:", NULL);
-            snuk_parser_log_expr(item->type_decl.identifier);
-            count = snuk_darray_get_length(item->type_decl.vars);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_item(item->type_decl.vars[i]);
-            count = snuk_darray_get_length(item->type_decl.fns);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_item(item->type_decl.fns[i]);
             break;
         case SNUK_ITEM_PRINT:
             log_trace("print:", NULL);
