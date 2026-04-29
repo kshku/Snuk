@@ -1,0 +1,11 @@
+var x = 10
+
+print "Before block", x
+
+{
+    var x = 25
+    var y = 100
+    print "Inside block", x, y
+}
+
+print "Outside block", x, y

@@ -71,7 +71,10 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
-            return snuk_env_lookup(i, expr->identifier)->value;
+            {
+                SnukEnv *env = snuk_env_lookup(i, expr->identifier);
+                return env ? env->value : (SnukValue){.type = SNUK_VALUE_UNKOWN};
+            }
 
         case SNUK_EXPR_INT:
             return (SnukValue){
