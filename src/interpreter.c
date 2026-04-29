@@ -5,27 +5,43 @@
 #include "snuk_string.h"
 #include "io.h"
 
-static SnukValue get_identifier_value(SnukInterpreter *i, SnukExpr *identifier);
-static SnukValue set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *value);
+SNUK_INLINE SnukEnv *create_snuk_env(SnukInterpreter *i, SnukStringView name, SnukExpr *value) {
+    SnukEnv *env = (SnukEnv *)snuk_alloc(sizeof(SnukEnv), alignof(SnukEnv));
+    *env = (SnukEnv){
+        .name = snuk_string_view_copy(name),
+        .value = snuk_interpreter_eval_expr(i, value),
+    };
+    return env;
+}
+
+static void snuk_scope_push(SnukInterpreter *i);
+static void snuk_scope_pop(SnukInterpreter *i);
+static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env);
+static SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name);
+static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name);
 
 static SnukValue get_unary_value(SnukInterpreter *i, SnukExpr *expr);
 static SnukValue get_binary_value(SnukInterpreter *i, SnukExpr *expr);
 static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenType op);
 
-static SnukValue add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr);
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
+    // TODO: avoiding unused function warnings
+    snuk_scope_push(i);
+    snuk_scope_pop(i);
+
     switch (item->type) {
         case SNUK_ITEM_EXPR:
             return snuk_interpreter_eval_expr(i, item->expr);
             break;
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
-            // TODO: const
-            return add_identifier(i, item->var_decl.identifier, item->var_decl.init);
-            break;
-
+            {
+                // TODO: const
+                SnukEnv *env = create_snuk_env(i, item->var_decl.identifier->identifier, item->var_decl.init);
+                return snuk_scope_add_env(i->current, env)->value;
+            }
         // TODO:
         case SNUK_ITEM_RETURN:
             break;
@@ -59,7 +75,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
-            return get_identifier_value(i, expr);
+            return snuk_env_lookup(i, expr->identifier)->value;
 
         case SNUK_EXPR_INT:
             return (SnukValue){
@@ -97,7 +113,11 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             return get_binary_value(i, expr);
 
         case SNUK_EXPR_ASSIGN:
-            return set_identifier_value(i, expr->assign.identifier, expr->assign.value);
+            {
+                SnukValue value = snuk_interpreter_eval_expr(i, expr->assign.value);
+                snuk_env_lookup(i, expr->assign.identifier->identifier)->value = value;
+                return value;
+            }
 
         // TODO:
         case SNUK_EXPR_CALL:
@@ -111,54 +131,6 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
     }
 
-    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-}
-
-static SnukValue get_identifier_value(SnukInterpreter *i, SnukExpr *identifier) {
-    SNUK_ASSERT(identifier->identifier.len > 0, "identifier name is empty");
-
-    uint64_t index = (uint64_t)identifier->identifier.str[0];
-    uint64_t length = snuk_darray_get_length(i->envs);
-
-    if (length < index) goto fail;
-    if (!i->envs[index]) goto fail;
-
-    uint64_t count = snuk_darray_get_length(i->envs[index]);
-    for (uint64_t j = 0; j < count; ++j) {
-        if (identifier->identifier.len != i->envs[index][j].identifier.len) continue;
-        if (string_n_equal(identifier->identifier.str,
-                    i->envs[index][j].identifier.str, identifier->identifier.len)) {
-            return i->envs[index][j].value;
-        }
-    }
-
-fail:
-    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-}
-
-static SnukValue set_identifier_value(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
-    SNUK_ASSERT(identifier->identifier.len > 0, "identifier name is empty");
-
-    SnukValue value = snuk_interpreter_eval_expr(i, expr);
-    uint64_t index = (uint64_t)identifier->identifier.str[0];
-    uint64_t length = snuk_darray_get_length(i->envs);
-
-    if (length < index) goto fail;
-    if (!i->envs[index]) goto fail;
-
-    uint64_t count = snuk_darray_get_length(i->envs[index]);
-    for (uint64_t j = 0; j < count; ++j) {
-        if (identifier->identifier.len != i->envs[index][j].identifier.len) continue;
-        if (string_n_equal(identifier->identifier.str,
-                    i->envs[index][j].identifier.str, identifier->identifier.len)) {
-            i->envs[index][j].value = value;
-            return value;
-        }
-    }
-
-    // TODO: errors
-fail:
-    SNUK_SHOULD_NOT_REACH_HERE;
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
@@ -289,27 +261,6 @@ static SnukValue get_binary_value(SnukInterpreter *i, SnukExpr *expr) {
     return perform_binary_op(left, right, expr->binary.op);
 }
 
-static SnukValue add_identifier(SnukInterpreter *i, SnukExpr *identifier, SnukExpr *expr) {
-    // TODO: multiple declaration errors
-
-    SnukValue value = snuk_interpreter_eval_expr(i, expr);
-    uint64_t index = (uint64_t)identifier->identifier.str[0];
-    uint64_t length = snuk_darray_get_length(i->envs);
-
-    if (length <= index)
-        snuk_darray_push_at(&i->envs, index, snuk_darray_create(SnukEnv));
-    else if (!i->envs[index])
-        i->envs[index] = snuk_darray_create(SnukEnv);
-
-    SnukEnv env = {
-        .identifier = snuk_string_view_copy(identifier->identifier),
-        .value = value,
-    };
-    snuk_darray_push(&i->envs[index], env);
-
-    return value;
-}
-
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
     if (!exprs) return;
 
@@ -357,3 +308,47 @@ void snuk_interpreter_print_value(SnukValue value) {
     }
 }
 
+static void snuk_scope_push(SnukInterpreter *i) {
+    SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
+    *scope = (SnukScope){
+        .vars = snuk_darray_create(SnukEnv *),
+        .parent = i->current,
+    };
+    i->current = scope;
+}
+
+static void snuk_scope_pop(SnukInterpreter *i) {
+    if (i->global == i->current) SNUK_SHOULD_NOT_REACH_HERE;
+    SnukScope *scope = i->current;
+    i->current = i->current->parent;
+    snuk_darray_destroy(scope->vars);
+    snuk_free(scope);
+}
+
+static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
+    // TODO: multiple declaration errors
+
+    snuk_darray_push(&scope->vars, env);
+
+    return env;
+}
+
+static SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
+    uint64_t count = snuk_darray_get_length(scope->vars);
+    for (uint64_t j = 0; j < count; ++j) {
+        if (name.len != scope->vars[j]->name.len) continue;
+        if (snuk_string_n_equal(name.str, scope->vars[j]->name.str, name.len))
+            return scope->vars[j];
+    }
+    return NULL;
+}
+
+static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name) {
+    SnukScope *scope = i->current;
+    SnukEnv *env;
+    while (scope) {
+        if ((env = snuk_scope_lookup(scope, name))) return env;
+        scope = scope->parent;
+    }
+    return NULL;
+}
