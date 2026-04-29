@@ -522,11 +522,11 @@ SNUK_INLINE SnukItem *build_fn_item(SnukParser *parser, SnukExpr *identifier, Sn
  *
  * @return Newly allocated type item.
  */
-SNUK_INLINE SnukItem *build_type_item(SnukParser *parser, SnukExpr *identifier, SnukItem **vars, SnukItem **fns) {
+SNUK_INLINE SnukItem *build_type_item(SnukParser *parser, SnukExpr *identifier, SnukExpr  *type_expr) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = SNUK_ITEM_TYPE_DECL,
-        .type_decl = {.identifier = identifier, .vars = vars, .fns = fns},
+        .type_decl = {.identifier = identifier, .type_expr = type_expr},
     };
     return item;
 }

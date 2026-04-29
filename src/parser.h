@@ -137,10 +137,8 @@ struct SnukItem {
         } fn_decl;
 
         struct {
-            // TODO:
             SnukExpr *identifier; /**< Name of the type. */
-            SnukItem **vars; //**< Dynamic array of field declarations. */
-            SnukItem **fns; //**< Dynamic array of method declarations. */
+            SnukExpr *type_expr; /**< Type expression. */
         } type_decl;
 
         SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */

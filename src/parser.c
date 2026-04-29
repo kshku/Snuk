@@ -95,35 +95,10 @@ static SnukItem *parse_fn_item(SnukParser *parser) {
  * @brief Parse a type declaration item.
  */
 static SnukItem *parse_type_item(SnukParser *parser) {
-    // TODO:
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
-
     SnukExpr *identifier = parse_primary(parser);
-
-    SnukItem **vars = snuk_darray_create(SnukItem *);
-    SnukItem **fns = snuk_darray_create(SnukItem *);
-
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
-            && parser->current.type !=  SNUK_TOKEN_EOF) {
-
-        if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST)) {
-            snuk_darray_push(&vars,
-                    parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST));
-        } else if (parser_match(parser, SNUK_TOKEN_FN)) {
-            snuk_darray_push(&fns, parse_fn_item(parser));
-        } else {
-            parser_error(parser, "Unexpected token");
-        }
-    }
-
-    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "expected '}'");
-        return NULL;
-    }
-
-    return build_type_item(parser, identifier, vars, fns);
+    SnukExpr *type_expr = parse_type(parser);
+    return build_type_item(parser, identifier, type_expr);
 }
 
 /**
@@ -567,12 +542,7 @@ void snuk_parser_log_item(SnukItem *item) {
         case SNUK_ITEM_TYPE_DECL:
             log_trace("type:", NULL);
             snuk_parser_log_expr(item->type_decl.identifier);
-            count = snuk_darray_get_length(item->type_decl.vars);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_item(item->type_decl.vars[i]);
-            count = snuk_darray_get_length(item->type_decl.fns);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_item(item->type_decl.fns[i]);
+            snuk_parser_log_expr(item->type_decl.type_expr);
             break;
         case SNUK_ITEM_PRINT:
             log_trace("print:", NULL);
