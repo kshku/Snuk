@@ -27,10 +27,6 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
-    // TODO: avoiding unused function warnings
-    snuk_scope_push(i);
-    snuk_scope_pop(i);
-
     switch (item->type) {
         case SNUK_ITEM_EXPR:
             return snuk_interpreter_eval_expr(i, item->expr);
@@ -42,13 +38,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
                 SnukEnv *env = create_snuk_env(i, item->decl_item.name, item->decl_item.expr);
                 return snuk_scope_add_env(i->current, env)->value;
             }
-        // TODO:
-        case SNUK_ITEM_RETURN:
-            break;
-        case SNUK_ITEM_BREAK:
-            break;
-        case SNUK_ITEM_CONTINUE:
-            break;
+            // TODO: Stroing functions and types
         case SNUK_ITEM_FN_DECL:
             break;
         case SNUK_ITEM_TYPE_DECL:
@@ -61,10 +51,16 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
             break;
 
         // TODO:
+        case SNUK_ITEM_RETURN:
+            break;
+        case SNUK_ITEM_BREAK:
+            break;
+        case SNUK_ITEM_CONTINUE:
+            break;
+
+        // ignoring comments for now
         case SNUK_ITEM_LINE_COMMENT:
-            break;
         case SNUK_ITEM_BLOCK_COMMENT:
-            break;
         case SNUK_ITEM_MAX:
         default:
             break;
@@ -118,6 +114,40 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
                 snuk_env_lookup(i, expr->assign.identifier->identifier)->value = value;
                 return value;
             }
+        // TODO: Compound assign
+        case SNUK_EXPR_COMPOUND_ASSIGN:
+            break;
+
+        case SNUK_EXPR_IF:
+            break;
+        // TODO: match
+        case SNUK_EXPR_MATCH:
+            break;
+
+        case SNUK_EXPR_WHILE:
+            break;
+        case SNUK_EXPR_DO_WHILE:
+            break;
+        case SNUK_EXPR_FOR:
+            break;
+
+        case SNUK_EXPR_FN:
+            break;
+        case SNUK_EXPR_TYPE:
+            break;
+
+        case SNUK_EXPR_BLOCK:
+            {
+                snuk_scope_push(i);
+                uint64_t count = snuk_darray_get_length(expr->block_items);
+                for (uint64_t j = 0; j < count; ++j) {
+                    // TODO: break/return things
+                    snuk_interpreter_exec_item(i, expr->block_items[j]);
+                }
+                snuk_scope_pop(i);
+            }
+            // TODO:
+            return (SnukValue){.type = SNUK_VALUE_NULL};
 
         // TODO:
         case SNUK_EXPR_CALL:
@@ -126,6 +156,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
         case SNUK_EXPR_INDEX:
             break;
+
         case SNUK_EXPR_MAX:
         default:
             break;
@@ -316,6 +347,10 @@ static void snuk_scope_pop(SnukInterpreter *i) {
 
 static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
     // TODO: multiple declaration errors
+
+    // Copying the string so that it won't get destroyed
+    if (env->value.type == SNUK_VALUE_STRING)
+        env->value.string_value = snuk_string_view_copy(env->value.string_value);
 
     snuk_darray_push(&scope->vars, env);
 
