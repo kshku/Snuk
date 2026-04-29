@@ -39,7 +39,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
         case SNUK_ITEM_CONST_DECL:
             {
                 // TODO: const
-                SnukEnv *env = create_snuk_env(i, item->var_decl.identifier->identifier, item->var_decl.init);
+                SnukEnv *env = create_snuk_env(i, item->decl_item.name, item->decl_item.expr);
                 return snuk_scope_add_env(i->current, env)->value;
             }
         // TODO:
