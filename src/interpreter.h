@@ -30,28 +30,42 @@ typedef struct SnukValue {
 } SnukValue;
 
 typedef struct SnukEnv {
-    SnukStringView identifier;
+    SnukStringView name;
     SnukValue value;
 } SnukEnv;
 
+typedef struct SnukScope SnukScope;
+struct SnukScope {
+    SnukEnv **vars; // darray
+    SnukScope *parent;
+};
+
 typedef struct SnukInterpreter {
-    SnukEnv **envs; // darray
+    SnukScope *current;
+    SnukScope *global;
 } SnukInterpreter;
 
 SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
+    SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
+    *scope = (SnukScope){
+        .vars = snuk_darray_create(SnukEnv *),
+        .parent = NULL,
+    };
     *i = (SnukInterpreter){
-        .envs = snuk_darray_create_with_capacity(128, SnukEnv *),
+        .current = scope,
+        .global = scope,
     };
 }
 
 SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
     if (!i) return;
-    if (!i->envs) return;
-    uint64_t count = snuk_darray_get_length(i->envs);
-    for (uint64_t j = 0; j < count; ++j)
-        if (i->envs[j]) snuk_darray_destroy(i->envs[j]);
+    while (i->current) {
+        SnukScope *parent = i->current->parent;
+        snuk_darray_destroy(i->current->vars);
+        snuk_free(i->current);
+        i->current = parent;
+    }
 
-    snuk_darray_destroy(i->envs);
     *i = (SnukInterpreter){0};
 }
 
