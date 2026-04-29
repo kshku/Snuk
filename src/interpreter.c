@@ -27,6 +27,10 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
+    // TODO: avoiding unused function warnings
+    snuk_scope_push(i);
+    snuk_scope_pop(i);
+
     switch (item->type) {
         case SNUK_ITEM_EXPR:
             return snuk_interpreter_eval_expr(i, item->expr);
