@@ -13,7 +13,7 @@
 #if defined(SNUK_DEBUG)
 #define SNUK_ASSERT(cond, msg) assert((cond) && msg)
 #else
-#define SNUK_ASSERT(cond, msg)
+#define SNUK_ASSERT(cond, msg) SNUK_UNUSED(cond), SNUK_UNUSED(msg)
 #endif
 
 #define SNUK_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
