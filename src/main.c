@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "io.h"
 #include "runtime.h"
+#include "snuk_string.h"
 
 #define PROMPT_STR ">>> "
 #define LINE_BUFFER_SIZE 1024
