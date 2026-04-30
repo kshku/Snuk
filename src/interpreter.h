@@ -10,7 +10,9 @@ typedef enum SnukSignal {
     SNUK_SIGNAL_NONE = 0,
     SNUK_SIGNAL_CONTINUE = 1 << 0,
     SNUK_SIGNAL_BREAK = 1 << 1,
-    SNUK_SIGNAL_RETURN = 1 << 2
+    SNUK_SIGNAL_RETURN = 1 << 2,
+
+    SNUK_SIGNAL_ALL = SNUK_SIGNAL_CONTINUE | SNUK_SIGNAL_BREAK | SNUK_SIGNAL_RETURN
 } SnukSignal;
 
 typedef struct SnukValue {

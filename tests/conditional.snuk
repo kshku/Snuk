@@ -1,0 +1,7 @@
+if true {
+    "It is true"
+}
+
+var x = 10
+var res = if x % 2 { "Odd" } else { "Even" }
+print res
