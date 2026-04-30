@@ -319,37 +319,68 @@ static SnukExpr *parse_while(SnukParser *parser) {
  * @brief Parse an for loop expression.
  */
 static SnukExpr *parse_for(SnukParser *parser) {
+    // Case 1: for { ... }
+    if (parser_match(parser, SNUK_TOKEN_LBRACE))
+        return build_for_expr(parser, NULL, NULL, NULL, parse_block(parser));
+
     SnukItem *init = NULL;
     SnukExpr *condition = NULL;
     SnukExpr *update = NULL;
     SnukExpr *body = NULL;
 
-    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
-        // infinity loop
+    // Case 2: for var ... → must be C-style
+    if (parser_match(parser, SNUK_TOKEN_VAR)) {
+        init = parse_decl_item(parser, false);
+        parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after init");
+
+        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser);
+        parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
+
+        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser);
+
+        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
         body = parse_block(parser);
+
         return build_for_expr(parser, init, condition, update, body);
     }
 
-    // TODO: allow const?
-    if (parser_match(parser, SNUK_TOKEN_VAR))
-        parse_decl_item(parser, false);
+    // Case 3: for ; ... → C-style with no init
+    if (parser_match(parser, SNUK_TOKEN_SEMICOLON)) {
+        // condition (optional)
+        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser);
+        parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
 
-    parser_match(parser, SNUK_TOKEN_SEMICOLON);
-    condition = parse_expression(parser);
-    parser_match(parser, SNUK_TOKEN_SEMICOLON);
+        // update (optional)
+        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_LBRACE)) {
+        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
         body = parse_block(parser);
-        return build_for_expr(parser, init, condition, update, body);
+
+        return build_for_expr(parser, NULL, condition, update, body);
     }
 
-    update = parse_expression(parser);
+    // Otherwise parse an expression first
+    SnukExpr *first = parse_expression(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_SEMICOLON) && !init) {
-        init = build_expr_item(parser, condition);
-        condition = update;
-        update = parse_expression(parser);
+    // Case 4: for condition { ... }
+    if (parser_check(parser, SNUK_TOKEN_LBRACE)) {
+        condition = first;
+
+        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
+        body = parse_block(parser);
+
+        return build_for_expr(parser, NULL, condition, NULL, body);
     }
+
+    // Case 5: must be C-style → first is init
+    parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' or '{' after for expression");
+
+    init = build_expr_item(parser, first);
+
+    if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser);
+    parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
+
+    if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
     body = parse_block(parser);
