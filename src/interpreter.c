@@ -79,13 +79,16 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
         // TODO:
         case SNUK_ITEM_RETURN:
         case SNUK_ITEM_BREAK:
-            if (item->expr)
-                i->signaled_value = snuk_interpreter_eval_expr(i, item->expr);
-            i->signal = item->type == SNUK_ITEM_RETURN ? SNUK_SIGNAL_RETURN : SNUK_SIGNAL_BREAK;
-            break;
+            {
+                SnukValue value = {.type = SNUK_VALUE_NULL};
+                if (item->expr)
+                    value = snuk_interpreter_eval_expr(i, item->expr);
+                i->signal = item->type == SNUK_ITEM_RETURN ? SNUK_SIGNAL_RETURN : SNUK_SIGNAL_BREAK;
+                return value;
+            }
         case SNUK_ITEM_CONTINUE:
             i->signal = SNUK_SIGNAL_CONTINUE;
-            break;
+            return (SnukValue){.type = SNUK_VALUE_NULL};
 
         // ignoring comments for now
         case SNUK_ITEM_LINE_COMMENT:
@@ -477,14 +480,12 @@ static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int cap
 
     for (uint64_t j = 0; j < count; ++j) {
         value = snuk_interpreter_exec_item(i, block->block_items[j]);
-        if (i->signal == SNUK_SIGNAL_NONE) {
-            continue;
-        } else if (i->signal & capture_signals) {
-            value = i->signaled_value;
-            i->signaled_value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        if (i->signal == SNUK_SIGNAL_NONE) continue;
+
+        if (i->signal & capture_signals) {
+            i->signal = SNUK_SIGNAL_NONE;
             break;
         } else if (i->signal & propogate_signals) {
-            value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
             break;
         } else {
             SNUK_SHOULD_NOT_REACH_HERE;

@@ -53,7 +53,6 @@ typedef struct SnukInterpreter {
     SnukScope *current;
     SnukScope *global;
     SnukSignal signal;
-    SnukValue signaled_value;
 } SnukInterpreter;
 
 SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
@@ -66,7 +65,6 @@ SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
         .current = scope,
         .global = scope,
         .signal = SNUK_SIGNAL_NONE,
-        .signaled_value = (SnukValue){.type = SNUK_VALUE_UNKOWN},
     };
 }
 
