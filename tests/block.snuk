@@ -15,7 +15,8 @@ var y = {
 
 var z = {
     var a = 5
-    return a / 5
+    break a / 5
+    print "This won't get executed"
 }
 
 print "Outside block", x, y, z

@@ -15,6 +15,28 @@ SNUK_INLINE SnukEnv *create_snuk_env(SnukInterpreter *i, SnukStringView name, Sn
     return env;
 }
 
+SNUK_INLINE bool is_true_value(SnukValue value) {
+    switch (value.type) {
+        case SNUK_VALUE_UNKOWN:
+        case SNUK_VALUE_NULL:
+            return false;
+        case SNUK_VALUE_BOOL:
+            return value.bool_value;
+        case SNUK_VALUE_INT:
+            return value.int_value != 0;
+        case SNUK_VALUE_FLOAT:
+            return value.float_value != 0;
+        case SNUK_VALUE_STRING:
+            return value.string_value.len != 0;
+
+            // TODO:
+        case SNUK_VALUE_FN:
+        case SNUK_VALUE_TYPE:
+        default:
+            return false;
+    }
+}
+
 static void snuk_scope_push(SnukInterpreter *i);
 static void snuk_scope_pop(SnukInterpreter *i);
 static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env);
@@ -27,7 +49,8 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
 
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
-static SnukValue execute_block(SnukInterpreter *i, SnukItem **items);
+static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int capture_signals, int propogate_signals);
+static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr);
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
@@ -128,7 +151,8 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
 
         case SNUK_EXPR_IF:
-            break;
+            return execute_if_expr(i, expr);
+
         // TODO: match
         case SNUK_EXPR_MATCH:
             break;
@@ -146,7 +170,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
 
         case SNUK_EXPR_BLOCK:
-            return execute_block(i, expr->block_items);
+            return execute_block_expr(i, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_NONE);
 
         // TODO:
         case SNUK_EXPR_CALL:
@@ -445,35 +469,42 @@ static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name) {
     return NULL;
 }
 
-static SnukValue execute_block(SnukInterpreter *i, SnukItem **items) {
+static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int capture_signals, int propogate_signals) {
     snuk_scope_push(i);
 
-    uint64_t count = snuk_darray_get_length(items);
+    uint64_t count = snuk_darray_get_length(block->block_items);
     SnukValue value = {.type = SNUK_VALUE_NULL};
 
     for (uint64_t j = 0; j < count; ++j) {
-        snuk_interpreter_exec_item(i, items[j]);
-        switch (i->signal) {
-            case SNUK_SIGNAL_RETURN:
-                value = i->signaled_value;
-                i->signaled_value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
-                goto out;
-
-            case SNUK_SIGNAL_BREAK:
-                value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
-                goto out;
-
-            case SNUK_SIGNAL_CONTINUE:
-                SNUK_SHOULD_NOT_REACH_HERE;
-            case SNUK_SIGNAL_NONE:
-            default:
-                break;
+        value = snuk_interpreter_exec_item(i, block->block_items[j]);
+        if (i->signal == SNUK_SIGNAL_NONE) {
+            continue;
+        } else if (i->signal & capture_signals) {
+            value = i->signaled_value;
+            i->signaled_value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+            break;
+        } else if (i->signal & propogate_signals) {
+            value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+            break;
+        } else {
+            SNUK_SHOULD_NOT_REACH_HERE;
         }
     }
 
-out:
-    snuk_darray_destroy(items);
+    snuk_darray_destroy(block->block_items);
     snuk_scope_pop(i);
-
     return value;
+}
+
+static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr) {
+    SnukValue cond = snuk_interpreter_eval_expr(i, expr->if_else.condition);
+    SnukValue res = {.type = SNUK_VALUE_NULL};
+    bool condition = is_true_value(cond);
+    if (condition) res = execute_block_expr(i, expr->if_else.then_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
+    else if (expr->if_else.else_block) res = execute_block_expr(i, expr->if_else.else_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
+
+    if (!condition) snuk_darray_destroy(expr->if_else.then_block->block_items);
+    else if (expr->if_else.else_block) snuk_darray_destroy(expr->if_else.else_block->block_items);
+
+    return res;
 }
