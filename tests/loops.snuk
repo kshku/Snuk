@@ -1,0 +1,15 @@
+var x = 1
+
+var z = while x % 10 {
+    print x, if x % 2 { "Odd" } else { "Even" }
+
+    var i = 1
+    do {
+        print i
+        i = i + 1
+    } while i % x
+
+    x = x + 1
+}
+
+print z

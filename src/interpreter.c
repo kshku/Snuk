@@ -51,6 +51,7 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 
 static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int capture_signals, int propogate_signals);
 static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr);
+static SnukValue execute_while_expr(SnukInterpreter *i, SnukExpr *loop);
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
@@ -161,9 +162,9 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
 
         case SNUK_EXPR_WHILE:
-            break;
         case SNUK_EXPR_DO_WHILE:
-            break;
+            return execute_while_expr(i, expr);
+
         case SNUK_EXPR_FOR:
             break;
 
@@ -173,7 +174,12 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             break;
 
         case SNUK_EXPR_BLOCK:
-            return execute_block_expr(i, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_NONE);
+            {
+                SnukValue value = execute_block_expr(i, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_NONE);
+                // TODO: destroying darray
+                // snuk_darray_destroy(expr->block_items);
+                return value;
+            }
 
         // TODO:
         case SNUK_EXPR_CALL:
@@ -350,7 +356,8 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
 
     snuk_println("", NULL);
 
-    snuk_darray_destroy(exprs);
+    // TODO: destroying darray
+    // snuk_darray_destroy(exprs);
 }
 
 void snuk_interpreter_log_value(SnukValue value) {
@@ -492,7 +499,6 @@ static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int cap
         }
     }
 
-    snuk_darray_destroy(block->block_items);
     snuk_scope_pop(i);
     return value;
 }
@@ -504,8 +510,51 @@ static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr) {
     if (condition) res = execute_block_expr(i, expr->if_else.then_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
     else if (expr->if_else.else_block) res = execute_block_expr(i, expr->if_else.else_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
 
-    if (!condition) snuk_darray_destroy(expr->if_else.then_block->block_items);
-    else if (expr->if_else.else_block) snuk_darray_destroy(expr->if_else.else_block->block_items);
+    // TODO: destroying darray
+    // snuk_darray_destroy(expr->if_else.then_block->block_items);
+    // if (expr->if_else.else_block) snuk_darray_destroy(expr->if_else.else_block->block_items);
 
     return res;
 }
+
+static SnukValue execute_while_expr(SnukInterpreter *i, SnukExpr *loop) {
+    SnukValue res = {.type = SNUK_VALUE_NULL};
+    SnukValue cond;
+
+loop_start:
+    if (loop->type == SNUK_EXPR_WHILE) {
+        cond = snuk_interpreter_eval_expr(i, loop->while_loop.condition);
+        if (!is_true_value(cond)) goto end;
+    }
+
+    res = execute_block_expr(i, loop->while_loop.body, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
+
+    switch (i->signal) {
+        case SNUK_SIGNAL_RETURN:
+            // propogate
+            goto end;
+
+        case SNUK_SIGNAL_BREAK:
+            i->signal = SNUK_SIGNAL_NONE;
+            goto end;
+
+        case SNUK_SIGNAL_CONTINUE:
+            // Nothing to do, iteration continues
+            i->signal = SNUK_SIGNAL_NONE;
+            break;
+
+        case SNUK_SIGNAL_NONE:
+        default:
+            break;
+    }
+
+    if (loop->type == SNUK_EXPR_DO_WHILE) {
+        cond = snuk_interpreter_eval_expr(i, loop->while_loop.condition);
+        if (!is_true_value(cond)) goto end;
+    }
+    goto loop_start;
+
+end:
+    return res;
+}
+
