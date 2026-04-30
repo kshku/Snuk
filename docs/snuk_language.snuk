@@ -6,6 +6,14 @@
 //  Almost everything in Snuk is an expression.
 //  If nothing catches the value, it is discarded.
 //  In the REPL, every expression result is printed automatically.
+//
+//  Value rules:
+//  - Every block, if/else, and loop returns the value of its
+//    last executed item automatically — no keyword needed
+//  - break  → exits a block or loop early, carries optional value
+//  - return → exits a function early, carries optional value
+//  - continue → skips to next loop iteration
+//  - All signals propagate outward to the nearest handler
 // ─────────────────────────────────────────────────────────────
 
 
@@ -39,7 +47,7 @@ var poem2 = 'roses are red
 violets are blue'
 
 // type annotations — optional, enforced at runtime when present
-// no implicit conversions — casting syntax TBD, use explicit cast when available
+// no implicit conversions — casting syntax TBD
 var speed: float = 2.5
 var label: string = "hi"
 
@@ -117,9 +125,39 @@ var flip2   = !true             // false
 var s = "hello" + " " + "world"
 
 
-// ── 5. CONTROL FLOW ──────────────────────────────────────────
+// ── 5. BLOCKS AS EXPRESSIONS ─────────────────────────────────
 
-// if/else — expression, returns value of taken branch
+// a block executes immediately
+// its value is the last executed item — no keyword needed
+// variables declared inside are not visible outside
+
+var computed = {
+    var temp = count * 2
+    var adjusted = temp + 10
+    adjusted              // last item — this is the block's value
+}
+
+// break exits a block early with an optional value
+var early = {
+    var x = 10
+    if x > 5 { break x * 2 }   // exits block with 20
+    x + 1                        // not reached
+}
+// early is 20
+
+// if no items execute or last item is a declaration — block returns null
+var nothing2 = {
+    var temp = 10
+    temp = temp + 1
+    // last item is an assignment — returns the assigned value (11)
+}
+// nothing2 is 11
+
+
+// ── 6. CONTROL FLOW ──────────────────────────────────────────
+
+// if/else — expression, value is last executed item of taken branch
+// no early exit from if/else — all items in the branch execute
 if count > 10 {
     print "big"
 } else if count > 5 {
@@ -128,32 +166,35 @@ if count > 10 {
     print "small"
 }
 
-// if as expression — branches return values via return
-var label = if count > 10 {
-    return "big"
+// if as expression — value is last item of taken branch
+var label2 = if count > 10 {
+    "big"                  // last item — string value
 } else if count > 5 {
-    return "medium"
+    "medium"
 } else {
-    return "small"
+    "small"
 }
 
-// while — expression, returns value via break value
+// while — expression, value is last value produced before condition fails
+// use break to exit early with a specific value
 while count < 100 {
     count = count + 1
 }
 
 var found = while count < 100 {
     count = count + 1
-    if count == 42 { break count }
+    if count == 42 { break count }   // exits with 42
 }
 // found is 42
 
 // do/while — always runs at least once
+// value is last item of last executed iteration
 do {
     count = count - 1
 } while count > 0
 
 // for — C-style, variable must be declared
+// value is last item of last executed iteration
 for var i = 0; i < 10; i = i + 1 {
     print i
 }
@@ -165,40 +206,27 @@ for i = 0; i < 10; i = i + 1 {
 }
 // i is 10 here
 
-// for without condition is infinite loop, use break to exit
+// for without condition — infinite loop, must break to exit
 for {
     count = count + 1
     if count >= 100 { break }
 }
 
-// loop as expression — break carries the value
+// for as expression — value comes from break
 var result = for {
     count = count + 1
-    if count >= 100 { break count }
+    if count >= 100 { break count }   // loop's value is count
 }
 // result is 100
 
-// break    — exit current loop, optionally with a value
-// continue — skip to next iteration
-
-
-// ── 6. BLOCKS AS EXPRESSIONS ─────────────────────────────────
-
-// a block executes immediately and returns a value via return
-// variables declared inside are not visible outside
-
-var computed = {
-    var temp = count * 2
-    var adjusted = temp + 10
-    return adjusted
-}
-
-// if no return — block returns null
-var nothing2 = {
-    var temp = 10
-    temp = temp + 1
-    // no return — null
-}
+// break    — exit current block or loop, optionally with a value
+// continue — skip to next iteration (loops only)
+// return   — exit current function, optionally with a value
+//
+// all signals propagate outward to the nearest handler:
+//   break   → caught by nearest enclosing block or loop
+//   continue → caught by nearest enclosing loop
+//   return  → caught by nearest enclosing function
 
 
 // ── 7. FUNCTIONS ─────────────────────────────────────────────
@@ -218,17 +246,27 @@ var greet2 = fn() {
 
 // parameters
 fn add(a, b) {
-    return a + b
+    a + b    // last item is the return value — no return keyword needed
 }
 
-// typed parameters and return type — optional, enforced at runtime when present
+// return exits the function early with a value
+// useful for early returns, not required at the end
+fn withdraw(balance, amount) {
+    if amount > balance {
+        print "insufficient funds"
+        return false          // early exit
+    }
+    balance - amount          // last item — returned if we get here
+}
+
+// typed parameters and return type — optional, enforced at runtime
 fn multiply(a: int, b: int) -> int {
-    return a * b
+    a * b
 }
 
 // default parameter values
 fn move(x, y, speed = 1.0) {
-    print x + y * speed
+    x + y * speed
 }
 
 // calling
@@ -243,22 +281,20 @@ do_thing()
 
 // pass as argument
 fn apply(value, func) {
-    return func(value)
+    func(value)    // last item — returned
 }
-var doubled = apply(5, fn(x) { return x * 2 })
+var doubled = apply(5, fn(x) { x * 2 })
 
-// return from function
+// return a function from a function
 fn make_adder(n) {
-    return fn(x) {
-        return x + n
-    }
+    fn(x) { x + n }    // last item — the fn value is returned
 }
 var add5 = make_adder(5)
 print add5(3)    // 8
 
 // print displays function signature
 print add        // fn(a, b)
-print fn(x) { return x }   // fn(x)
+print fn(x) { x }   // fn(x)
 
 
 // ── 8. TYPES ─────────────────────────────────────────────────
@@ -275,11 +311,11 @@ type Point {
     fn distance_to(other) {
         var dx = self.x - other.x
         var dy = self.y - other.y
-        return dx * dx + dy * dy
+        dx * dx + dy * dy    // last item — returned
     }
 
     fn to_string() {
-        return "(" + self.x + ", " + self.y + ")"
+        "(" + self.x + ", " + self.y + ")"    // last item — returned
     }
 }
 
@@ -291,12 +327,12 @@ var Point2 = type {
 
 // type factory — types created at runtime
 fn make_type(default_color) {
-    return type {
+    type {                    // last item — type value returned
         var color = default_color
         var x = 0.0
 
         fn to_string() {
-            return self.color + " at " + self.x
+            self.color + " at " + self.x
         }
     }
 }
@@ -371,11 +407,11 @@ type Rectangle {
     var height = 0.0
 
     fn area() {
-        return self.width * self.height
+        self.width * self.height
     }
 
     fn to_string() {
-        return "Rectangle(" + self.width + "x" + self.height + ")"
+        "Rectangle(" + self.width + "x" + self.height + ")"
     }
 }
 
@@ -383,11 +419,11 @@ type Circle {
     var radius = 0.0
 
     fn area() {
-        return 3.14159 * self.radius * self.radius
+        3.14159 * self.radius * self.radius
     }
 
     fn to_string() {
-        return "Circle(r=" + self.radius + ")"
+        "Circle(r=" + self.radius + ")"
     }
 }
 
@@ -415,10 +451,14 @@ print Point             // type { x, y }
 
 // ── 12. COMPLETE EXAMPLES ────────────────────────────────────
 
-// fibonacci
+// fibonacci — no return keyword needed at the end
 fn fib(n) {
-    if n <= 1 { return n }
-    return fib(n - 1) + fib(n - 2)
+    if n <= 1 {
+        n                           // last item of if branch
+    } else {
+        fib(n - 1) + fib(n - 2)   // last item of else branch
+    }
+    // last item of function is the if/else expression
 }
 
 for var i = 0; i < 10; i = i + 1 {
@@ -427,26 +467,27 @@ for var i = 0; i < 10; i = i + 1 {
 
 // ─────────────────────────────────────────────────────────────
 
-// bank account
+// bank account — mix of early return and last-item return
 type Account {
     var owner = ""
     var balance = 0.0
 
     fn deposit(amount) {
         self.balance = self.balance + amount
+        // last item is assignment — returns new balance
     }
 
     fn withdraw(amount) {
         if amount > self.balance {
             print "insufficient funds"
-            return false
+            return false          // early exit via return
         }
         self.balance = self.balance - amount
-        return true
+        true                      // last item — success
     }
 
     fn to_string() {
-        return self.owner + ": " + self.balance
+        self.owner + ": " + self.balance
     }
 }
 
@@ -457,7 +498,7 @@ print acc.to_string()    // alice: 120.0
 
 // ─────────────────────────────────────────────────────────────
 
-// find first value matching condition using loop expression
+// find first value over 5 — break exits loop with value
 var data = [3, 7, 1, 9, 4, 6, 2]
 var idx = 0
 
@@ -468,3 +509,18 @@ var first_over_5 = for {
 }
 
 print first_over_5    // 7
+
+// ─────────────────────────────────────────────────────────────
+
+// signal propagation example
+// break from inner block propagates out to the for loop
+var found2 = for {
+    var val = {
+        if count > 50 { break count }   // break propagates to for loop
+        count = count + 1
+        count
+    }
+    // if break fired above, we never reach here
+    print val
+}
+// found2 is the value carried by break

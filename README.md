@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/github/v/tag/kshku/snuk?label=version&sort=semver)](https://github.com/kshku/snuk/releases)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)]()
 
-Snuk is a interpreted scripting language written in C.
+Snuk is an interpreted scripting language written in C.
 
 ---
 
@@ -63,9 +63,11 @@ The binary is produced at `build/snuk` (Linux, macOS) or `build/Release/snuk.exe
 
 ## Language Overview
 
-Snuk is dynamically typed.
-Almost everything is an expression — variables, functions, types, control flow.
-Semicolons are optional.
+Snuk is dynamically typed. Almost everything is an expression —
+variables, functions, types, control flow. Semicolons are optional.
+
+The value of a block, function, if/else, or loop is the last
+executed item. `return` and `break` are for early exits only.
 
 ### Variables
 
@@ -74,39 +76,68 @@ var x = 10
 var name = "snuk"
 const MAX = 100
 
-// optional type annotations
+// type annotations — optional, enforced at runtime when present
 var speed: float = 2.5
+```
+
+### Blocks as expressions
+
+Every block returns the value of its last executed item.
+`break` exits a block or loop early with an optional value.
+
+```snuk
+var result = {
+    var temp = x * 2
+    temp + 10          // last item — block's value
+}
+
+// break exits early
+var early = {
+    if x > 5 { break x * 2 }
+    x + 1
+}
 ```
 
 ### Control flow
 
 ```snuk
-// if/else as expression
-var label = if x > 10 { return "big" } else { return "small" }
+// if/else — value is last item of taken branch
+var label = if x > 10 { "big" } else { "small" }
 
+// while
 while x > 0 { x = x - 1 }
 
+// for — C-style
 for var i = 0; i < 10; i = i + 1 { print i }
 
-// loop with break value
-var result = loop {
+// for without condition — infinite loop
+// break exits with optional value
+var result = for {
     x = x + 1
     if x >= 100 { break x }
 }
 
+// do/while
 do { x = x - 1 } while x > 0
 ```
 
 ### Functions
 
 Functions are values. Both forms are identical in semantics.
+Last item is the return value. `return` is for early exits only.
 
 ```snuk
 // statement form
-fn add(a, b) { return a + b }
+fn add(a, b) { a + b }
 
 // expression form
-var add = fn(a, b) { return a + b }
+var add = fn(a, b) { a + b }
+
+// early return
+fn withdraw(balance, amount) {
+    if amount > balance { return false }
+    balance - amount
+}
 
 // default parameters
 fn greet(name, greeting = "hello") {
@@ -114,24 +145,13 @@ fn greet(name, greeting = "hello") {
 }
 
 // pass functions as arguments
-fn apply(value, func) { return func(value) }
-var doubled = apply(5, fn(x) { return x * 2 })
+fn apply(value, func) { func(value) }
+var doubled = apply(5, fn(x) { x * 2 })
 
 // return functions from functions
-fn make_adder(n) {
-    return fn(x) { return x + n }
-}
+fn make_adder(n) { fn(x) { x + n } }
 var add5 = make_adder(5)
 print add5(3)    // 8
-```
-
-### Blocks as expressions
-
-```snuk
-var result = {
-    var temp = x * 2
-    return temp + 10
-}
 ```
 
 ### Types
@@ -145,7 +165,7 @@ type Point {
     var y = 0.0
 
     fn to_string() {
-        return "(" + self.x + ", " + self.y + ")"
+        "(" + self.x + ", " + self.y + ")"
     }
 }
 
@@ -154,9 +174,9 @@ var Point = type { var x = 0.0; var y = 0.0 }
 
 // type factory
 fn make_type(default_color) {
-    return type {
+    type {
         var color = default_color
-        fn to_string() { return self.color }
+        fn to_string() { self.color }
     }
 }
 
@@ -180,20 +200,18 @@ for item in items { print item }
 ### Duck typing
 
 ```snuk
-// any type with area() works here — no declaration needed
-fn print_area(shape) {
-    print shape.area()
-}
+// any type with area() works — no declaration needed
+fn print_area(shape) { print shape.area() }
 
 type Rectangle {
     var width = 0.0
     var height = 0.0
-    fn area() { return self.width * self.height }
+    fn area() { self.width * self.height }
 }
 
 type Circle {
     var radius = 0.0
-    fn area() { return 3.14159 * self.radius * self.radius }
+    fn area() { 3.14159 * self.radius * self.radius }
 }
 
 print_area(Rectangle { width: 10.0, height: 5.0 })
