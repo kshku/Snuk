@@ -126,22 +126,10 @@ struct SnukItem {
         SnukExpr *expr; /**< expression item payload (also used for return and break). */
 
         struct {
-            SnukExpr *identifier; /**< Declared variable or constant name. */
-            SnukType *type; /**< Type information of the variable or constant. */
-            SnukExpr *init; /**< Initializer expression. */
-        } var_decl; // var or const
-
-        struct {
-            SnukExpr *identifier; /**< Name of function. */
-            SnukExpr *fn_expr; /**< Function expression. */
-        } fn_decl;
-
-        struct {
-            // TODO:
-            SnukExpr *identifier; /**< Name of the type. */
-            SnukItem **vars; //**< Dynamic array of field declarations. */
-            SnukItem **fns; //**< Dynamic array of method declarations. */
-        } type_decl;
+            SnukStringView name; /**< Name. */
+            SnukType *type; /**< Type information. */
+            SnukExpr *expr; /**< Expression. */
+        } decl_item;
 
         SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
 

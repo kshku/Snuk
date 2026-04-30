@@ -1,0 +1,21 @@
+var x = 10
+
+print "Before block", x
+
+{
+    var x = 25
+    var y = 100
+    print "Inside block", x, y
+}
+
+var y = {
+    var a = 5
+    a / 5
+}
+
+var z = {
+    var a = 5
+    return a / 5
+}
+
+print "Outside block", x, y, z

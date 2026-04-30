@@ -6,6 +6,13 @@
 #include "parser.h"
 #include "string_view.h"
 
+typedef enum SnukSignal {
+    SNUK_SIGNAL_NONE = 0,
+    SNUK_SIGNAL_CONTINUE = 1 << 0,
+    SNUK_SIGNAL_BREAK = 1 << 1,
+    SNUK_SIGNAL_RETURN = 1 << 2
+} SnukSignal;
+
 typedef struct SnukValue {
     enum {
         SNUK_VALUE_UNKOWN,
@@ -43,6 +50,8 @@ struct SnukScope {
 typedef struct SnukInterpreter {
     SnukScope *current;
     SnukScope *global;
+    SnukSignal signal;
+    SnukValue signaled_value;
 } SnukInterpreter;
 
 SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
@@ -54,6 +63,8 @@ SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
     *i = (SnukInterpreter){
         .current = scope,
         .global = scope,
+        .signal = SNUK_SIGNAL_NONE,
+        .signaled_value = (SnukValue){.type = SNUK_VALUE_UNKOWN},
     };
 }
 
@@ -72,4 +83,5 @@ SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr);
 
+void snuk_interpreter_log_value(SnukValue value);
 void snuk_interpreter_print_value(SnukValue value);
