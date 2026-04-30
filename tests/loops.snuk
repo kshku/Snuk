@@ -13,3 +13,34 @@ var z = while x % 10 {
 }
 
 print z
+
+z = for var n = 1; n % 10; n = n + 1 {
+    print n
+}
+
+print z
+
+z = for x = x - 1; x % 10; x = x - 1 {
+    print x
+}
+
+print z
+
+x = x + 1
+z = for ;; x = x + 1 {
+    print x
+    if x % 10 {
+        continue
+    }
+    break 200
+}
+
+print z
+
+z = for {
+    print "Infinity loop"
+    x = x - 1
+    if x % 10 { continue }
+    else { break 5 }
+}
+print z

@@ -52,6 +52,7 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs);
 static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int capture_signals, int propogate_signals);
 static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr);
 static SnukValue execute_while_expr(SnukInterpreter *i, SnukExpr *loop);
+static SnukValue execute_for_expr(SnukInterpreter *i, SnukExpr *loop);
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
@@ -166,7 +167,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             return execute_while_expr(i, expr);
 
         case SNUK_EXPR_FOR:
-            break;
+            return execute_for_expr(i, expr);
 
         case SNUK_EXPR_FN:
             break;
@@ -558,3 +559,44 @@ end:
     return res;
 }
 
+static SnukValue execute_for_expr(SnukInterpreter *i, SnukExpr *loop) {
+    snuk_scope_push(i);
+    SnukValue res = {.type = SNUK_VALUE_NULL};
+    SnukValue cond;
+
+    if (loop->for_loop.init) snuk_interpreter_exec_item(i, loop->for_loop.init);
+
+loop_start:
+    if (loop->for_loop.condition) {
+        cond = snuk_interpreter_eval_expr(i, loop->for_loop.condition);
+        if (!is_true_value(cond)) goto end;
+    }
+
+    res = execute_block_expr(i, loop->for_loop.body, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
+    switch (i->signal) {
+        case SNUK_SIGNAL_RETURN:
+            // propogate
+            goto end;
+
+        case SNUK_SIGNAL_BREAK:
+            i->signal = SNUK_SIGNAL_NONE;
+            goto end;
+
+        case SNUK_SIGNAL_CONTINUE:
+            // Nothing to do, iteration continues
+            i->signal = SNUK_SIGNAL_NONE;
+            break;
+
+        case SNUK_SIGNAL_NONE:
+        default:
+            break;
+    }
+
+    if (loop->for_loop.update) snuk_interpreter_eval_expr(i, loop->for_loop.update);
+
+    goto loop_start;
+
+end:
+    snuk_scope_pop(i);
+    return res;
+}
