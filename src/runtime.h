@@ -11,14 +11,14 @@
 
 typedef struct Runtime {
     void *mem;
-    snFrameAllocator frame;
+    snLinearAllocator la;
     SnukInterpreter interpreter;
 } Runtime;
 
 SNUK_INLINE Runtime snuk_runtime_init(void) {
     Runtime rt = {0};
     rt.mem = snuk_allocate_pages(PAGES);
-    sn_frame_allocator_init(&rt.frame, rt.mem, PAGES * snuk_page_size());
+    sn_linear_allocator_init(&rt.la, rt.mem, PAGES * snuk_page_size());
     snuk_interpreter_init(&rt.interpreter);
     return rt;
 }
@@ -26,7 +26,7 @@ SNUK_INLINE Runtime snuk_runtime_init(void) {
 SNUK_INLINE void snuk_runtime_deinit(Runtime *rt) {
     if (!rt) return;
     snuk_free_pages(rt->mem, PAGES);
-    sn_frame_allocator_deinit(&rt->frame);
+    sn_linear_allocator_deinit(&rt->la);
     snuk_interpreter_deinit(&rt->interpreter);
 }
 
