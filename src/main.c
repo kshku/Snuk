@@ -103,7 +103,7 @@ void run_repl(void) {
     do {
         snuk_print(PROMPT_STR);
         line = snuk_read_line(line_buffer, LINE_BUFFER_SIZE);
-    } while (!snuk_runtime_execute(&rt, line));
+    } while (!snuk_runtime_execute_repl(&rt, line));
 
     snuk_runtime_deinit(&rt);
 
@@ -115,7 +115,7 @@ void run_file(const char *path) {
 
     Runtime rt = snuk_runtime_init();
 
-    snuk_runtime_execute(&rt, content);
+    snuk_runtime_execute_file(&rt, content);
 
     snuk_runtime_deinit(&rt);
 
@@ -124,7 +124,7 @@ void run_file(const char *path) {
 
 static void run_command(const char *command) {
     Runtime rt = snuk_runtime_init();
-    snuk_runtime_execute(&rt, command);
+    snuk_runtime_execute_file(&rt, command);
     snuk_runtime_deinit(&rt);
 }
 

@@ -4,6 +4,7 @@
 
 #include "memory.h"
 #include "interpreter.h"
+#include "snuk_string.h"
 
 #include <snmemory/frame.h>
 
@@ -30,4 +31,17 @@ SNUK_INLINE void snuk_runtime_deinit(Runtime *rt) {
     snuk_interpreter_deinit(&rt->interpreter);
 }
 
-bool snuk_runtime_execute(Runtime *rt, const char *src);
+void snuk_runtime_execute(Runtime *rt, const char *src);
+
+SNUK_INLINE void snuk_runtime_execute_file(Runtime *rt, const char *src) {
+    snuk_runtime_execute(rt, src);
+    sn_linear_allocator_reset(&rt->la);
+}
+
+SNUK_INLINE bool snuk_runtime_execute_repl(Runtime *rt, const char *src) {
+    if (snuk_string_n_equal(src, "exit", 4)) return true;
+
+    snuk_runtime_execute(rt, src);
+
+    return false;
+}

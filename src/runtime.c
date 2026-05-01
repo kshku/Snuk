@@ -1,13 +1,9 @@
 #include "runtime.h"
 
 #include "parser.h"
-#include "io.h"
-#include "snuk_string.h"
 #include "logger.h"
 
-bool snuk_runtime_execute(Runtime *rt, const char *src) {
-    if (snuk_string_equal(src, "exit\n")) return true;
-
+void snuk_runtime_execute(Runtime *rt, const char *src) {
     SnukParser parser;
     snuk_parser_init(&parser, src, (void *)(&rt->la), (alloc_fn)sn_linear_allocator_allocate);
 
@@ -22,9 +18,5 @@ bool snuk_runtime_execute(Runtime *rt, const char *src) {
         log_trace("", NULL);
     }
 
-    sn_linear_allocator_reset(&rt->la);
-
     snuk_parser_deinit(&parser);
-
-    return false;
 }
