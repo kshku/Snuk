@@ -16,7 +16,7 @@ typedef struct SnukRefCounter {
     SnukRefCounterFreeFn free_fn;
 } SnukRefCounter;
 
-SNUK_INLINE SnukRefCounter *snuk_ref_counter_init(void *mem, void *data, SnukRefCounterFreeFn free_fn) {
+SNUK_INLINE SnukRefCounter *snuk_ref_counter_create(void *mem, void *data, SnukRefCounterFreeFn free_fn) {
     SnukRefCounter *rc = (SnukRefCounter *)snuk_alloc(sizeof(SnukRefCounter), alignof(SnukRefCounter));
     *rc = (SnukRefCounter){
         .mem = mem,
@@ -28,23 +28,29 @@ SNUK_INLINE SnukRefCounter *snuk_ref_counter_init(void *mem, void *data, SnukRef
     return rc;
 }
 
-SNUK_INLINE SnukRefCounter *snuk_ref_counter_get_ref(SnukRefCounter *rc) {
-    SNUK_ASSERT(rc, "RefCounter is null");
+SNUK_INLINE SnukRefCounter *snuk_ref_counter_retain(SnukRefCounter *rc) {
+    SNUK_ASSERT(rc, "SnukRefCounter is null");
     rc->ref_count++;
     return rc;
 }
 
-SNUK_INLINE void *snuk_ref_counter_peek(SnukRefCounter *rc) {
-    SNUK_ASSERT(rc, "RefCounter is null");
+SNUK_INLINE void *snuk_ref_counter_get(SnukRefCounter *rc) {
+    SNUK_ASSERT(rc, "SnukRefCounter is null");
     return rc->mem;
 }
 
-SNUK_INLINE void snuk_ref_counter_release_ref(SnukRefCounter *rc) {
-    SNUK_ASSERT(rc, "RefCounter is null");
+SNUK_INLINE void snuk_ref_counter_release(SnukRefCounter *rc) {
+    SNUK_ASSERT(rc, "SnukRefCounter is null");
     rc->ref_count--;
 
     if (rc->ref_count == 0) {
         rc->free_fn(rc->data, rc->mem);
         snuk_free(rc);
     }
+}
+
+SNUK_FORCE_INLINE SnukRefCounter *snuk_ref_counter_move(SnukRefCounter **rc) {
+    SnukRefCounter *tmp = *rc;
+    *rc = NULL;
+    return tmp;
 }
