@@ -1,11 +1,8 @@
-#include <logger.h>
+#include "test_framework.h"
+
 #include <snuk_string.h>
-#include <memory.h>
 
-int main(void) {
-    snuk_logger_init();
-    snuk_memory_init(KIB(1));
-
+ADD_TEST(test_string_concat) {
     const char *a = "Hello, ";
     const char *b = "World!";
 
@@ -25,6 +22,7 @@ int main(void) {
     log_trace("%s", c);
     snuk_free(c);
 
-    snuk_memory_deinit();
-    snuk_logger_deinit();
+    return true;
 }
+
+RUN_ALL_TESTS();
