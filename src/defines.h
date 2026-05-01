@@ -6,6 +6,16 @@
 #include <assert.h>
 #include <stdalign.h>
 
+#if defined(__clang__)
+    #define SNUK_COMPILER_CLANG
+#elif defined(__GNUC__)
+    #define SNUK_COMPILER_GCC
+#elif defined(_MSC_VER)
+    #define SNUK_COMPILER_MSVC
+#else
+    #error "Don't know whether works on this compiler!"
+#endif
+
 #define SNUK_UNUSED(x) ((void)(x))
 
 #define ARRAY_LEN(x) (sizeof(x) / sizeof((x)[0]))
@@ -19,6 +29,12 @@
 #define SNUK_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 
 #define SNUK_INLINE static inline
+
+#if defined(SNUK_COMPILER_MSVC)
+#define SNUK_FORCE_INLINE  static __forceinline
+#else
+#define SNUK_FORCE_INLINE  static inline __attribute__((always_inline))
+#endif
 
 #define SNUK_STRINGIFY(x) #x
 
