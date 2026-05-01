@@ -49,22 +49,10 @@ jobs:
       - name: Build
         run: cmake --build build --config Debug
 
-      - name: Run tests
-        run: |
-          if [ -d tests ]; then
-            if [ "${{ runner.os }}" = "Windows" ]; then
-              SNUK_BIN="./build/Debug/snuk.exe"
-            else
-              SNUK_BIN="./build/snuk"
-            fi
-            for f in tests/*.snuk; do
-              echo "--- running $f"
-              "$SNUK_BIN" "$f"
-              if [ $? -ne 0 ]; then
-                echo "FAILED: $f"
-                exit 1
-              fi
-            done
-          fi
+      - name: Run unit tests
+        run: ctest --test-dir build/tests -L unit --output-on-failure -C Debug
         shell: bash
 
+      - name: Run .snuk files
+        run: ctest --test-dir build/tests -L snuk_files --output-on-failure -C Debug
+        shell: bash
