@@ -65,7 +65,7 @@ typedef struct SnukTest {
 
 #define ADD_TEST(fn) \
     static bool fn(void); \
-    static const SnukTest snuk_test_##fn SNUK_TEST_SECTION = {#fn, fn}; \
+    static SNUK_TEST_SECTION const SnukTest snuk_test_##fn = {#fn, fn}; \
     static bool fn(void)
 
 static inline bool snuk_run_all_tests(void) {
