@@ -12,7 +12,27 @@ typedef struct SnukTest {
     snuk_test_fn fn;
 } SnukTest;
 
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <mach-o/getsect.h>
+    #include <mach-o/dyld.h>
+
+    #define SNUK_TEST_SECTION __attribute__((used, section("__DATA,snuk_tests")))
+
+    static inline SnukTest *snuk_macos_section_begin(size_t *count) {
+        unsigned long size = 0;
+
+        const struct mach_header_64 *header =
+            (const struct mach_header_64 *)_dyld_get_image_header(0);
+
+        SnukTest *data
+            = (SnukTest *)getsectiondata(header, "__DATA", "snuk_tests", &size);
+
+        *count = size / sizeof(SnukTest);
+        return data;
+    }
+
+    #define SNUK_TEST_BEGIN_COUNT(count) snuk_macos_section_begin(&(count))
+#elif defined(__GNUC__) || defined(__clang__)
     #if defined(__APPLE__) && defined(__MACH__)
         #define SNUK_TEST_SECTION __attribute__((used, section("__DATA,snuk_tests")))
     #else
@@ -51,11 +71,18 @@ typedef struct SnukTest {
 static inline bool snuk_run_all_tests(void) {
     bool failed = false;
 
+#if defined(__APPLE__) && defined(__MACH__)
+    size_t count = 0;
+    SnukTest *tests = SNUK_TEST_BEGIN_COUNT(count);
+
+    for (size_t i = 0; i < count; i++) {
+        SnukTest *it = &tests[i];
+#else
     SnukTest *begin = SNUK_TEST_BEGIN();
-    SnukTest *end = SNUK_TEST_END();
+    SnukTest *end   = SNUK_TEST_END();
 
     for (SnukTest *it = begin; it < end; ++it) {
-        // Skip MSVC sentinels */
+#endif
         if (!it->fn) continue;
 
         log_info("Running test: %s", it->name);
