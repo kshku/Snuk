@@ -79,18 +79,21 @@ static inline bool snuk_run_all_tests(void) {
 
 #define RUN_ALL_TESTS() RUN_ALL_TESTS_WITH_MEM_SIZE(MIB(1))
 
-#define SNUK_TEST_ASSERT(x) \
+#define TEST_PASSED return true
+#define TEST_FAILED return false
+
+#define ASSERT(x) \
     do { \
         if (!(x)) { \
             log_error("Assertion failed: %s (%s:%d) in %s", #x, __FILE__, __LINE__, __func__); \
-            return false; \
+            TEST_FAILED; \
         } \
     } while (0)
 
-#define SNUK_TEST_ASSERT_EQ(a, b) \
+#define ASSERT_EQ(a, b) \
     do { \
         if ((a) != (b)) { \
             log_error("Assertion failed: %s == %s (%s:%d) in %s", #a, #b, __FILE__, __LINE__, __func__); \
-            return false; \
+            TEST_FAILED; \
         } \
     } while (0)
