@@ -52,9 +52,6 @@ typedef struct SnukTest {
     __declspec(allocate("snuk_tests$a")) static SnukTest __snuk_tests_start = {0};
     __declspec(allocate("snuk_tests$z")) static SnukTest __snuk_tests_end = {0};
 
-    #pragma comment(linker, "/include:__snuk_tests_start")
-    #pragma comment(linker, "/include:__snuk_tests_end")
-
     #define SNUK_TEST_SECTION __declspec(allocate("snuk_tests$m"))
 
     #define SNUK_TEST_BEGIN() (&__snuk_tests_start + 1)
