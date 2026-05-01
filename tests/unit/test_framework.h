@@ -1,0 +1,129 @@
+#pragma once
+
+#include <stdbool.h>
+
+#include <logger.h>
+#include <memory.h>
+
+typedef bool (*snuk_test_fn)(void);
+
+typedef struct SnukTest {
+    const char *name;
+    snuk_test_fn fn;
+} SnukTest;
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <mach-o/getsect.h>
+    #include <mach-o/dyld.h>
+
+    #define SNUK_TEST_SECTION __attribute__((used, section("__DATA,snuk_tests")))
+
+    static inline SnukTest **snuk_macos_section_begin(size_t *count) {
+        unsigned long size = 0;
+
+        const struct mach_header_64 *header =
+            (const struct mach_header_64 *)_dyld_get_image_header(0);
+
+        SnukTest **data =
+            (SnukTest **)getsectiondata(header, "__DATA", "snuk_tests", &size);
+
+        *count = size / sizeof(SnukTest);
+        return data;
+    }
+
+    #define SNUK_TEST_BEGIN_COUNT(count) snuk_macos_section_begin(&(count))
+#elif defined(__GNUC__) || defined(__clang__)
+    #if defined(__APPLE__) && defined(__MACH__)
+        #define SNUK_TEST_SECTION __attribute__((used, section("__DATA,snuk_tests")))
+    #else
+        #define SNUK_TEST_SECTION __attribute__((used, section("snuk_tests")))
+    #endif
+
+    extern SnukTest *__start_snuk_tests;
+    extern SnukTest *__stop_snuk_tests;
+
+    #define SNUK_TEST_BEGIN() (&__start_snuk_tests)
+    #define SNUK_TEST_END() (&__stop_snuk_tests)
+#elif defined(_MSC_VER)
+    #pragma section("snuk_tests$a", read)
+    #pragma section("snuk_tests$m", read)
+    #pragma section("snuk_tests$z", read)
+
+    __declspec(allocate("snuk_tests$a")) static SnukTest *__snuk_tests_start = NULL;
+    __declspec(allocate("snuk_tests$z")) static SnukTest *__snuk_tests_end = NULL;
+
+    #define SNUK_TEST_SECTION __declspec(allocate("snuk_tests$m"))
+
+    #define SNUK_TEST_BEGIN() (&__snuk_tests_start + 1)
+    #define SNUK_TEST_END()   (&__snuk_tests_end)
+#else
+    #error "Unsupported compiler :("
+#endif
+
+#define ADD_TEST(fn) \
+    static bool fn(void); \
+    static SnukTest snuk_test_struct_##fn = {#fn, fn}; \
+    static SNUK_TEST_SECTION SnukTest *snuk_test_ptr_##fn = &snuk_test_struct_##fn; \
+    static bool fn(void)
+
+static inline bool snuk_run_all_tests(void) {
+    bool failed = false;
+
+#if defined(__APPLE__) && defined(__MACH__)
+    size_t count = 0;
+    SnukTest **tests = SNUK_TEST_BEGIN_COUNT(count);
+
+    for (size_t i = 0; i < count; i++) {
+        SnukTest *it = tests[i];
+#else
+    SnukTest **begin = SNUK_TEST_BEGIN();
+    SnukTest **end   = SNUK_TEST_END();
+
+    for (SnukTest **p = begin; p < end; ++p) {
+        SnukTest *it = *p;
+#endif
+        if (!it) continue;
+
+        log_info("Running test: %s", it->name);
+
+        if (!it->fn()) {
+            log_error("Test failed: %s", it->name);
+            failed = true;
+        } else {
+            log_info("Test passed: %s", it->name);
+        }
+    }
+
+    return failed;
+}
+
+#define RUN_ALL_TESTS_WITH_MEM_SIZE(mem_size) \
+    int main(void) { \
+        snuk_logger_init(); \
+        snuk_memory_init(mem_size); \
+        bool failed = snuk_run_all_tests(); \
+        snuk_memory_deinit(); \
+        snuk_logger_deinit(); \
+        return (int)failed; \
+    }
+
+#define RUN_ALL_TESTS() RUN_ALL_TESTS_WITH_MEM_SIZE(MIB(1))
+
+#define TEST_PASSED return true
+#define TEST_FAILED return false
+
+#define ASSERT(x) \
+    do { \
+        if (!(x)) { \
+            log_error("Assertion failed: %s (%s:%d) in %s", #x, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_EQ(a, b) \
+    do { \
+        if ((a) != (b)) { \
+            log_error("Assertion failed: %s == %s (%s:%d) in %s", #a, #b, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)

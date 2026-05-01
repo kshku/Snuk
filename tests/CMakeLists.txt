@@ -1,5 +1,23 @@
-add_executable(concat_test string_concat.c ../src/logger.c ../src/memory.c) 
+enable_testing()
 
-target_include_directories(concat_test PRIVATE "${CMAKE_SOURCE_DIR}/src")
+add_custom_target(run_tests
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    DEPENDS snuk
+    COMMENT "Run all the tests"
+    COMMAND ctest --test-dir ${CMAKE_CURRENT_BINARY_DIR} -L unit --output-on-failure
+    COMMAND ctest --test-dir ${CMAKE_CURRENT_BINARY_DIR} -L snuk_files --output-on-failure
+)
 
-target_link_libraries(concat_test PRIVATE snlogger snmemory)
+add_subdirectory(unit)
+
+function(run_snuk_file name source)
+    add_test(NAME ${name} COMMAND $<TARGET_FILE:snuk> ${source})
+    set_tests_properties(${name} PROPERTIES LABELS "snuk_files")
+endfunction()
+
+file(GLOB files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.snuk")
+foreach(file IN LISTS files)
+    cmake_path(GET file STEM file_name_we)
+    run_snuk_file(test_${file_name_we} ${file})
+endforeach()
+
