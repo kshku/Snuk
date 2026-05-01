@@ -9,7 +9,7 @@
 SNUK_INLINE SnukEnv *create_snuk_env(SnukInterpreter *i, SnukStringView name, SnukExpr *value) {
     SnukEnv *env = (SnukEnv *)snuk_alloc(sizeof(SnukEnv), alignof(SnukEnv));
     *env = (SnukEnv){
-        .name = snuk_string_view_copy(name),
+        .name = name,
         .value = snuk_interpreter_eval_expr(i, value),
     };
     return env;
@@ -125,7 +125,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
         case SNUK_EXPR_STRING:
             return (SnukValue){
                 .type = SNUK_VALUE_STRING, 
-                .string_value = snuk_string_view_copy(expr->string_literal),
+                .string_value = expr->string_literal,
             };
 
         case SNUK_EXPR_BOOL:
@@ -453,7 +453,7 @@ static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
 
     // Copying the string so that it won't get destroyed
     if (env->value.type == SNUK_VALUE_STRING)
-        env->value.string_value = snuk_string_view_copy(env->value.string_value);
+        env->value.string_value = env->value.string_value;
 
     snuk_darray_push(&scope->vars, env);
 
