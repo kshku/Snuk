@@ -13,7 +13,11 @@ typedef struct SnukTest {
 } SnukTest;
 
 #if defined(__GNUC__) || defined(__clang__)
-    #define SNUK_TEST_SECTION __attribute__((used, section("snuk_tests")))
+    #if defined(__APPLE__) && defined(__MACH__)
+        #define SNUK_TEST_SECTION __attribute__((used, section("__DATA,snuk_tests")))
+    #else
+        #define SNUK_TEST_SECTION __attribute__((used, section("snuk_tests")))
+    #endif
 
     extern SnukTest __start_snuk_tests;
     extern SnukTest __stop_snuk_tests;
