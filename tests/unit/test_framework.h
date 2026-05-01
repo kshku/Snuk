@@ -18,14 +18,14 @@ typedef struct SnukTest {
 
     #define SNUK_TEST_SECTION __attribute__((used, section("__DATA,snuk_tests")))
 
-    static inline SnukTest *snuk_macos_section_begin(size_t *count) {
+    static inline SnukTest **snuk_macos_section_begin(size_t *count) {
         unsigned long size = 0;
 
         const struct mach_header_64 *header =
             (const struct mach_header_64 *)_dyld_get_image_header(0);
 
-        SnukTest *data
-            = (SnukTest *)getsectiondata(header, "__DATA", "snuk_tests", &size);
+        SnukTest **data =
+            (SnukTest **)getsectiondata(header, "__DATA", "snuk_tests", &size);
 
         *count = size / sizeof(SnukTest);
         return data;
@@ -39,8 +39,8 @@ typedef struct SnukTest {
         #define SNUK_TEST_SECTION __attribute__((used, section("snuk_tests")))
     #endif
 
-    extern SnukTest __start_snuk_tests;
-    extern SnukTest __stop_snuk_tests;
+    extern SnukTest *__start_snuk_tests;
+    extern SnukTest *__stop_snuk_tests;
 
     #define SNUK_TEST_BEGIN() (&__start_snuk_tests)
     #define SNUK_TEST_END() (&__stop_snuk_tests)
@@ -49,8 +49,8 @@ typedef struct SnukTest {
     #pragma section("snuk_tests$m", read)
     #pragma section("snuk_tests$z", read)
 
-    __declspec(allocate("snuk_tests$a")) static SnukTest __snuk_tests_start = {0};
-    __declspec(allocate("snuk_tests$z")) static SnukTest __snuk_tests_end = {0};
+    __declspec(allocate("snuk_tests$a")) static SnukTest *__snuk_tests_start = NULL;
+    __declspec(allocate("snuk_tests$z")) static SnukTest *__snuk_tests_end = NULL;
 
     #define SNUK_TEST_SECTION __declspec(allocate("snuk_tests$m"))
 
@@ -62,7 +62,8 @@ typedef struct SnukTest {
 
 #define ADD_TEST(fn) \
     static bool fn(void); \
-    static SNUK_TEST_SECTION const SnukTest snuk_test_##fn = {#fn, fn}; \
+    static SnukTest snuk_test_struct_##fn = {#fn, fn}; \
+    static SNUK_TEST_SECTION SnukTest *snuk_test_ptr_##fn = &snuk_test_struct_##fn; \
     static bool fn(void)
 
 static inline bool snuk_run_all_tests(void) {
@@ -70,17 +71,18 @@ static inline bool snuk_run_all_tests(void) {
 
 #if defined(__APPLE__) && defined(__MACH__)
     size_t count = 0;
-    SnukTest *tests = SNUK_TEST_BEGIN_COUNT(count);
+    SnukTest **tests = SNUK_TEST_BEGIN_COUNT(count);
 
     for (size_t i = 0; i < count; i++) {
-        SnukTest *it = &tests[i];
+        SnukTest *it = tests[i];
 #else
-    SnukTest *begin = SNUK_TEST_BEGIN();
-    SnukTest *end   = SNUK_TEST_END();
+    SnukTest **begin = SNUK_TEST_BEGIN();
+    SnukTest **end   = SNUK_TEST_END();
 
-    for (SnukTest *it = begin; it < end; ++it) {
+    for (SnukTest **p = begin; p < end; ++p) {
+        SnukTest *it = *p;
 #endif
-        if (!it->fn) continue;
+        if (!it) continue;
 
         log_info("Running test: %s", it->name);
 
