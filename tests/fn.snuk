@@ -1,0 +1,13 @@
+fn something() {
+    6 * 2
+}
+
+fn nothing(a, b) {
+    a + b
+}
+
+fn another(a: int, k) -> int {
+    a * k
+}
+
+var add = fn(a, b) { a + b }

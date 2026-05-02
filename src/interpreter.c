@@ -31,8 +31,10 @@ SNUK_INLINE bool is_true_value(SnukValue value) {
         case SNUK_VALUE_STRING:
             return value.string_value.len != 0;
 
-            // TODO:
         case SNUK_VALUE_FN:
+            return true;
+
+        // TODO:
         case SNUK_VALUE_TYPE:
         default:
             return false;
@@ -63,14 +65,13 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
             break;
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
+        case SNUK_ITEM_FN_DECL:
             {
                 // TODO: const
                 SnukEnv *env = create_snuk_env(i, item->decl_item.name, item->decl_item.expr);
                 return snuk_scope_add_env(snuk_ref_counter_get(i->current), env)->value;
             }
-            // TODO: Stroing functions and types
-        case SNUK_ITEM_FN_DECL:
-            break;
+            // TODO: Stroing types
         case SNUK_ITEM_TYPE_DECL:
             break;
 
@@ -172,7 +173,16 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             return execute_for_expr(i, expr);
 
         case SNUK_EXPR_FN:
-            break;
+            return (SnukValue){
+                .type = SNUK_VALUE_FN,
+                .fn_value = {
+                    .closure = snuk_ref_counter_retain(i->current),
+                    .body = expr->fn_expr.body,
+                    .params = expr->fn_expr.params,
+                    .return_type = expr->fn_expr.return_type,
+                },
+            };
+
         case SNUK_EXPR_TYPE:
             break;
 
@@ -320,6 +330,7 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
     if (!exprs) return;
 
     uint64_t count = snuk_darray_get_length(exprs);
+    uint64_t len;
     for (uint64_t j = 0; j < count; ++j) {
         SnukValue value = snuk_interpreter_eval_expr(i, exprs[j]);
         switch (value.type) {
@@ -343,8 +354,11 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
                 snuk_print("null", NULL);
                 break;
             case SNUK_VALUE_FN:
-                // TODO:
                 snuk_print("fn:", NULL);
+                len = snuk_darray_get_length(value.fn_value.params);
+                snuk_print("params: ", NULL);
+                for (uint64_t k = 0; k < len; ++k)
+                    snuk_print(SNUK_STRING_VIEW_FORMAT", ", SNUK_STRING_VIEW_ARG(value.fn_value.params[k]->name));
                 break;
             case SNUK_VALUE_TYPE:
                 // TODO:
@@ -364,6 +378,7 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
 }
 
 void snuk_interpreter_log_value(SnukValue value) {
+    uint64_t count;
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_UNKOWN));
@@ -389,6 +404,10 @@ void snuk_interpreter_log_value(SnukValue value) {
             break;
         case SNUK_VALUE_FN:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_FN));
+            count = snuk_darray_get_length(value.fn_value.params);
+            log_trace("params: ", NULL);
+            for (uint64_t j = 0; j < count; ++j)
+                log_trace(SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
             break;
         case SNUK_VALUE_TYPE:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE));
@@ -400,6 +419,7 @@ void snuk_interpreter_log_value(SnukValue value) {
 }
 
 void snuk_interpreter_print_value(SnukValue value) {
+    uint64_t count;
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
             snuk_println("Something went wrong, value was UNKNOWN!");
@@ -420,8 +440,11 @@ void snuk_interpreter_print_value(SnukValue value) {
             snuk_println("null", NULL);
             break;
         case SNUK_VALUE_FN:
-            // TODO:
-            snuk_println("fn:", NULL);
+            snuk_print("fn:", NULL);
+            count = snuk_darray_get_length(value.fn_value.params);
+            snuk_print("params: ", NULL);
+            for (uint64_t j = 0; j < count; ++j)
+                snuk_print(SNUK_STRING_VIEW_FORMAT", ", SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
             break;
         case SNUK_VALUE_TYPE:
             // TODO:

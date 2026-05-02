@@ -40,7 +40,13 @@ struct SnukValue {
         double float_value;
         bool bool_value;
         SnukStringView string_value;
-        // TODO: function and type
+        struct {
+            SnukRefCounter *closure;
+            SnukExpr *body;
+            SnukParam **params;
+            SnukType *return_type;
+        } fn_value;
+        // TODO: type
     };
 };
 
