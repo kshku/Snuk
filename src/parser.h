@@ -29,7 +29,6 @@ typedef enum SnukItemType {
     SNUK_ITEM_VAR_DECL, /**< Variable declaration (expression with restriction) */
     SNUK_ITEM_CONST_DECL, /**< Constant declaration (expression with restriction) */
 
-    SNUK_ITEM_FN_DECL, /**< Function declaration (syntax sugar) */
     SNUK_ITEM_TYPE_DECL, /**< Type declaration (syntax sugar) */
 
     SNUK_ITEM_PRINT, /**< Printing expression (special expression, always returns null) */
@@ -37,9 +36,6 @@ typedef enum SnukItemType {
     SNUK_ITEM_RETURN, /**< Return expression, transfer control out of function, may carry value with them */
     SNUK_ITEM_BREAK, /**< Transfer control out of loop, may carray value with them. */
     SNUK_ITEM_CONTINUE, /**< Transfer control to next iteration. */
-
-    SNUK_ITEM_LINE_COMMENT, /**< Single line comment */
-    SNUK_ITEM_BLOCK_COMMENT, /**< Multi line comment */
 
     SNUK_ITEM_MAX /**< Sentinel value for item kinds. */
 } SnukItemType;
@@ -77,6 +73,9 @@ typedef enum SnukExprType {
     SNUK_EXPR_MEMBER, /**< Member access expression. */
     SNUK_EXPR_INDEX, /**< Index access expression. */
 
+    SNUK_EXPR_LINE_COMMENT, /**< Single line comment */
+    SNUK_EXPR_BLOCK_COMMENT, /**< Multi line comment */
+
     SNUK_EXPR_MAX /**< Sentinel value for expression kinds. */
 } SnukExprType;
 
@@ -89,7 +88,7 @@ typedef struct SnukType SnukType;
  * @brief Parsed function parameter.
  */
 struct SnukParam {
-    SnukExpr *identifier; /**< Parameter name expression. */
+    SnukStringView name; /**< Parameter name expression. */
     SnukType *type; /**< Type information of the parameter */
     SnukExpr *default_value; /**< Optional default value expression. */
 };
@@ -132,8 +131,6 @@ struct SnukItem {
         } decl_item;
 
         SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
-
-        SnukStringView comment; /**< Comment */
     };
 };
 
@@ -149,6 +146,7 @@ struct SnukExpr {
         double float_literal;
         SnukStringView string_literal;
         bool bool_literal;
+        SnukStringView comment; /**< Comment */
 
         struct {
             SnukTokenType op; /**< Unary operator token. */
@@ -199,18 +197,15 @@ struct SnukExpr {
             SnukParam **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
             SnukType *return_type; /**< Return type of function */
+            SnukStringView name;
         } fn_expr;
 
-        struct {
-            // TODO:
-            SnukItem **vars; //**< Dynamic array of field declarations. */
-            SnukItem **fns; //**< Dynamic array of method declarations. */
-        } type_expr;
+        SnukItem **members; /**< Dynamic array of members items in the type */
 
         SnukItem **block_items; /**< Dynamic array of items in the block. */
 
         struct {
-            SnukStringView name;
+            SnukExpr *fn; /**< Expression to call */
             SnukExpr **params; /**< Darray of call argument expressions. */
         } call;
     };

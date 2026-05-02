@@ -194,6 +194,15 @@ static SnukExpr *parse_block(SnukParser *parser);
  */
 static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left);
 
+/**
+ * @brief Parse comment expression.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_comment(SnukParser *parser);
+
 static ParseRule rules[] = {
     [SNUK_TOKEN_IDENTIFIER] = {parse_primary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_INTEGER] = {parse_primary, NULL, PRECEDENCE_NONE},
@@ -263,6 +272,9 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_TYPE] = {parse_type, NULL, PRECEDENCE_NONE},
 
     [SNUK_TOKEN_LBRACE] = {parse_block, NULL, PRECEDENCE_NONE},
+
+    [SNUK_TOKEN_LINE_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
+    [SNUK_TOKEN_BLOCK_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
 };
 
 /**
@@ -338,15 +350,6 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const);
 static SnukItem *parse_flow_item(SnukParser *parser);
 
 /**
- * @brief Parse a function declaration item.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed item, or NULL on parse failure.
- */
-static SnukItem *parse_fn_item(SnukParser *parser);
-
-/**
  * @brief Parse a type declaration item.
  *
  * @param parser Parser context to operate on.
@@ -363,15 +366,6 @@ static SnukItem *parse_type_item(SnukParser *parser);
  * @return Parsed item, or NULL on parse failure.
  */
 static SnukItem *parse_print_item(SnukParser *parser);
-
-/**
- * @brief Parse a comment item.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed item, or NULL on parse failure.
- */
-static SnukItem *parse_comment_item(SnukParser *parser);
 
 /**
  * @breif Parse a type annotation.
@@ -525,20 +519,19 @@ SNUK_INLINE SnukItem *build_print_item(SnukParser *parser, SnukItem *item, SnukE
 }
 
 /**
- * @brief Build a comment item from a comment token.
+ * @brief Build a comment expresson from a comment token.
  *
  * @param parser Parser context to operate on.
- * @param comment_token Source comment token.
  *
- * @return Newly allocated comment item.
+ * @return Newly allocated comment expressoin.
  */
-SNUK_INLINE SnukItem *build_comment_item(SnukParser *parser, SnukToken comment_token) {
-    SnukItem *item = parser_create_item(parser);
-    *item = (SnukItem){
-        .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT ? SNUK_ITEM_LINE_COMMENT : SNUK_ITEM_BLOCK_COMMENT,
+SNUK_INLINE SnukExpr *build_comment_expr(SnukParser *parser, SnukToken comment_token) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){
+        .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT ? SNUK_EXPR_BLOCK_COMMENT : SNUK_EXPR_LINE_COMMENT,
         .comment = comment_token.string_literal,
     };
-    return item;
+    return expr;
 }
 
 /**
@@ -791,14 +784,15 @@ SNUK_INLINE SnukExpr *build_for_expr(SnukParser *parser, SnukItem *init, SnukExp
  * @param params Parameters of the fn expression.
  * @param body Block expression to execute.
  * @param return_type Return type of the function.
+ * @param name Name of function in case of syntax sugar.
  *
  * @return Newly allocated fn expression node.
  */
-SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, SnukExpr *body, SnukType *return_type) {
+SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, SnukExpr *body, SnukType *return_type, SnukStringView name) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FN,
-        .fn_expr = {.params = params, .body = body, .return_type = return_type},
+        .fn_expr = {.params = params, .body = body, .return_type = return_type, .name = name},
     };
     return expr;
 }
@@ -807,16 +801,15 @@ SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, Snuk
  * @brief Build an type expression node.
  *
  * @param parser Parser context to operate on.
- * @param vars Declaraiton items inside type.
- * @param fns Declaration items inside type.
+ * @param members Member items in type.
  *
  * @return Newly allocated type expression node.
  */
-SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **vars, SnukItem **fns) {
+SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **members) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
-        .type_expr = {.vars = vars, .fns = fns},
+        .members = members,
     };
     return expr;
 }
@@ -846,17 +839,17 @@ SNUK_INLINE SnukExpr *build_block_expr(SnukParser *parser, SnukExpr *expr, SnukI
  * @brief Build a call expression node.
  *
  * @param parser Parser context to operate on.
- * @param name Function name.
+ * @param fn Expression to call.
  * @param params The parameters.
  *
  * @return Newly allocated call expression node.
  */
-SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukStringView name, SnukExpr **params) {
+SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukExpr *fn, SnukExpr **params) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_CALL,
         .call = {
-            .name = name,
+            .fn = fn,
             .params = params
         },
     };
@@ -873,10 +866,10 @@ SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukStringView name, S
  *
  * @return Newly allocated parameter node.
  */
-SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukType *type, SnukExpr *default_value) {
+SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukStringView name, SnukType *type, SnukExpr *default_value) {
     SnukParam *param = parser_create_param(parser);
     *param = (SnukParam){
-        .identifier = identifier,
+        .name = name,
         .type = type,
         .default_value = default_value,
     };

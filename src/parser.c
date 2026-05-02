@@ -28,14 +28,9 @@ static SnukItem *parse_item(SnukParser *parser) {
             || parser_match(parser, SNUK_TOKEN_BREAK))
         return parse_flow_item(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_FN)) return parse_fn_item(parser);
-
     if (parser_match(parser, SNUK_TOKEN_TYPE)) return parse_type_item(parser);
 
     if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
-
-    if (parser_match(parser, SNUK_TOKEN_BLOCK_COMMENT) || parser_match(parser, SNUK_TOKEN_LINE_COMMENT))
-        return parse_comment_item(parser);
 
     return parse_expr_item(parser);
 }
@@ -82,16 +77,6 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
 }
 
 /**
- * @brief Parse a function declaration item.
- */
-static SnukItem *parse_fn_item(SnukParser *parser) {
-    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected function name");
-    SnukStringView identifier = parser->previous.string_literal;
-    SnukExpr *fn_expr = parse_fn(parser);
-    return build_decl_item(parser, identifier, NULL, fn_expr, SNUK_ITEM_FN_DECL);
-}
-
-/**
  * @brief Parse a type declaration item.
  */
 static SnukItem *parse_type_item(SnukParser *parser) {
@@ -109,14 +94,6 @@ static SnukItem *parse_print_item(SnukParser *parser) {
     while (parser_match(parser, SNUK_TOKEN_COMMA))
         print_item = build_print_item(parser, print_item, parse_expression(parser));
     return print_item;
-}
-
-/**
- * @brief Parse a source comment as a item.
- */
-static SnukItem *parse_comment_item(SnukParser *parser) {
-    SnukToken t = parser->previous;
-    return build_comment_item(parser, t);
 }
 
 /**
@@ -248,10 +225,6 @@ static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left) {
  * @brief Parse an assignment expression.
  */
 static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
-    if (left->type != SNUK_EXPR_IDENTIFIER) {
-        parser_error(parser, "invalid assignment target");
-        return NULL;
-    }
     SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
     return build_assign_expr(parser, left, value);
 }
@@ -392,13 +365,17 @@ static SnukExpr *parse_for(SnukParser *parser) {
  * @brief Parse an function expression.
  */
 static SnukExpr *parse_fn(SnukParser *parser) {
+    SnukStringView name = {0};
+    if (parser_match(parser, SNUK_TOKEN_IDENTIFIER))
+        name = parser->previous.string_literal;
+
     SnukParam **params = snuk_darray_create(SnukParam *);
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
     while (!parser_match(parser, SNUK_TOKEN_RPAREN)
             && parser->current.type != SNUK_TOKEN_EOF) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
 
-        SnukExpr *name = parse_primary(parser);
+        SnukStringView name = parser->previous.string_literal;
         SnukExpr *default_value = NULL;
         SnukType *type = NULL;
 
@@ -428,7 +405,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
     SnukExpr *body = parse_block(parser);
 
-    return build_fn_expr(parser, params, body, ret_type);
+    return build_fn_expr(parser, params, body, ret_type, name);
 }
 
 static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
@@ -445,7 +422,12 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
         parser_error(parser, "expected ')");
         return NULL;
     }
-    return build_call_expr(parser, left->identifier, params);
+    return build_call_expr(parser, left, params);
+}
+
+static SnukExpr *parse_comment(SnukParser *parser) {
+    SnukToken t = parser->previous;
+    return build_comment_expr(parser, t);
 }
 
 /**
@@ -454,17 +436,16 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
 static SnukExpr *parse_type(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
-    SnukItem **vars = snuk_darray_create(SnukItem *);
-    SnukItem **fns = snuk_darray_create(SnukItem *);
+    SnukItem **members = snuk_darray_create(SnukItem *);
 
     while (!parser_match(parser, SNUK_TOKEN_RBRACE)
             && parser->current.type !=  SNUK_TOKEN_EOF) {
 
-        if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST)) {
-            snuk_darray_push(&vars,
-                    parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST));
-        } else if (parser_match(parser, SNUK_TOKEN_FN)) {
-            snuk_darray_push(&fns, parse_fn_item(parser));
+        if (parser_match(parser, SNUK_TOKEN_VAR)
+                || parser_match(parser, SNUK_TOKEN_CONST)
+                || parser_match(parser, SNUK_TOKEN_FN)
+                || parser_match(parser, SNUK_TOKEN_TYPE)) {
+            snuk_darray_push(&members, parse_item(parser));
         } else {
             parser_error(parser, "Unexpected token");
         }
@@ -475,7 +456,7 @@ static SnukExpr *parse_type(SnukParser *parser) {
         return NULL;
     }
 
-    return build_type_expr(parser, vars, fns);
+    return build_type_expr(parser, members);
 }
 
 /**
@@ -560,16 +541,12 @@ void snuk_parser_log_item(SnukItem *item) {
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
         case SNUK_ITEM_TYPE_DECL:
-        case SNUK_ITEM_FN_DECL:
             switch (item->type) {
                 case SNUK_ITEM_VAR_DECL:
                     log_trace("var:", NULL);
                     break;
                 case SNUK_ITEM_CONST_DECL:
                     log_trace("const:", NULL);
-                    break;
-                case SNUK_ITEM_FN_DECL:
-                    log_trace("function:", NULL);
                     break;
                 case SNUK_ITEM_TYPE_DECL:
                     log_trace("type:", NULL);
@@ -598,12 +575,6 @@ void snuk_parser_log_item(SnukItem *item) {
             count = snuk_darray_get_length(item->print_exprs);
             for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_expr(item->print_exprs[i]);
-            break;
-        case SNUK_ITEM_LINE_COMMENT:
-            log_trace("single line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->comment));
-            break;
-        case SNUK_ITEM_BLOCK_COMMENT:
-            log_trace("multi-line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->comment));
             break;
         default:
             break;
@@ -690,8 +661,13 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             snuk_parser_log_expr(expr->for_loop.body);
             break;
         case SNUK_EXPR_FN:
-            // TODO:
             log_trace("fn expression:", NULL);
+            count = snuk_darray_get_length(expr->fn_expr.params);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_param(expr->fn_expr.params[i]);
+            log_trace("body:", NULL);
+            snuk_parser_log_expr(expr->fn_expr.body);
+            snuk_parser_log_type(expr->fn_expr.return_type);
             break;
         case SNUK_EXPR_TYPE:
             // TODO:
@@ -705,7 +681,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             break;
         case SNUK_EXPR_CALL:
             // TODO:
-            log_trace("call: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->call.name));
+            snuk_parser_log_expr(expr->call.fn);
             count = snuk_darray_get_length(expr->call.params);
             for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_expr(expr->call.params[i]);
@@ -718,6 +694,12 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             // TODO:
             log_trace("Index:", NULL);
             break;
+        case SNUK_EXPR_LINE_COMMENT:
+            log_trace("single line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->comment));
+            break;
+        case SNUK_EXPR_BLOCK_COMMENT:
+            log_trace("multi-line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->comment));
+            break;
         default:
             break;
     }
@@ -729,7 +711,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
 void snuk_parser_log_param(SnukParam *param) {
     if (!param) return;
     log_trace("param: ", NULL);
-    snuk_parser_log_expr(param->identifier);
+    log_trace(SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(param->name));
     if (param->type) log_trace("type: ", NULL);
     snuk_parser_log_type(param->type);
     snuk_parser_log_expr(param->default_value);
@@ -778,8 +760,6 @@ const char *snuk_parser_item_type_to_string(SnukItemType type) {
             return SNUK_STRINGIFY(SNUK_ITEM_VAR_DECL);
         case SNUK_ITEM_CONST_DECL:
             return SNUK_STRINGIFY(SNUK_ITEM_CONST_DECL);
-        case SNUK_ITEM_FN_DECL:
-            return SNUK_STRINGIFY(SNUK_ITEM_FN_DECL);
         case SNUK_ITEM_TYPE_DECL:
             return SNUK_STRINGIFY(SNUK_ITEM_TYPE_DECL);
         case SNUK_ITEM_PRINT:
@@ -790,10 +770,6 @@ const char *snuk_parser_item_type_to_string(SnukItemType type) {
             return SNUK_STRINGIFY(SNUK_ITEM_BREAK);
         case SNUK_ITEM_CONTINUE:
             return SNUK_STRINGIFY(SNUK_ITEM_CONTINUE);
-        case SNUK_ITEM_LINE_COMMENT:
-            return SNUK_STRINGIFY(SNUK_ITEM_LINE_COMMENT);
-        case SNUK_ITEM_BLOCK_COMMENT:
-            return SNUK_STRINGIFY(SNUK_ITEM_BLOCK_COMMENT);
         case SNUK_ITEM_MAX:
             return SNUK_STRINGIFY(SNUK_ITEM_MAX);
         default:
@@ -848,6 +824,10 @@ const char *snuk_parser_expr_type_to_string(SnukExprType type) {
             return SNUK_STRINGIFY(SNUK_EXPR_MEMBER);
         case SNUK_EXPR_INDEX:
             return SNUK_STRINGIFY(SNUK_EXPR_INDEX);
+        case SNUK_EXPR_LINE_COMMENT:
+            return SNUK_STRINGIFY(SNUK_EXPR_LINE_COMMENT);
+        case SNUK_EXPR_BLOCK_COMMENT:
+            return SNUK_STRINGIFY(SNUK_EXPR_BLOCK_COMMENT);
         case SNUK_EXPR_MAX:
             return SNUK_STRINGIFY(SNUK_EXPR_MAX);
         default:

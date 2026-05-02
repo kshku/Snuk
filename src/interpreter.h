@@ -6,6 +6,8 @@
 #include "parser.h"
 #include "string_view.h"
 
+#include "refcount.h"
+
 typedef enum SnukSignal {
     SNUK_SIGNAL_NONE = 0,
     SNUK_SIGNAL_CONTINUE = 1 << 0,
@@ -15,7 +17,11 @@ typedef enum SnukSignal {
     SNUK_SIGNAL_ALL = SNUK_SIGNAL_CONTINUE | SNUK_SIGNAL_BREAK | SNUK_SIGNAL_RETURN
 } SnukSignal;
 
-typedef struct SnukValue {
+typedef struct SnukValue SnukValue;
+typedef struct SnukEnv SnukEnv;
+typedef struct SnukScope SnukScope;
+
+struct SnukValue {
     enum {
         SNUK_VALUE_UNKOWN,
         SNUK_VALUE_INT,
@@ -34,48 +40,63 @@ typedef struct SnukValue {
         double float_value;
         bool bool_value;
         SnukStringView string_value;
-        // TODO: function and type
+        struct {
+            SnukRefCounter *closure;
+            SnukExpr *body;
+            SnukParam **params;
+            SnukType *return_type;
+        } fn_value;
+        // TODO: type
     };
-} SnukValue;
+};
 
-typedef struct SnukEnv {
+struct SnukEnv {
     SnukStringView name;
     SnukValue value;
-} SnukEnv;
+};
 
-typedef struct SnukScope SnukScope;
 struct SnukScope {
     SnukEnv **vars; // darray
-    SnukScope *parent;
+    SnukRefCounter *parent;
 };
 
 typedef struct SnukInterpreter {
-    SnukScope *current;
-    SnukScope *global;
+    SnukRefCounter *current;
+    SnukRefCounter *global;
     SnukSignal signal;
 } SnukInterpreter;
 
-SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
+SNUK_INLINE void snuk_scope_free(void *data, void *ptr) {
+    SNUK_UNUSED(data);
+    SnukScope *scope = (SnukScope *)ptr;
+    snuk_darray_destroy(scope->vars);
+    if (scope->parent) snuk_ref_counter_release(scope->parent);
+    snuk_free(scope);
+}
+
+SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
     SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
     *scope = (SnukScope){
         .vars = snuk_darray_create(SnukEnv *),
-        .parent = NULL,
+        .parent = snuk_ref_counter_move(&parent),
     };
+    return snuk_ref_counter_create(scope, NULL, snuk_scope_free);
+}
+
+SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
     *i = (SnukInterpreter){
-        .current = scope,
-        .global = scope,
+        .global = snuk_scope_create(NULL),
         .signal = SNUK_SIGNAL_NONE,
     };
+    i->current = snuk_ref_counter_retain(i->global);
 }
 
 SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
     if (!i) return;
-    while (i->current) {
-        SnukScope *parent = i->current->parent;
-        snuk_darray_destroy(i->current->vars);
-        snuk_free(i->current);
-        i->current = parent;
-    }
+
+    // TODO: freeing all scopes
+    if (i->current != i->global) snuk_ref_counter_release(i->current);
+    snuk_ref_counter_release(i->global);
 
     *i = (SnukInterpreter){0};
 }

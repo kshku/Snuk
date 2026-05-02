@@ -1,0 +1,20 @@
+fn something(a, b: int = 5) {
+    if a % 2 {
+        return (2 * a) + b
+    }
+
+    2 * (a + b)
+}
+
+something(10)
+something(5)
+something(10, 5)
+something(5, 5)
+// something() // assertion fails
+
+fn nothing(a, b) {
+    a * b
+}
+
+// nothing(5) // assertion fails
+nothing(b = 5, a = 4)
