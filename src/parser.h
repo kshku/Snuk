@@ -89,7 +89,7 @@ typedef struct SnukType SnukType;
  * @brief Parsed function parameter.
  */
 struct SnukParam {
-    SnukExpr *identifier; /**< Parameter name expression. */
+    SnukStringView name; /**< Parameter name expression. */
     SnukType *type; /**< Type information of the parameter */
     SnukExpr *default_value; /**< Optional default value expression. */
 };

@@ -873,10 +873,10 @@ SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukStringView name, S
  *
  * @return Newly allocated parameter node.
  */
-SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukExpr *identifier, SnukType *type, SnukExpr *default_value) {
+SNUK_INLINE SnukParam *build_param(SnukParser *parser, SnukStringView name, SnukType *type, SnukExpr *default_value) {
     SnukParam *param = parser_create_param(parser);
     *param = (SnukParam){
-        .identifier = identifier,
+        .name = name,
         .type = type,
         .default_value = default_value,
     };

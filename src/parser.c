@@ -398,7 +398,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
             && parser->current.type != SNUK_TOKEN_EOF) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
 
-        SnukExpr *name = parse_primary(parser);
+        SnukStringView name = parser->previous.string_literal;
         SnukExpr *default_value = NULL;
         SnukType *type = NULL;
 
@@ -729,7 +729,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
 void snuk_parser_log_param(SnukParam *param) {
     if (!param) return;
     log_trace("param: ", NULL);
-    snuk_parser_log_expr(param->identifier);
+    log_trace(SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(param->name));
     if (param->type) log_trace("type: ", NULL);
     snuk_parser_log_type(param->type);
     snuk_parser_log_expr(param->default_value);
