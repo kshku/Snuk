@@ -431,6 +431,23 @@ static SnukExpr *parse_fn(SnukParser *parser) {
     return build_fn_expr(parser, params, body, ret_type);
 }
 
+static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
+    SnukExpr **params = snuk_darray_create(SnukExpr *);
+    while (!parser_match(parser, SNUK_TOKEN_RPAREN)
+            && parser->current.type != SNUK_TOKEN_EOF) {
+        SnukExpr *expr = parse_expression(parser);
+        snuk_darray_push(&params, expr);
+        if (!parser_check(parser, SNUK_TOKEN_RPAREN))
+            parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RPAREN) {
+        parser_error(parser, "expected ')");
+        return NULL;
+    }
+    return build_call_expr(parser, left->identifier, params);
+}
+
 /**
  * @brief Parse an type expression.
  */
@@ -688,7 +705,10 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             break;
         case SNUK_EXPR_CALL:
             // TODO:
-            log_trace("call: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
+            log_trace("call: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->call.name));
+            count = snuk_darray_get_length(expr->call.params);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_expr(expr->call.params[i]);
             break;
         case SNUK_EXPR_MEMBER:
             // TODO:

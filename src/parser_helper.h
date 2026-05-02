@@ -184,6 +184,16 @@ static SnukExpr *parse_type(SnukParser *parser);
  */
 static SnukExpr *parse_block(SnukParser *parser);
 
+/**
+ * @brief Parse function call expression.
+ *
+ * @param parser Parser context to operate on.
+ * @param left Name of the function
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left);
+
 static ParseRule rules[] = {
     [SNUK_TOKEN_IDENTIFIER] = {parse_primary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_INTEGER] = {parse_primary, NULL, PRECEDENCE_NONE},
@@ -195,7 +205,7 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_NAN] = {parse_primary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_INF] = {parse_primary, NULL, PRECEDENCE_NONE},
 
-    [SNUK_TOKEN_LPAREN] = {parse_grouping, NULL, PRECEDENCE_NONE},
+    [SNUK_TOKEN_LPAREN] = {parse_grouping, parse_call, PRECEDENCE_PRIMARY},
 
     [SNUK_TOKEN_PLUS] = {parse_unary, parse_binary, PRECEDENCE_TERM},
     [SNUK_TOKEN_MINUS] = {parse_unary, parse_binary, PRECEDENCE_TERM},
@@ -262,7 +272,7 @@ static ParseRule rules[] = {
  *
  * @return Pointer to the static parse rule for type.
  */
-SNUK_INLINE ParseRule *get_rule(SnukTokenType type) {
+SNUK_FORCE_INLINE ParseRule *get_rule(SnukTokenType type) {
     return &rules[type];
 }
 
@@ -833,15 +843,24 @@ SNUK_INLINE SnukExpr *build_block_expr(SnukParser *parser, SnukExpr *expr, SnukI
 }
 
 /**
- * @brief Build an call expression node.
+ * @brief Build a call expression node.
  *
  * @param parser Parser context to operate on.
+ * @param name Function name.
+ * @param params The parameters.
  *
  * @return Newly allocated call expression node.
  */
-SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser) {
-    SNUK_UNUSED(parser);
-    return NULL;
+SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukStringView name, SnukExpr **params) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){
+        .type = SNUK_EXPR_CALL,
+        .call = {
+            .name = name,
+            .params = params
+        },
+    };
+    return expr;
 }
 
 /**
