@@ -839,17 +839,17 @@ SNUK_INLINE SnukExpr *build_block_expr(SnukParser *parser, SnukExpr *expr, SnukI
  * @brief Build a call expression node.
  *
  * @param parser Parser context to operate on.
- * @param name Function name.
+ * @param fn Expression to call.
  * @param params The parameters.
  *
  * @return Newly allocated call expression node.
  */
-SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukStringView name, SnukExpr **params) {
+SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukExpr *fn, SnukExpr **params) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_CALL,
         .call = {
-            .name = name,
+            .fn = fn,
             .params = params
         },
     };

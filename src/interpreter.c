@@ -57,6 +57,7 @@ static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int cap
 static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr);
 static SnukValue execute_while_expr(SnukInterpreter *i, SnukExpr *loop);
 static SnukValue execute_for_expr(SnukInterpreter *i, SnukExpr *loop);
+static SnukValue execute_fn_expr(SnukInterpreter *i, SnukExpr *expr);
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
@@ -204,7 +205,9 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
 
         // TODO:
         case SNUK_EXPR_CALL:
+            return execute_fn_expr(i, expr);
             break;
+
         case SNUK_EXPR_MEMBER:
             break;
         case SNUK_EXPR_INDEX:
@@ -634,3 +637,70 @@ end:
     snuk_scope_pop(i);
     return res;
 }
+
+SNUK_INLINE bool name_exists_in_param_list(SnukParam **params, uint64_t count, SnukStringView name) {
+    for (uint64_t i = 0; i < count; ++i) {
+        if (params[i]->name.len != name.len) continue;
+
+        if (snuk_string_n_equal(params[i]->name.str, name.str, name.len))
+            return true;
+    }
+    return false;
+}
+
+static SnukValue execute_fn_expr(SnukInterpreter *i, SnukExpr *expr) {
+    SnukValue fn = snuk_interpreter_eval_expr(i, expr->call.fn);
+    SNUK_ASSERT(fn.type == SNUK_VALUE_FN, "call expression on non function");
+
+    SnukRefCounter *new_scope = snuk_scope_create(snuk_ref_counter_retain(fn.fn_value.closure));
+
+    uint64_t fn_param_count = snuk_darray_get_length(fn.fn_value.params);
+    uint64_t call_param_count = snuk_darray_get_length(expr->call.params);
+    bool named_params = false;
+    for (uint64_t j = 0; j < call_param_count; ++j) {
+        SnukExpr *call_param = expr->call.params[j];
+        SnukParam *fn_param = fn.fn_value.params[j];
+
+        SnukStringView name;
+        SnukExpr *value;
+        // TODO:type
+        if (call_param->type == SNUK_EXPR_ASSIGN) {
+            named_params = true;
+            name = call_param->assign.identifier->identifier;
+            // TODO: parameter doesn't exists
+            SNUK_ASSERT(name_exists_in_param_list(fn.fn_value.params, fn_param_count, name),
+                    "parameter doesn't exists");
+            value = call_param->assign.value;
+        } else if (!named_params && call_param->type != SNUK_EXPR_COMPOUND_ASSIGN) {
+            name = fn_param->name;
+            value = call_param;
+        } else {
+            // TODO: once named parameters are given, should not switch back to positional
+            SNUK_SHOULD_NOT_REACH_HERE;
+        }
+        SnukEnv *env = create_snuk_env(i, name, value);
+        snuk_scope_add_env(GET_SCOPE(new_scope), env);
+    }
+
+    // check all parameters are filled, and if not fill with default value or throw error
+    for (uint64_t j = 0; j < fn_param_count; ++j) {
+        SnukParam *param = fn.fn_value.params[j];
+        if (!snuk_scope_lookup(GET_SCOPE(new_scope), param->name)) {
+            SNUK_ASSERT(param->default_value, "value is not given for parameter");
+            SnukEnv *env = create_snuk_env(i, param->name, param->default_value);
+            snuk_scope_add_env(GET_SCOPE(new_scope), env);
+        }
+    }
+
+    SnukRefCounter *temp = snuk_ref_counter_move(&i->current);
+    i->current = snuk_ref_counter_move(&new_scope);
+
+    SnukValue ret = execute_block_expr(i, fn.fn_value.body, SNUK_SIGNAL_RETURN, SNUK_SIGNAL_NONE);
+
+    new_scope = snuk_ref_counter_move(&i->current);
+    i->current = snuk_ref_counter_move(&temp);
+    snuk_ref_counter_release(new_scope);
+
+    return ret;
+}
+

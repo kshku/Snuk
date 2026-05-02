@@ -422,7 +422,7 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
         parser_error(parser, "expected ')");
         return NULL;
     }
-    return build_call_expr(parser, left->identifier, params);
+    return build_call_expr(parser, left, params);
 }
 
 static SnukExpr *parse_comment(SnukParser *parser) {
@@ -681,7 +681,7 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             break;
         case SNUK_EXPR_CALL:
             // TODO:
-            log_trace("call: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->call.name));
+            snuk_parser_log_expr(expr->call.fn);
             count = snuk_darray_get_length(expr->call.params);
             for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_expr(expr->call.params[i]);

@@ -205,7 +205,7 @@ struct SnukExpr {
         SnukItem **block_items; /**< Dynamic array of items in the block. */
 
         struct {
-            SnukStringView name;
+            SnukExpr *fn; /**< Expression to call */
             SnukExpr **params; /**< Darray of call argument expressions. */
         } call;
     };
