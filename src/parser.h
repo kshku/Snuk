@@ -201,11 +201,7 @@ struct SnukExpr {
             SnukType *return_type; /**< Return type of function */
         } fn_expr;
 
-        struct {
-            // TODO:
-            SnukItem **vars; //**< Dynamic array of field declarations. */
-            SnukItem **fns; //**< Dynamic array of method declarations. */
-        } type_expr;
+        SnukItem **members; /**< Dynamic array of members items in the type */
 
         SnukItem **block_items; /**< Dynamic array of items in the block. */
 

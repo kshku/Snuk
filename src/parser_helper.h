@@ -807,16 +807,15 @@ SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, Snuk
  * @brief Build an type expression node.
  *
  * @param parser Parser context to operate on.
- * @param vars Declaraiton items inside type.
- * @param fns Declaration items inside type.
+ * @param members Member items in type.
  *
  * @return Newly allocated type expression node.
  */
-SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **vars, SnukItem **fns) {
+SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **members) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
-        .type_expr = {.vars = vars, .fns = fns},
+        .members = members,
     };
     return expr;
 }
