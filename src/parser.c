@@ -236,10 +236,6 @@ static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left) {
  * @brief Parse an assignment expression.
  */
 static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
-    if (left->type != SNUK_EXPR_IDENTIFIER) {
-        parser_error(parser, "invalid assignment target");
-        return NULL;
-    }
     SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
     return build_assign_expr(parser, left, value);
 }
