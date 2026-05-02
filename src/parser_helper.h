@@ -194,6 +194,15 @@ static SnukExpr *parse_block(SnukParser *parser);
  */
 static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left);
 
+/**
+ * @brief Parse comment expression.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_comment(SnukParser *parser);
+
 static ParseRule rules[] = {
     [SNUK_TOKEN_IDENTIFIER] = {parse_primary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_INTEGER] = {parse_primary, NULL, PRECEDENCE_NONE},
@@ -263,6 +272,9 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_TYPE] = {parse_type, NULL, PRECEDENCE_NONE},
 
     [SNUK_TOKEN_LBRACE] = {parse_block, NULL, PRECEDENCE_NONE},
+
+    [SNUK_TOKEN_LINE_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
+    [SNUK_TOKEN_BLOCK_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
 };
 
 /**
@@ -354,15 +366,6 @@ static SnukItem *parse_type_item(SnukParser *parser);
  * @return Parsed item, or NULL on parse failure.
  */
 static SnukItem *parse_print_item(SnukParser *parser);
-
-/**
- * @brief Parse a comment item.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed item, or NULL on parse failure.
- */
-static SnukItem *parse_comment_item(SnukParser *parser);
 
 /**
  * @breif Parse a type annotation.
@@ -516,20 +519,19 @@ SNUK_INLINE SnukItem *build_print_item(SnukParser *parser, SnukItem *item, SnukE
 }
 
 /**
- * @brief Build a comment item from a comment token.
+ * @brief Build a comment expresson from a comment token.
  *
  * @param parser Parser context to operate on.
- * @param comment_token Source comment token.
  *
- * @return Newly allocated comment item.
+ * @return Newly allocated comment expressoin.
  */
-SNUK_INLINE SnukItem *build_comment_item(SnukParser *parser, SnukToken comment_token) {
-    SnukItem *item = parser_create_item(parser);
-    *item = (SnukItem){
-        .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT ? SNUK_ITEM_LINE_COMMENT : SNUK_ITEM_BLOCK_COMMENT,
+SNUK_INLINE SnukExpr *build_comment_expr(SnukParser *parser, SnukToken comment_token) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){
+        .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT ? SNUK_EXPR_BLOCK_COMMENT : SNUK_EXPR_LINE_COMMENT,
         .comment = comment_token.string_literal,
     };
-    return item;
+    return expr;
 }
 
 /**

@@ -37,9 +37,6 @@ typedef enum SnukItemType {
     SNUK_ITEM_BREAK, /**< Transfer control out of loop, may carray value with them. */
     SNUK_ITEM_CONTINUE, /**< Transfer control to next iteration. */
 
-    SNUK_ITEM_LINE_COMMENT, /**< Single line comment */
-    SNUK_ITEM_BLOCK_COMMENT, /**< Multi line comment */
-
     SNUK_ITEM_MAX /**< Sentinel value for item kinds. */
 } SnukItemType;
 
@@ -75,6 +72,9 @@ typedef enum SnukExprType {
     SNUK_EXPR_CALL, /**< Function call expression. */
     SNUK_EXPR_MEMBER, /**< Member access expression. */
     SNUK_EXPR_INDEX, /**< Index access expression. */
+
+    SNUK_EXPR_LINE_COMMENT, /**< Single line comment */
+    SNUK_EXPR_BLOCK_COMMENT, /**< Multi line comment */
 
     SNUK_EXPR_MAX /**< Sentinel value for expression kinds. */
 } SnukExprType;
@@ -131,8 +131,6 @@ struct SnukItem {
         } decl_item;
 
         SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
-
-        SnukStringView comment; /**< Comment */
     };
 };
 
@@ -148,6 +146,7 @@ struct SnukExpr {
         double float_literal;
         SnukStringView string_literal;
         bool bool_literal;
+        SnukStringView comment; /**< Comment */
 
         struct {
             SnukTokenType op; /**< Unary operator token. */

@@ -32,9 +32,6 @@ static SnukItem *parse_item(SnukParser *parser) {
 
     if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_BLOCK_COMMENT) || parser_match(parser, SNUK_TOKEN_LINE_COMMENT))
-        return parse_comment_item(parser);
-
     return parse_expr_item(parser);
 }
 
@@ -97,14 +94,6 @@ static SnukItem *parse_print_item(SnukParser *parser) {
     while (parser_match(parser, SNUK_TOKEN_COMMA))
         print_item = build_print_item(parser, print_item, parse_expression(parser));
     return print_item;
-}
-
-/**
- * @brief Parse a source comment as a item.
- */
-static SnukItem *parse_comment_item(SnukParser *parser) {
-    SnukToken t = parser->previous;
-    return build_comment_item(parser, t);
 }
 
 /**
@@ -436,6 +425,11 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
     return build_call_expr(parser, left->identifier, params);
 }
 
+static SnukExpr *parse_comment(SnukParser *parser) {
+    SnukToken t = parser->previous;
+    return build_comment_expr(parser, t);
+}
+
 /**
  * @brief Parse an type expression.
  */
@@ -582,12 +576,6 @@ void snuk_parser_log_item(SnukItem *item) {
             for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_expr(item->print_exprs[i]);
             break;
-        case SNUK_ITEM_LINE_COMMENT:
-            log_trace("single line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->comment));
-            break;
-        case SNUK_ITEM_BLOCK_COMMENT:
-            log_trace("multi-line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->comment));
-            break;
         default:
             break;
     }
@@ -706,6 +694,12 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             // TODO:
             log_trace("Index:", NULL);
             break;
+        case SNUK_EXPR_LINE_COMMENT:
+            log_trace("single line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->comment));
+            break;
+        case SNUK_EXPR_BLOCK_COMMENT:
+            log_trace("multi-line comment: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->comment));
+            break;
         default:
             break;
     }
@@ -776,10 +770,6 @@ const char *snuk_parser_item_type_to_string(SnukItemType type) {
             return SNUK_STRINGIFY(SNUK_ITEM_BREAK);
         case SNUK_ITEM_CONTINUE:
             return SNUK_STRINGIFY(SNUK_ITEM_CONTINUE);
-        case SNUK_ITEM_LINE_COMMENT:
-            return SNUK_STRINGIFY(SNUK_ITEM_LINE_COMMENT);
-        case SNUK_ITEM_BLOCK_COMMENT:
-            return SNUK_STRINGIFY(SNUK_ITEM_BLOCK_COMMENT);
         case SNUK_ITEM_MAX:
             return SNUK_STRINGIFY(SNUK_ITEM_MAX);
         default:
@@ -834,6 +824,10 @@ const char *snuk_parser_expr_type_to_string(SnukExprType type) {
             return SNUK_STRINGIFY(SNUK_EXPR_MEMBER);
         case SNUK_EXPR_INDEX:
             return SNUK_STRINGIFY(SNUK_EXPR_INDEX);
+        case SNUK_EXPR_LINE_COMMENT:
+            return SNUK_STRINGIFY(SNUK_EXPR_LINE_COMMENT);
+        case SNUK_EXPR_BLOCK_COMMENT:
+            return SNUK_STRINGIFY(SNUK_EXPR_BLOCK_COMMENT);
         case SNUK_EXPR_MAX:
             return SNUK_STRINGIFY(SNUK_EXPR_MAX);
         default:

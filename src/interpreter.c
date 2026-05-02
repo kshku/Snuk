@@ -94,9 +94,6 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
             i->signal = SNUK_SIGNAL_CONTINUE;
             return (SnukValue){.type = SNUK_VALUE_NULL};
 
-        // ignoring comments for now
-        case SNUK_ITEM_LINE_COMMENT:
-        case SNUK_ITEM_BLOCK_COMMENT:
         case SNUK_ITEM_MAX:
         default:
             break;
@@ -213,6 +210,9 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
         case SNUK_EXPR_INDEX:
             break;
 
+        // ignoring comments for now
+        case SNUK_EXPR_LINE_COMMENT:
+        case SNUK_EXPR_BLOCK_COMMENT:
         case SNUK_EXPR_MAX:
         default:
             break;
