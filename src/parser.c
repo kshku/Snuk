@@ -690,8 +690,13 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             snuk_parser_log_expr(expr->for_loop.body);
             break;
         case SNUK_EXPR_FN:
-            // TODO:
             log_trace("fn expression:", NULL);
+            count = snuk_darray_get_length(expr->fn_expr.params);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_param(expr->fn_expr.params[i]);
+            log_trace("body:", NULL);
+            snuk_parser_log_expr(expr->fn_expr.body);
+            snuk_parser_log_type(expr->fn_expr.return_type);
             break;
         case SNUK_EXPR_TYPE:
             // TODO:
