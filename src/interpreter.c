@@ -68,7 +68,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
             {
                 // TODO: const
                 SnukEnv *env = create_snuk_env(i, item->decl_item.name, item->decl_item.expr);
-                return snuk_scope_add_env(snuk_ref_counter_get(i->current), env)->value;
+                return snuk_scope_add_env(GET_SCOPE(i->current), env)->value;
             }
             // TODO: Stroing types
         case SNUK_ITEM_TYPE_DECL:
@@ -507,7 +507,7 @@ static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name) {
     SnukRefCounter *rc = i->current;
     SnukEnv *env;
     while (rc) {
-        SnukScope *scope = snuk_ref_counter_get(rc);
+        SnukScope *scope = GET_SCOPE(rc);
         if ((env = snuk_scope_lookup(scope, name))) return env;
         rc = scope->parent;
     }
