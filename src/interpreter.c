@@ -6,6 +6,8 @@
 #include "io.h"
 #include "logger.h"
 
+#define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))
+
 SNUK_INLINE SnukEnv *create_snuk_env(SnukInterpreter *i, SnukStringView name, SnukExpr *value) {
     SnukEnv *env = (SnukEnv *)snuk_alloc(sizeof(SnukEnv), alignof(SnukEnv));
     *env = (SnukEnv){
@@ -64,7 +66,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
             {
                 // TODO: const
                 SnukEnv *env = create_snuk_env(i, item->decl_item.name, item->decl_item.expr);
-                return snuk_scope_add_env(i->current, env)->value;
+                return snuk_scope_add_env(snuk_ref_counter_get(i->current), env)->value;
             }
             // TODO: Stroing functions and types
         case SNUK_ITEM_FN_DECL:
@@ -432,20 +434,17 @@ void snuk_interpreter_print_value(SnukValue value) {
 }
 
 static void snuk_scope_push(SnukInterpreter *i) {
-    SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
-    *scope = (SnukScope){
-        .vars = snuk_darray_create(SnukEnv *),
-        .parent = i->current,
-    };
-    i->current = scope;
+    i->current = snuk_scope_create(snuk_ref_counter_move(&i->current));
 }
 
 static void snuk_scope_pop(SnukInterpreter *i) {
     if (i->global == i->current) SNUK_SHOULD_NOT_REACH_HERE;
-    SnukScope *scope = i->current;
-    i->current = i->current->parent;
-    snuk_darray_destroy(scope->vars);
-    snuk_free(scope);
+
+    SnukScope *scope = GET_SCOPE(i->current);
+    SnukRefCounter *parent = snuk_ref_counter_retain(scope->parent);
+
+    snuk_ref_counter_release(i->current);
+    i->current = snuk_ref_counter_move(&parent);
 }
 
 static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
@@ -471,11 +470,12 @@ static SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
 }
 
 static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name) {
-    SnukScope *scope = i->current;
+    SnukRefCounter *rc = i->current;
     SnukEnv *env;
-    while (scope) {
+    while (rc) {
+        SnukScope *scope = snuk_ref_counter_get(rc);
         if ((env = snuk_scope_lookup(scope, name))) return env;
-        scope = scope->parent;
+        rc = scope->parent;
     }
     return NULL;
 }
