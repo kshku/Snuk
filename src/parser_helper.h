@@ -338,15 +338,6 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const);
 static SnukItem *parse_flow_item(SnukParser *parser);
 
 /**
- * @brief Parse a function declaration item.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed item, or NULL on parse failure.
- */
-static SnukItem *parse_fn_item(SnukParser *parser);
-
-/**
  * @brief Parse a type declaration item.
  *
  * @param parser Parser context to operate on.
@@ -791,14 +782,15 @@ SNUK_INLINE SnukExpr *build_for_expr(SnukParser *parser, SnukItem *init, SnukExp
  * @param params Parameters of the fn expression.
  * @param body Block expression to execute.
  * @param return_type Return type of the function.
+ * @param name Name of function in case of syntax sugar.
  *
  * @return Newly allocated fn expression node.
  */
-SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, SnukExpr *body, SnukType *return_type) {
+SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, SnukExpr *body, SnukType *return_type, SnukStringView name) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FN,
-        .fn_expr = {.params = params, .body = body, .return_type = return_type},
+        .fn_expr = {.params = params, .body = body, .return_type = return_type, .name = name},
     };
     return expr;
 }

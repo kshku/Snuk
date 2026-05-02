@@ -29,7 +29,6 @@ typedef enum SnukItemType {
     SNUK_ITEM_VAR_DECL, /**< Variable declaration (expression with restriction) */
     SNUK_ITEM_CONST_DECL, /**< Constant declaration (expression with restriction) */
 
-    SNUK_ITEM_FN_DECL, /**< Function declaration (syntax sugar) */
     SNUK_ITEM_TYPE_DECL, /**< Type declaration (syntax sugar) */
 
     SNUK_ITEM_PRINT, /**< Printing expression (special expression, always returns null) */
@@ -199,6 +198,7 @@ struct SnukExpr {
             SnukParam **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
             SnukType *return_type; /**< Return type of function */
+            SnukStringView name;
         } fn_expr;
 
         SnukItem **members; /**< Dynamic array of members items in the type */

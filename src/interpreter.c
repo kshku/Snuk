@@ -65,7 +65,6 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
             break;
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
-        case SNUK_ITEM_FN_DECL:
             {
                 // TODO: const
                 SnukEnv *env = create_snuk_env(i, item->decl_item.name, item->decl_item.expr);
@@ -173,15 +172,27 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
             return execute_for_expr(i, expr);
 
         case SNUK_EXPR_FN:
-            return (SnukValue){
-                .type = SNUK_VALUE_FN,
-                .fn_value = {
-                    .closure = snuk_ref_counter_retain(i->current),
-                    .body = expr->fn_expr.body,
-                    .params = expr->fn_expr.params,
-                    .return_type = expr->fn_expr.return_type,
-                },
-            };
+            {
+                SnukValue value = {
+                    .type = SNUK_VALUE_FN,
+                    .fn_value = {
+                        .closure = snuk_ref_counter_retain(i->current),
+                        .body = expr->fn_expr.body,
+                        .params = expr->fn_expr.params,
+                        .return_type = expr->fn_expr.return_type,
+                    },
+                };
+
+                // Syntax sugar
+                if (expr->fn_expr.name.len) {
+                    SnukStringView name = expr->fn_expr.name;
+                    expr->fn_expr.name = (SnukStringView){0};
+                    SnukEnv *env = create_snuk_env(i, name, expr);
+                    snuk_scope_add_env(GET_SCOPE(i->current), env);
+                }
+
+                return value;
+            }
 
         case SNUK_EXPR_TYPE:
             break;
