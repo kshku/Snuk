@@ -45,7 +45,7 @@ SNUK_INLINE void *snuk_ref_counter_get(SnukRefCounter *rc) {
 
 SNUK_INLINE void snuk_ref_counter_release(SnukRefCounter *rc) {
     SNUK_ASSERT(rc, "SnukRefCounter is null");
-    log_debug("freed a ref counter", NULL);
+    log_debug("released a ref counter", NULL);
     rc->ref_count--;
 
     if (rc->ref_count == 0) {
