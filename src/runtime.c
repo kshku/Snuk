@@ -5,7 +5,7 @@
 
 void snuk_runtime_execute(Runtime *rt, const char *src) {
     SnukParser parser;
-    snuk_parser_init(&parser, src, (void *)(&rt->la), (alloc_fn)sn_linear_allocator_allocate);
+    snuk_parser_init(&parser, src, &rt->parser_allocator);
 
     SnukItem *item;
     while (true) {

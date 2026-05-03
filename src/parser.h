@@ -4,6 +4,7 @@
 
 #include "lexer.h"
 #include "string_view.h"
+#include "darray.h"
 
 /*
  * We will have Items similar to Rust.

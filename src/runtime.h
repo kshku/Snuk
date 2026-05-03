@@ -14,7 +14,27 @@ typedef struct Runtime {
     void *mem;
     snLinearAllocator la;
     SnukInterpreter interpreter;
+    SnukAllocator parser_allocator;
 } Runtime;
+
+SNUK_INLINE void *runtime_alloc_fn(void *data, uint64_t size, uint64_t align) {
+    snLinearAllocator *la = (snLinearAllocator *)data;
+    return sn_linear_allocator_allocate(la, size, align);
+}
+
+SNUK_INLINE void *runtime_realloc_fn(void *data, void *ptr, uint64_t new_size, uint64_t align) {
+    snLinearAllocator *la = (snLinearAllocator *)data;
+    void *new = sn_linear_allocator_allocate(la, new_size, align);
+    // No need to worry about how much to copy
+    // since it is inside the given memory itself
+    memcpy(new, ptr, new_size);
+    return new;
+}
+
+SNUK_INLINE void runtime_free_fn(void *data, void *ptr) {
+    SNUK_UNUSED(data);
+    SNUK_UNUSED(ptr);
+}
 
 SNUK_INLINE void snuk_runtime_init(Runtime *rt) {
     *rt = (Runtime){
