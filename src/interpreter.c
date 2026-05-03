@@ -18,9 +18,6 @@ SNUK_INLINE SnukEnv *snuk_create_env(SnukInterpreter *intpret, SnukStringView na
 
     switch (value.type) {
         case SNUK_VALUE_FN:
-            value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
-            break;
-
         case SNUK_VALUE_TYPE:
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
@@ -111,7 +108,7 @@ SNUK_INLINE void snuk_free_scope(void *data, void *ptr) {
 SNUK_INLINE SnukRefCounter *snuk_create_scope(SnukRefCounter *parent) {
     SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
     *scope = (SnukScope){
-        .vars = snuk_darray_create(SnukEnv *),
+        .vars = snuk_darray_create(SnukEnv *, NULL),
         .parent = snuk_ref_counter_move(&parent),
     };
     return snuk_ref_counter_create(scope, NULL, snuk_free_scope);
@@ -371,7 +368,9 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
                     SnukStringView name = expr->fn_expr.name;
                     expr->fn_expr.name = (SnukStringView){0};
                     SnukEnv *env = snuk_create_env(intpret, name, expr);
-                    snuk_scope_add_env(GET_SCOPE(intpret->current), env);
+                    env = snuk_scope_add_env(GET_SCOPE(intpret->current), env);
+                    snuk_ref_counter_release(value.fn_value.closure);
+                    return env->value;
                 }
 
                 return value;
