@@ -174,3 +174,25 @@ static void try_increasing_allocator_size(void) {
         last_node->next = (snFreeNode *)base;
     }
 }
+
+SNUK_INLINE void *snuk_allocator_global_alloc(void *data, uint64_t size, uint64_t align) {
+    SNUK_UNUSED(data);
+    return snuk_alloc(size, align);
+}
+
+SNUK_INLINE void snuk_allocator_global_free(void *data, void *ptr) {
+    SNUK_UNUSED(data);
+    snuk_free(ptr);
+}
+
+SNUK_INLINE void *snuk_allocator_global_realloc(void *data, void *ptr, uint64_t new_size, uint64_t align) {
+    SNUK_UNUSED(data);
+    return snuk_realloc(ptr, new_size, align);
+}
+
+SnukAllocator snuk_global_allocator = {
+    .data = NULL,
+    .alloc = snuk_allocator_global_alloc,
+    .realloc = snuk_allocator_global_realloc,
+    .free = snuk_allocator_global_free,
+};
