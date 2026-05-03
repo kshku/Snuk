@@ -384,7 +384,7 @@ static SnukType *parse_type_annot(SnukParser *parser);
  * @return Newly allocated item storage.
  */
 SNUK_INLINE SnukItem *parser_create_item(SnukParser *parser) {
-    return (SnukItem *)parser->alloc(parser->alloc_data,
+    return (SnukItem *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukItem), alignof(SnukItem));
 }
 
@@ -396,7 +396,7 @@ SNUK_INLINE SnukItem *parser_create_item(SnukParser *parser) {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
-    return (SnukExpr *)parser->alloc(parser->alloc_data,
+    return (SnukExpr *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukExpr), alignof(SnukExpr));
 }
 
@@ -408,7 +408,7 @@ SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
  * @return Newly allocated parameter storage.
  */
 SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
-    return (SnukParam *)parser->alloc(parser->alloc_data,
+    return (SnukParam *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukParam), alignof(SnukParam));
 }
 
@@ -420,7 +420,7 @@ SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukType *parser_create_type(SnukParser *parser) {
-    return (SnukType *)parser->alloc(parser->alloc_data,
+    return (SnukType *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukType), alignof(SnukType));
 }
 
