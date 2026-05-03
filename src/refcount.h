@@ -4,6 +4,8 @@
 
 #include "memory.h"
 
+#include "logger.h"
+
 // free_fn must free `mem` and any owned resources.
 // It must NOT free the refcounter itself.
 typedef void (*SnukRefCounterFreeFn)(void *data, void *ptr);
@@ -25,11 +27,13 @@ SNUK_INLINE SnukRefCounter *snuk_ref_counter_create(void *mem, void *data, SnukR
         .data = data,
         .free_fn = free_fn,
     };
+    log_debug("created a ref counter", NULL);
     return rc;
 }
 
 SNUK_INLINE SnukRefCounter *snuk_ref_counter_retain(SnukRefCounter *rc) {
     SNUK_ASSERT(rc, "SnukRefCounter is null");
+    log_debug("retained a ref counter", NULL);
     rc->ref_count++;
     return rc;
 }
@@ -41,11 +45,13 @@ SNUK_INLINE void *snuk_ref_counter_get(SnukRefCounter *rc) {
 
 SNUK_INLINE void snuk_ref_counter_release(SnukRefCounter *rc) {
     SNUK_ASSERT(rc, "SnukRefCounter is null");
+    log_debug("freed a ref counter", NULL);
     rc->ref_count--;
 
     if (rc->ref_count == 0) {
         rc->free_fn(rc->data, rc->mem);
         snuk_free(rc);
+        log_debug("a ref counter got destroyed", NULL);
     }
 }
 
