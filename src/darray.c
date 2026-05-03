@@ -1,7 +1,5 @@
 #include "darray.h"
 
-#include "memory.h"
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -41,14 +39,16 @@ SNUK_INLINE uint64_t read_from_bytes(void *ptr, bool reverse) {
 #define SET_ALIGN_SHIFT(ptr, shift) (write_to_bytes((void *)((uint64_t)(ptr) - 1), (shift), true))
 #define GET_ALIGNED_NEXT(x, align) ((((uint64_t)(x)) + (align)) & ~((align) - 1))
 
-void *impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align) {
+void *impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align, SnukAllocator *allocator) {
+    if (!allocator) allocator = &snuk_global_allocator;
     uint64_t total = (capacity * stride) + HEADER_SIZE + align;
-    uint64_t *ptr = (uint64_t *)snuk_alloc(total, alignof(uint64_t));
+    uint64_t *ptr = (uint64_t *)allocator->alloc(allocator->data, total, alignof(uint64_t));
     memset(ptr, 0, total);
     ptr[SNUK_DARRAY_CAPACITY] = capacity;
     ptr[SNUK_DARRAY_SIZE] = 0;
     ptr[SNUK_DARRAY_STRIDE] = stride;
     ptr[SNUK_DARRAY_ALIGN] = align;
+    ptr[SNUK_DARRAY_ALLOCATOR] = (uint64_t)allocator;
 
     ptr = (uint64_t *)((uint64_t)ptr + HEADER_SIZE);
 
@@ -62,7 +62,9 @@ void impl_snuk_darray_destroy(void *arr) {
     uint64_t ptr = (uint64_t)arr;
     ptr -= GET_ALIGN_SHIFT(ptr);
     ptr -= HEADER_SIZE;
-    snuk_free((void *)ptr);
+    uint64_t *p = (uint64_t *)ptr;
+    SnukAllocator *allocator = (SnukAllocator *)p[SNUK_DARRAY_ALLOCATOR];
+    allocator->free(allocator->data, (void *)ptr);
 }
 
 void impl_snuk_darray_resize(void **parr, uint64_t capacity) {
@@ -73,7 +75,8 @@ void impl_snuk_darray_resize(void **parr, uint64_t capacity) {
 
     uint64_t *p = (uint64_t *)ptr;
 
-    p = (uint64_t *)snuk_realloc(p, (capacity * p[SNUK_DARRAY_STRIDE]) + HEADER_SIZE + p[SNUK_DARRAY_ALIGN], alignof(uint64_t));
+    SnukAllocator *allocator = (SnukAllocator *)p[SNUK_DARRAY_ALLOCATOR];
+    p = (uint64_t *)allocator->realloc(allocator->data, p, (capacity * p[SNUK_DARRAY_STRIDE]) + HEADER_SIZE + p[SNUK_DARRAY_ALIGN], alignof(uint64_t));
 
     p[SNUK_DARRAY_CAPACITY] = capacity;
 
@@ -99,7 +102,7 @@ void impl_snuk_darray_push(void **parr, void *element) {
     uint64_t *p = (uint64_t *)ptr;
 
     if (p[SNUK_DARRAY_CAPACITY] <= p[SNUK_DARRAY_SIZE]) {
-        snuk_darray_resize(parr, p[SNUK_DARRAY_CAPACITY] + SNUK_DARRAY_RESIZE_FACTOR);
+        snuk_darray_resize(parr, p[SNUK_DARRAY_CAPACITY] * SNUK_DARRAY_RESIZE_FACTOR);
         ptr = (uint64_t)(*parr);
         ptr -= align_shift;
         ptr -= HEADER_SIZE;
@@ -139,7 +142,7 @@ void impl_snuk_darray_push_at(void **parr, uint64_t index, void *element) {
     }
 
     if (p[SNUK_DARRAY_CAPACITY] <= p[SNUK_DARRAY_SIZE]) {
-        snuk_darray_resize(parr, p[SNUK_DARRAY_CAPACITY] + SNUK_DARRAY_RESIZE_FACTOR);
+        snuk_darray_resize(parr, p[SNUK_DARRAY_CAPACITY] * SNUK_DARRAY_RESIZE_FACTOR);
         ptr = (uint64_t)(*parr);
         ptr -= align_shift;
         ptr -= HEADER_SIZE;

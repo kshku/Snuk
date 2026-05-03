@@ -2,19 +2,24 @@
 
 #include "defines.h"
 
+#include "memory.h"
+
 #define SNUK_DARRAY_DEFAULT_CAPACITY 5
-#define SNUK_DARRAY_RESIZE_FACTOR 5
+#define SNUK_DARRAY_RESIZE_FACTOR 2
+
+SNUK_STATIC_ASSERT(sizeof(uint64_t) == sizeof(void *), "size of pointer != size of uint64_t");
 
 typedef enum SnukDArrayHeader {
     SNUK_DARRAY_CAPACITY,
     SNUK_DARRAY_SIZE,
     SNUK_DARRAY_STRIDE,
     SNUK_DARRAY_ALIGN,
+    SNUK_DARRAY_ALLOCATOR,
 
     SNUK_DARRAY_MAX_FIELDS
 } SnukDArrayHeader;
 
-void *impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align);
+void *impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align, SnukAllocator *allocator);
 
 void impl_snuk_darray_destroy(void *arr);
 
@@ -37,21 +42,23 @@ void impl_snuk_darray_clear(void **parr);
  *
  * @param capacity The initial capacity of the array
  * @param type Type of the element
+ * @param allocator The allocator to use (if NULL snuk_global allocator is used)
  *
  * @return The array or NULL on failure.
  */
-#define snuk_darray_create_with_capacity(capacity, type) \
-    (type *)impl_snuk_darray_create(capacity, sizeof(type), alignof(type))
+#define snuk_darray_create_with_capacity(capacity, type, allocator) \
+    (type *)impl_snuk_darray_create(capacity, sizeof(type), alignof(type), allocator)
 
 /**
  * @brief Create a darray of given type.
  *
  * @param type Type of the elements of the array
+ * @param allocator The allocator to use (if NULL snuk_global allocator is used)
  *
  * @return The array or NULL on failure.
  */
-#define snuk_darray_create(type) \
-    snuk_darray_create_with_capacity(SNUK_DARRAY_DEFAULT_CAPACITY, type)
+#define snuk_darray_create(type, allocator) \
+    snuk_darray_create_with_capacity(SNUK_DARRAY_DEFAULT_CAPACITY, type, allocator)
 
 /**
  * @brief Destroy the darray.
