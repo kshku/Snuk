@@ -382,8 +382,6 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         case SNUK_EXPR_BLOCK:
             {
                 SnukValue value = execute_block_expr(intpret, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_NONE);
-                // TODO: destroying darray
-                // snuk_darray_destroy(expr->block_items);
                 return value;
             }
 
@@ -582,9 +580,6 @@ static void print_exprs(SnukInterpreter *intpret, SnukExpr **exprs) {
     }
 
     snuk_println("", NULL);
-
-    // TODO: destroying darray
-    // snuk_darray_destroy(exprs);
 }
 
 /**
@@ -705,13 +700,8 @@ static SnukValue execute_block_expr(SnukInterpreter *intpret, SnukExpr *block, i
 static SnukValue execute_if_expr(SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue cond = snuk_interpreter_eval_expr(intpret, expr->if_else.condition);
     SnukValue res = {.type = SNUK_VALUE_NULL};
-    bool condition = is_true_value(cond);
-    if (condition) res = execute_block_expr(intpret, expr->if_else.then_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
+    if (is_true_value(cond)) res = execute_block_expr(intpret, expr->if_else.then_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
     else if (expr->if_else.else_block) res = execute_block_expr(intpret, expr->if_else.else_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
-
-    // TODO: destroying darray
-    // snuk_darray_destroy(expr->if_else.then_block->block_items);
-    // if (expr->if_else.else_block) snuk_darray_destroy(expr->if_else.else_block->block_items);
 
     return res;
 }
