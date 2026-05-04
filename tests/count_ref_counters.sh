@@ -11,7 +11,7 @@ do
         destroyed = 0
     }
     {
-        if ($2 == "created") created++;
+        if ($0 ~ /created/) created++;
         else destroyed++;
     }
     END {
