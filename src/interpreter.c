@@ -460,63 +460,30 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
     if (left.type != SNUK_VALUE_INT && left.type != SNUK_VALUE_FLOAT) goto fail;
     if (right.type != SNUK_VALUE_INT && right.type != SNUK_VALUE_FLOAT) goto fail;
 
-    SnukValue res = {0};
+    if (left.type != right.type) goto fail;
 
-    if (left.type == SNUK_VALUE_FLOAT || right.type == SNUK_VALUE_FLOAT) res.type = SNUK_VALUE_FLOAT;
-    else res.type = SNUK_VALUE_INT;
+    SnukValue res = {.type = left.type};
 
     // TODO: better way to do this
     switch (op) {
         case SNUK_TOKEN_PLUS:
-            if (res.type == SNUK_VALUE_INT) {
-                res.int_value = left.int_value + right.int_value;
-            } else {
-                if (left.type == SNUK_VALUE_INT)
-                    res.float_value = (double)left.int_value + right.float_value;
-                else if (right.type == SNUK_VALUE_INT)
-                    res.float_value = left.float_value + (double)right.int_value;
-                else
-                    res.float_value = left.float_value + right.float_value;
-            }
+            if (res.type == SNUK_VALUE_INT) res.int_value = left.int_value + right.int_value;
+            else res.float_value = left.float_value + right.float_value;
             return res;
 
         case SNUK_TOKEN_MINUS:
-            if (res.type == SNUK_VALUE_INT) {
-                res.int_value = left.int_value - right.int_value;
-            } else {
-                if (left.type == SNUK_VALUE_INT)
-                    res.float_value = (double)left.int_value - right.float_value;
-                else if (right.type == SNUK_VALUE_INT)
-                    res.float_value = left.float_value - (double)right.int_value;
-                else
-                    res.float_value = left.float_value - right.float_value;
-            }
+            if (res.type == SNUK_VALUE_INT) res.int_value = left.int_value + right.int_value;
+            else res.float_value = left.float_value + right.float_value;
             return res;
 
         case SNUK_TOKEN_STAR:
-            if (res.type == SNUK_VALUE_INT) {
-                res.int_value = left.int_value * right.int_value;
-            } else {
-                if (left.type == SNUK_VALUE_INT)
-                    res.float_value = (double)left.int_value * right.float_value;
-                else if (right.type == SNUK_VALUE_INT)
-                    res.float_value = left.float_value * (double)right.int_value;
-                else
-                    res.float_value = left.float_value * right.float_value;
-            }
+            if (res.type == SNUK_VALUE_INT) res.int_value = left.int_value * right.int_value;
+            else res.float_value = left.float_value * right.float_value;
             return res;
 
         case SNUK_TOKEN_SLASH:
-            if (res.type == SNUK_VALUE_INT) {
-                res.int_value = left.int_value / right.int_value;
-            } else {
-                if (left.type == SNUK_VALUE_INT)
-                    res.float_value = (double)left.int_value / right.float_value;
-                else if (right.type == SNUK_VALUE_INT)
-                    res.float_value = left.float_value / (double)right.int_value;
-                else
-                    res.float_value = left.float_value / right.float_value;
-            }
+            if (res.type == SNUK_VALUE_INT) res.int_value = left.int_value / right.int_value;
+            else res.float_value = left.float_value / right.float_value;
             return res;
 
         case SNUK_TOKEN_PERCENT:
