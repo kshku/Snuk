@@ -11,3 +11,6 @@ i * 255
 
 print "Hello, World!", i, x
 
+var j = 10
+print ~j, ~10
+
