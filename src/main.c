@@ -97,7 +97,8 @@ OpMode parse_args(int argc, char *argv[], char **data) {
 
 void run_repl(void) {
     char *line_buffer = (char *)snuk_alloc(LINE_BUFFER_SIZE, alignof(char));
-    Runtime rt = snuk_runtime_init();
+    Runtime rt;
+    snuk_runtime_init(&rt);
 
     const char *line;
     do {
@@ -113,7 +114,8 @@ void run_repl(void) {
 void run_file(const char *path) {
     const char *content = snuk_read_file(path);
 
-    Runtime rt = snuk_runtime_init();
+    Runtime rt;
+    snuk_runtime_init(&rt);
 
     snuk_runtime_execute_file(&rt, content);
 
@@ -123,7 +125,8 @@ void run_file(const char *path) {
 }
 
 static void run_command(const char *command) {
-    Runtime rt = snuk_runtime_init();
+    Runtime rt;
+    snuk_runtime_init(&rt);
     snuk_runtime_execute_file(&rt, command);
     snuk_runtime_deinit(&rt);
 }

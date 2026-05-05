@@ -7,6 +7,14 @@
 #define KIB(x) ((x) * 1024)
 #define MIB(x) (KIB((x) * 1024))
 #define GIB(x) (MIB((x) * 1024))
+
+typedef struct SnukAllocator {
+    void *data;
+    void *(*alloc)(void *data, uint64_t size, uint64_t align);
+    void *(*realloc)(void *data, void *ptr, uint64_t new_size, uint64_t align);
+    void (*free)(void *data, void *ptr);
+} SnukAllocator;
+
 /**
  * @brief Retrieves the system page size.
  *
@@ -15,6 +23,7 @@
  * @return System page size.
  */
 #define snuk_page_size() sn_vm_get_page_size()
+
 /**
  * @brief Initializes the memory system.
  *
@@ -24,12 +33,14 @@
  * @return true if initialization was successful, false otherwise.
  */
 bool snuk_memory_init(uint64_t reserve_size);
+
 /**
  * @brief Deinitializes the memory system.
  *
  * Releases any resources or memory previously reserved by the memory system.
  */
 void snuk_memory_deinit(void);
+
 /**
  * @brief Allocates a number of memory pages.
  *
@@ -40,6 +51,7 @@ void snuk_memory_deinit(void);
  * @return Pointer to the allocated memory pages, or NULL if allocation fails.
  */
 void *snuk_allocate_pages(uint32_t pages);
+
 /**
  * @brief Frees a block of allocated memory pages.
  *
@@ -49,6 +61,7 @@ void *snuk_allocate_pages(uint32_t pages);
  * @param pages Number of memory pages to free.
  */
 void snuk_free_pages(void *base, uint32_t pages);
+
 /**
  * @brief Allocates a block of memory with a specified alignment.
  *
@@ -60,6 +73,7 @@ void snuk_free_pages(void *base, uint32_t pages);
  * @return Pointer to the allocated memory, or NULL if allocation fails.
  */
 void *snuk_alloc(uint64_t size, uint64_t align);
+
 /**
  * @brief Resizes a previously allocated memory block.
  *
@@ -73,6 +87,7 @@ void *snuk_alloc(uint64_t size, uint64_t align);
  * @return Pointer to the reallocated memory, or NULL if reallocation fails.
  */
 void *snuk_realloc(void *ptr, uint64_t new_size, uint64_t align);
+
 /**
  * @brief Frees a previously allocated block of memory.
  *
@@ -81,3 +96,5 @@ void *snuk_realloc(void *ptr, uint64_t new_size, uint64_t align);
  * @param ptr Pointer to the memory block to be freed.
  */
 void snuk_free(void *ptr);
+
+extern SnukAllocator snuk_global_allocator;

@@ -3,7 +3,6 @@
 #include "defines.h"
 
 #include "parser.h"
-#include "darray.h"
 #include "memory.h"
 
 /**
@@ -384,7 +383,7 @@ static SnukType *parse_type_annot(SnukParser *parser);
  * @return Newly allocated item storage.
  */
 SNUK_INLINE SnukItem *parser_create_item(SnukParser *parser) {
-    return (SnukItem *)parser->alloc(parser->alloc_data,
+    return (SnukItem *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukItem), alignof(SnukItem));
 }
 
@@ -396,7 +395,7 @@ SNUK_INLINE SnukItem *parser_create_item(SnukParser *parser) {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
-    return (SnukExpr *)parser->alloc(parser->alloc_data,
+    return (SnukExpr *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukExpr), alignof(SnukExpr));
 }
 
@@ -408,7 +407,7 @@ SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
  * @return Newly allocated parameter storage.
  */
 SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
-    return (SnukParam *)parser->alloc(parser->alloc_data,
+    return (SnukParam *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukParam), alignof(SnukParam));
 }
 
@@ -420,7 +419,7 @@ SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukType *parser_create_type(SnukParser *parser) {
-    return (SnukType *)parser->alloc(parser->alloc_data,
+    return (SnukType *)parser->allocator->alloc(parser->allocator->data,
             sizeof(SnukType), alignof(SnukType));
 }
 
@@ -511,7 +510,7 @@ SNUK_INLINE SnukItem *build_print_item(SnukParser *parser, SnukItem *item, SnukE
         item = parser_create_item(parser);
         *item = (SnukItem){
             .type = SNUK_ITEM_PRINT,
-            .print_exprs = snuk_darray_create(SnukExpr *),
+            .print_exprs = snuk_darray_create(SnukExpr *, parser->allocator),
         };
     }
     if (expr) snuk_darray_push(&item->print_exprs, expr);
@@ -828,7 +827,7 @@ SNUK_INLINE SnukExpr *build_block_expr(SnukParser *parser, SnukExpr *expr, SnukI
         expr = parser_create_expr(parser);
         *expr = (SnukExpr){
             .type = SNUK_EXPR_BLOCK,
-            .block_items = snuk_darray_create(SnukItem *),
+            .block_items = snuk_darray_create(SnukItem *, parser->allocator),
         };
     }
     if (item) snuk_darray_push(&expr->block_items, item);
@@ -925,7 +924,7 @@ SNUK_INLINE SnukType *build_fn_type(SnukParser *parser, SnukType *type, SnukType
         type = parser_create_type(parser);
         *type = (SnukType){
             .type = TYPE_FN,
-            .fn = {.param_types = snuk_darray_create(SnukType *)},
+            .fn = {.param_types = snuk_darray_create(SnukType *, parser->allocator)},
         };
     }
     if (param) snuk_darray_push(&type->fn.param_types, param);

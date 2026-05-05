@@ -18,3 +18,29 @@ fn nothing(a, b) {
 
 // nothing(5) // assertion fails
 nothing(b = 5, a = 4)
+
+var x = 10
+
+fn one() -> fn (int) -> int {
+    fn (y) {
+        print "Inside inner function"
+        x * y
+    }
+}
+
+var vone = one()
+vone(5)
+
+x = 5
+vone(5)
+
+fn two() {
+    var x = 3
+    fn () {
+        print x
+    }
+}
+
+var vtwo = two()
+vtwo()
+

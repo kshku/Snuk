@@ -104,57 +104,14 @@ typedef struct SnukInterpreter {
 } SnukInterpreter;
 
 /**
- * @brief Refcount finalizer for a SnukScope.
- *
- * Destroys the bindings darray, releases the parent reference, and frees the
- * scope allocation. Used as the destructor callback when wrapping a scope
- * with snuk_ref_counter_create.
- *
- * @param data Unused user data pointer required by the refcount finalizer
- * signature.
- * @param ptr Pointer to the SnukScope being released.
- */
-SNUK_INLINE void snuk_scope_free(void *data, void *ptr) {
-    SNUK_UNUSED(data);
-    SnukScope *scope = (SnukScope *)ptr;
-    snuk_darray_destroy(scope->vars);
-    if (scope->parent) snuk_ref_counter_release(scope->parent);
-    snuk_free(scope);
-}
-
-/**
- * @brief Allocate a new scope and wrap it in a refcounter.
- *
- * @param parent Parent scope reference, consumed by this call. Pass NULL to
- * create a root scope.
- *
- * @return Refcounted handle to the new scope, with snuk_scope_free as the
- * finalizer.
- */
-SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
-    SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
-    *scope = (SnukScope){
-        .vars = snuk_darray_create(SnukEnv *),
-        .parent = snuk_ref_counter_move(&parent),
-    };
-    return snuk_ref_counter_create(scope, NULL, snuk_scope_free);
-}
-
-/**
  * @brief Initialize an interpreter with a fresh global scope.
  *
  * Creates the global scope, sets the current scope to point at it, and
  * clears any pending signal.
  *
- * @param i Interpreter state to initialize.
+ * @param intpret Interpreter state to initialize.
  */
-SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
-    *i = (SnukInterpreter){
-        .global = snuk_scope_create(NULL),
-        .signal = SNUK_SIGNAL_NONE,
-    };
-    i->current = snuk_ref_counter_retain(i->global);
-}
+void snuk_interpreter_init(SnukInterpreter *intpret);
 
 /**
  * @brief Release the interpreter's scopes and reset the state.
@@ -162,17 +119,9 @@ SNUK_INLINE void snuk_interpreter_init(SnukInterpreter *i) {
  * Releases the current scope (when distinct from global) and the global
  * scope, then zeroes the struct. Safe to call with a NULL pointer.
  *
- * @param i Interpreter state to release, or NULL.
+ * @param intpret Interpreter state to release, or NULL.
  */
-SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
-    if (!i) return;
-
-    // TODO: freeing all scopes
-    if (i->current != i->global) snuk_ref_counter_release(i->current);
-    snuk_ref_counter_release(i->global);
-
-    *i = (SnukInterpreter){0};
-}
+void snuk_interpreter_deinit(SnukInterpreter *intpret);
 
 /**
  * @brief Execute a top-level parsed item.
@@ -188,7 +137,7 @@ SNUK_INLINE void snuk_interpreter_deinit(SnukInterpreter *i) {
  * @return The value produced by the item, or a NULL/UNKOWN placeholder when
  * the item has no meaningful result.
  */
-SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
+SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item);
 
 /**
  * @brief Evaluate an expression and return its runtime value.
@@ -202,7 +151,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item);
  *
  * @return The value the expression evaluates to.
  */
-SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr);
+SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr);
 
 /**
  * @brief Log a runtime value to the trace logger for debugging.

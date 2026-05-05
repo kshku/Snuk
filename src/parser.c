@@ -369,7 +369,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_IDENTIFIER))
         name = parser->previous.string_literal;
 
-    SnukParam **params = snuk_darray_create(SnukParam *);
+    SnukParam **params = snuk_darray_create(SnukParam *, parser->allocator);
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
     while (!parser_match(parser, SNUK_TOKEN_RPAREN)
             && parser->current.type != SNUK_TOKEN_EOF) {
@@ -409,7 +409,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
 }
 
 static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
-    SnukExpr **params = snuk_darray_create(SnukExpr *);
+    SnukExpr **params = snuk_darray_create(SnukExpr *, parser->allocator);
     while (!parser_match(parser, SNUK_TOKEN_RPAREN)
             && parser->current.type != SNUK_TOKEN_EOF) {
         SnukExpr *expr = parse_expression(parser);
@@ -436,7 +436,7 @@ static SnukExpr *parse_comment(SnukParser *parser) {
 static SnukExpr *parse_type(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
-    SnukItem **members = snuk_darray_create(SnukItem *);
+    SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
 
     while (!parser_match(parser, SNUK_TOKEN_RBRACE)
             && parser->current.type !=  SNUK_TOKEN_EOF) {

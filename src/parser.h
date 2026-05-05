@@ -4,6 +4,7 @@
 
 #include "lexer.h"
 #include "string_view.h"
+#include "darray.h"
 
 /*
  * We will have Items similar to Rust.
@@ -212,28 +213,16 @@ struct SnukExpr {
 };
 
 /**
- * @brief Parser allocation callback.
- *
- * @param data Allocator user data.
- * @param size Allocation size in bytes.
- * @param align Required allocation alignment.
- *
- * @return Pointer to allocated storage, or NULL on failure.
- */
-typedef void *(*alloc_fn)(void *data, uint64_t size, uint64_t align);
-
-/**
  * @brief Parser state for a single source buffer.
  */
 typedef struct SnukParser {
     SnukLexer lexer; /**< Lexer used to produce tokens. */
     SnukToken current, previous; /**< Current and previously consumed tokens. */
 
-    // allocation data
-    void *alloc_data; /**< User data passed to the allocation callback. */
-    alloc_fn alloc; /**< Allocation callback used for parser nodes. */
+    SnukAllocator *allocator;
 
     bool had_error, panic_mode; /**< Error and recovery state flags. */
+
 } SnukParser;
 
 /**
@@ -250,10 +239,11 @@ typedef struct SnukParser {
  * @note The source text must remain valid for the lifetime of parsed nodes that
  * reference token text.
  */
-SNUK_INLINE void snuk_parser_init(SnukParser *parser, const char *src, void *alloc_data, alloc_fn alloc) {
+SNUK_INLINE void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator) {
     *parser = (SnukParser){
-        .alloc_data = alloc_data,
-        .alloc = alloc,
+        .allocator = allocator,
+        .had_error = false,
+        .panic_mode = false,
     };
     snuk_lexer_init(&parser->lexer, src);
 

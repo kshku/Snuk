@@ -21,7 +21,21 @@
 #define ARRAY_LEN(x) (sizeof(x) / sizeof((x)[0]))
 
 #if defined(SNUK_DEBUG)
-#define SNUK_ASSERT(cond, msg) assert((cond) && msg)
+#if defined(SNUK_COMPILER_GCC) || defined(SNUK_COMPILER_CLANG)
+#define SNUK_ASSERT(cond, msg) \
+    do {\
+        if (!(cond)) {\
+            __builtin_trap();\
+        }\
+    } while (0)
+#else
+#define SNUK_ASSERT(cond, msg) \
+    do {\
+        if (!(cond)) {\
+            __debugbreak();\
+        }\
+    } while (0)
+#endif
 #else
 #define SNUK_ASSERT(cond, msg) SNUK_UNUSED(cond), SNUK_UNUSED(msg)
 #endif
