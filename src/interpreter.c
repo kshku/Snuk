@@ -8,6 +8,9 @@
 
 #define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))
 
+/**
+ * @brief Allocate a SnukEnv and populate it by evaluating the given expression.
+ */
 SNUK_INLINE SnukEnv *create_snuk_env(SnukInterpreter *i, SnukStringView name, SnukExpr *value) {
     SnukEnv *env = (SnukEnv *)snuk_alloc(sizeof(SnukEnv), alignof(SnukEnv));
     *env = (SnukEnv){
@@ -17,6 +20,9 @@ SNUK_INLINE SnukEnv *create_snuk_env(SnukInterpreter *i, SnukStringView name, Sn
     return env;
 }
 
+/**
+ * @brief Coerce a runtime value to a boolean for conditions and loops.
+ */
 SNUK_INLINE bool is_true_value(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
@@ -59,6 +65,9 @@ static SnukValue execute_while_expr(SnukInterpreter *i, SnukExpr *loop);
 static SnukValue execute_for_expr(SnukInterpreter *i, SnukExpr *loop);
 static SnukValue execute_fn_expr(SnukInterpreter *i, SnukExpr *expr);
 
+/**
+ * @brief Execute a top-level parsed item.
+ */
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     switch (item->type) {
         case SNUK_ITEM_EXPR:
@@ -102,6 +111,9 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *i, SnukItem *item) {
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
+/**
+ * @brief Evaluate an expression and return its runtime value.
+ */
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
@@ -224,6 +236,9 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *i, SnukExpr *expr) {
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
+/**
+ * @brief Evaluate a unary expression's operand and apply the operator.
+ */
 static SnukValue get_unary_value(SnukInterpreter *i, SnukExpr *expr) {
     SnukValue val = snuk_interpreter_eval_expr(i, expr->unary.operand);
 
@@ -254,6 +269,9 @@ static SnukValue get_unary_value(SnukInterpreter *i, SnukExpr *expr) {
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
+/**
+ * @brief Apply a binary operator to two numeric values, promoting int to float as needed.
+ */
 static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenType op) {
     if (left.type != SNUK_VALUE_INT && left.type != SNUK_VALUE_FLOAT) goto fail;
     if (right.type != SNUK_VALUE_INT && right.type != SNUK_VALUE_FLOAT) goto fail;
@@ -332,6 +350,9 @@ fail:
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
+/**
+ * @brief Evaluate both operands of a binary expression and combine them with perform_binary_op.
+ */
 static SnukValue get_binary_value(SnukInterpreter *i, SnukExpr *expr) {
     SnukValue left = snuk_interpreter_eval_expr(i, expr->binary.left);
     SnukValue right = snuk_interpreter_eval_expr(i, expr->binary.right);
@@ -340,6 +361,9 @@ static SnukValue get_binary_value(SnukInterpreter *i, SnukExpr *expr) {
     return perform_binary_op(left, right, expr->binary.op);
 }
 
+/**
+ * @brief Evaluate each expression in the darray and print its value to stdout.
+ */
 static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
     if (!exprs) return;
 
@@ -391,6 +415,9 @@ static void print_exprs(SnukInterpreter *i, SnukExpr **exprs) {
     // snuk_darray_destroy(exprs);
 }
 
+/**
+ * @brief Log a runtime value via the trace logger for debugging.
+ */
 void snuk_interpreter_log_value(SnukValue value) {
     uint64_t count;
     switch (value.type) {
@@ -432,6 +459,9 @@ void snuk_interpreter_log_value(SnukValue value) {
     }
 }
 
+/**
+ * @brief Print a runtime value to standard output.
+ */
 void snuk_interpreter_print_value(SnukValue value) {
     uint64_t count;
     switch (value.type) {
@@ -470,10 +500,16 @@ void snuk_interpreter_print_value(SnukValue value) {
     }
 }
 
+/**
+ * @brief Push a new child scope and make it the interpreter's current scope.
+ */
 static void snuk_scope_push(SnukInterpreter *i) {
     i->current = snuk_scope_create(snuk_ref_counter_move(&i->current));
 }
 
+/**
+ * @brief Pop the current scope and restore its parent as the active scope.
+ */
 static void snuk_scope_pop(SnukInterpreter *i) {
     if (i->global == i->current) SNUK_SHOULD_NOT_REACH_HERE;
 
@@ -484,6 +520,9 @@ static void snuk_scope_pop(SnukInterpreter *i) {
     i->current = snuk_ref_counter_move(&parent);
 }
 
+/**
+ * @brief Append a binding to a scope's variable list.
+ */
 static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
     // TODO: multiple declaration errors
 
@@ -496,6 +535,9 @@ static SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
     return env;
 }
 
+/**
+ * @brief Find a binding by name within a single scope, without walking parents.
+ */
 static SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t j = 0; j < count; ++j) {
@@ -506,6 +548,9 @@ static SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
     return NULL;
 }
 
+/**
+ * @brief Walk the scope chain from current to global to resolve a name.
+ */
 static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name) {
     SnukRefCounter *rc = i->current;
     SnukEnv *env;
@@ -517,6 +562,9 @@ static SnukEnv *snuk_env_lookup(SnukInterpreter *i, SnukStringView name) {
     return NULL;
 }
 
+/**
+ * @brief Execute a block in a fresh scope, capturing signals in the capture mask and propagating those in the propagate mask.
+ */
 static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int capture_signals, int propogate_signals) {
     snuk_scope_push(i);
 
@@ -541,6 +589,9 @@ static SnukValue execute_block_expr(SnukInterpreter *i, SnukExpr *block, int cap
     return value;
 }
 
+/**
+ * @brief Evaluate an if/else expression by selecting the matching branch block.
+ */
 static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr) {
     SnukValue cond = snuk_interpreter_eval_expr(i, expr->if_else.condition);
     SnukValue res = {.type = SNUK_VALUE_NULL};
@@ -555,6 +606,9 @@ static SnukValue execute_if_expr(SnukInterpreter *i, SnukExpr *expr) {
     return res;
 }
 
+/**
+ * @brief Execute a while or do-while loop, honoring break, continue, and return signals.
+ */
 static SnukValue execute_while_expr(SnukInterpreter *i, SnukExpr *loop) {
     SnukValue res = {.type = SNUK_VALUE_NULL};
     SnukValue cond;
@@ -596,6 +650,9 @@ end:
     return res;
 }
 
+/**
+ * @brief Execute a for loop within its own scope, running the init, condition, body, and update steps.
+ */
 static SnukValue execute_for_expr(SnukInterpreter *i, SnukExpr *loop) {
     snuk_scope_push(i);
     SnukValue res = {.type = SNUK_VALUE_NULL};
@@ -638,6 +695,9 @@ end:
     return res;
 }
 
+/**
+ * @brief Test whether a parameter name appears in the function's parameter list.
+ */
 SNUK_INLINE bool name_exists_in_param_list(SnukParam **params, uint64_t count, SnukStringView name) {
     for (uint64_t i = 0; i < count; ++i) {
         if (params[i]->name.len != name.len) continue;
@@ -648,6 +708,9 @@ SNUK_INLINE bool name_exists_in_param_list(SnukParam **params, uint64_t count, S
     return false;
 }
 
+/**
+ * @brief Bind call arguments to a function's parameters in a new scope and execute its body.
+ */
 static SnukValue execute_fn_expr(SnukInterpreter *i, SnukExpr *expr) {
     SnukValue fn = snuk_interpreter_eval_expr(i, expr->call.fn);
     SNUK_ASSERT(fn.type == SNUK_VALUE_FN, "call expression on non function");
