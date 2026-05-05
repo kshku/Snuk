@@ -414,15 +414,15 @@ static SnukValue get_unary_value(SnukInterpreter *intpret, SnukExpr *expr) {
 
     switch (expr->unary.op) {
         case SNUK_TOKEN_PLUS:
+            return val;
+
         case SNUK_TOKEN_MINUS:
             switch (val.type) {
                 case SNUK_VALUE_INT:
-                    if (expr->unary.op == SNUK_TOKEN_MINUS)
-                        val.int_value *= -1;
+                    val.int_value *= -1;
                     break;
                 case SNUK_VALUE_FLOAT:
-                    if (expr->unary.op == SNUK_TOKEN_MINUS)
-                        val.float_value *= -1;
+                    val.float_value *= -1;
                     break;
                 default:
                     // TODO: Errors
@@ -430,8 +430,22 @@ static SnukValue get_unary_value(SnukInterpreter *intpret, SnukExpr *expr) {
             }
             return val;
 
-            // TODO: more unary ops
-            
+        case SNUK_TOKEN_BANG:
+        case SNUK_TOKEN_KW_NOT:
+            val = (SnukValue){.type = SNUK_VALUE_BOOL, .bool_value = !is_true_value(val)};
+            return val;
+
+        case SNUK_TOKEN_TILDE:
+            switch (val.type) {
+                case SNUK_VALUE_INT:
+                    val.int_value = ~val.int_value;
+                    return val;
+                default:
+                    // TODO: Errors
+                    break;
+            }
+            return val;
+
         default:
             break;
     }
