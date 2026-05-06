@@ -48,3 +48,10 @@ SNUK_INLINE SnukStringView snuk_string_view_concat(SnukStringView a, SnukStringV
         .len = a.len + b.len,
     };
 }
+
+SNUK_INLINE bool snuk_string_view_equal(SnukStringView a, SnukStringView b) {
+    if (a.len != b.len) return false;
+    if (a.len == 0)  return true;
+    
+    return memcmp(a.str, b.str, a.len) == 0;
+}
