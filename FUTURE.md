@@ -40,7 +40,7 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 - Package manager integration
 
 
-# Language additions ?
+# Language additions
 
 ## Interfaces
 
@@ -78,3 +78,17 @@ fn string.shout() {
 }
 ```
 - Language syntax grows
+
+## Operator overloading
+
+Allow operator overloading.
+
+```snuk
+type Point {
+    var x: int
+    var y: int
+    fn +(other_obj) {
+        Point {x: self.x + other_obj.x, y: self.y + other_obj.y}
+    }
+}
+```
