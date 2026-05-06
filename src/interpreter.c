@@ -581,6 +581,10 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
 
         case SNUK_TOKEN_PLUS:
             if (left.type == SNUK_VALUE_STRING) {
+                // Trick to remove quotes
+                left.string_value.len--;
+                right.string_value.len--;
+                right.string_value.str++;
                 return (SnukValue){
                     .type = SNUK_VALUE_STRING,
                     .string_value = snuk_string_view_concat(left.string_value, right.string_value),
