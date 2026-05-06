@@ -36,6 +36,33 @@ ADD_TEST(test_string_equal_ignore_case) {
     TEST_PASSED;
 }
 
+ADD_TEST(test_string_n_equal_ignore_case) {
+    // basic cases
+    ASSERT(snuk_string_n_equal_ignore_case("hello", "hello", 5));
+    ASSERT(snuk_string_n_equal_ignore_case("Hello", "hello", 5));
+    ASSERT(snuk_string_n_equal_ignore_case("HELLO", "hello", 5));
+    ASSERT(snuk_string_n_equal_ignore_case("HeLlO", "hElLo", 5));
+
+    // within n
+    ASSERT(snuk_string_n_equal_ignore_case("helloX", "helloY", 5));
+    ASSERT(!snuk_string_n_equal_ignore_case("helloX", "heLLoY", 6));
+
+    // empty strings
+    ASSERT(snuk_string_n_equal_ignore_case("", "", 0));
+    ASSERT(!snuk_string_n_equal_ignore_case("", "", 1));
+
+    // non-alphabetic characters must match exactly
+    ASSERT(snuk_string_n_equal_ignore_case("hello123", "HELLO123", 8));
+    ASSERT(!snuk_string_n_equal_ignore_case("hello123", "HELLO124", 8));
+    ASSERT(snuk_string_n_equal_ignore_case("!@#", "!@#", 3));
+    ASSERT(!snuk_string_n_equal_ignore_case("!@#", "!@$", 3));
+
+    // n larger than string length
+    ASSERT(!snuk_string_n_equal_ignore_case("hi", "hi", 5));
+
+    TEST_PASSED;
+}
+
 ADD_TEST(test_string_n_equal) {
     // basic equality within n
     ASSERT(snuk_string_n_equal("hello", "hello", 5));
