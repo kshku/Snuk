@@ -56,10 +56,11 @@ SNUK_INLINE bool snuk_string_equal_ignore_case(const char *a, const char *b) {
 
     uint64_t i = 0;
     for (i = 0; a[i] && b[i]; ++i) {
-        if (snuk_is_alpha(a[i]) && (a[i] | (1 << 5)) != (b[i] | (1 << 5)))
+        if (snuk_is_alpha(a[i])) {
+            if ((a[i] | (1 << 5)) != (b[i] | (1 << 5))) return false;
+        } else if (a[i] != b[i]) {
             return false;
-        else if (a[i] != b[i])
-            return false;
+        }
     }
 
     if (a[i] || b[i]) return false;
@@ -81,10 +82,11 @@ SNUK_INLINE bool snuk_string_n_equal_ignore_case(const char *a, const char *b, u
 
     uint64_t i = 0;
     for (i = 0; i < n && a[i] && b[i]; ++i) {
-        if (snuk_is_alpha(a[i]) && (a[i] | (1 << 5)) != (b[i] | (1 << 5)))
+        if (snuk_is_alpha(a[i])) {
+           if ((a[i] | (1 << 5)) != (b[i] | (1 << 5))) return false;
+        } else if (a[i] != b[i]) {
             return false;
-        else if (a[i] != b[i])
-            return false;
+        }
     }
 
     return i == n;
