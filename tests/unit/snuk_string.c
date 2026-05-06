@@ -2,6 +2,114 @@
 
 #include <snuk_string.h>
 
+ADD_TEST(test_is_alpha) {
+    // lowercase and uppercase letters
+    ASSERT(snuk_is_alpha('a'));
+    ASSERT(snuk_is_alpha('z'));
+    ASSERT(snuk_is_alpha('A'));
+    ASSERT(snuk_is_alpha('Z'));
+
+    // non-alphabetic characters
+    ASSERT(!snuk_is_alpha('0'));
+    ASSERT(!snuk_is_alpha('9'));
+    ASSERT(!snuk_is_alpha('_'));
+    ASSERT(!snuk_is_alpha('@'));
+
+    TEST_PASSED;
+}
+
+ADD_TEST(test_is_alpha_numeric) {
+    // alphabetic characters
+    ASSERT(snuk_is_alpha_numeric('a'));
+    ASSERT(snuk_is_alpha_numeric('Z'));
+
+    // numeric characters
+    ASSERT(snuk_is_alpha_numeric('0'));
+    ASSERT(snuk_is_alpha_numeric('9'));
+
+    // non-alphanumeric characters
+    ASSERT(!snuk_is_alpha_numeric('_'));
+    ASSERT(!snuk_is_alpha_numeric('@'));
+
+    TEST_PASSED;
+}
+
+ADD_TEST(test_is_digit) {
+    // valid digits
+    ASSERT(snuk_is_digit('0'));
+    ASSERT(snuk_is_digit('9'));
+
+    // non-digit characters
+    ASSERT(!snuk_is_digit('a'));
+    ASSERT(!snuk_is_digit('Z'));
+    ASSERT(!snuk_is_digit('/'));
+    ASSERT(!snuk_is_digit(':'));
+
+    TEST_PASSED;
+}
+
+ADD_TEST(test_is_binary_digit) {
+    // valid binary digits
+    ASSERT(snuk_is_binary_digit('0'));
+    ASSERT(snuk_is_binary_digit('1'));
+
+    // invalid binary digits
+    ASSERT(!snuk_is_binary_digit('2'));
+    ASSERT(!snuk_is_binary_digit('a'));
+    ASSERT(!snuk_is_binary_digit(' '));
+
+    TEST_PASSED;
+}
+
+ADD_TEST(test_is_octal_digit) {
+    // valid octal digits
+    ASSERT(snuk_is_octal_digit('0'));
+    ASSERT(snuk_is_octal_digit('7'));
+
+    // invalid octal digits
+    ASSERT(!snuk_is_octal_digit('8'));
+    ASSERT(!snuk_is_octal_digit('9'));
+    ASSERT(!snuk_is_octal_digit('a'));
+
+    TEST_PASSED;
+}
+
+ADD_TEST(test_is_hex_digit) {
+    // numeric digits
+    ASSERT(snuk_is_hex_digit('0'));
+    ASSERT(snuk_is_hex_digit('9'));
+
+    // lowercase hex letters
+    ASSERT(snuk_is_hex_digit('a'));
+    ASSERT(snuk_is_hex_digit('f'));
+
+    // uppercase hex letters
+    ASSERT(snuk_is_hex_digit('A'));
+    ASSERT(snuk_is_hex_digit('F'));
+
+    // invalid hex characters
+    ASSERT(!snuk_is_hex_digit('g'));
+    ASSERT(!snuk_is_hex_digit('G'));
+    ASSERT(!snuk_is_hex_digit('/'));
+
+    TEST_PASSED;
+}
+
+ADD_TEST(test_string_length_edge_cases) {
+    // basic cases
+    ASSERT_EQ(snuk_string_length("hello"), 5);
+    ASSERT_EQ(snuk_string_length(""), 0);
+
+    // string with spaces and symbols
+    ASSERT_EQ(snuk_string_length("a b c"), 5);
+    ASSERT_EQ(snuk_string_length("!@#"), 3);
+
+    // NULL input
+    ASSERT_EQ(snuk_string_length(NULL), 0);
+
+    TEST_PASSED;
+}
+
 ADD_TEST(test_string_length) {
     ASSERT_EQ(snuk_string_length("Hello"), 5);
     ASSERT_EQ(snuk_string_length(""), 0);
@@ -32,6 +140,33 @@ ADD_TEST(test_string_equal_ignore_case) {
     ASSERT(!snuk_string_equal_ignore_case("hello123", "HELLO124"));
     ASSERT(snuk_string_equal_ignore_case("!@#", "!@#"));
     ASSERT(!snuk_string_equal_ignore_case("!@#", "!@$"));
+
+    TEST_PASSED;
+}
+
+ADD_TEST(test_string_n_equal_ignore_case) {
+    // basic cases
+    ASSERT(snuk_string_n_equal_ignore_case("hello", "hello", 5));
+    ASSERT(snuk_string_n_equal_ignore_case("Hello", "hello", 5));
+    ASSERT(snuk_string_n_equal_ignore_case("HELLO", "hello", 5));
+    ASSERT(snuk_string_n_equal_ignore_case("HeLlO", "hElLo", 5));
+
+    // within n
+    ASSERT(snuk_string_n_equal_ignore_case("helloX", "helloY", 5));
+    ASSERT(!snuk_string_n_equal_ignore_case("helloX", "heLLoY", 6));
+
+    // empty strings
+    ASSERT(snuk_string_n_equal_ignore_case("", "", 0));
+    ASSERT(!snuk_string_n_equal_ignore_case("", "", 1));
+
+    // non-alphabetic characters must match exactly
+    ASSERT(snuk_string_n_equal_ignore_case("hello123", "HELLO123", 8));
+    ASSERT(!snuk_string_n_equal_ignore_case("hello123", "HELLO124", 8));
+    ASSERT(snuk_string_n_equal_ignore_case("!@#", "!@#", 3));
+    ASSERT(!snuk_string_n_equal_ignore_case("!@#", "!@$", 3));
+
+    // n larger than string length
+    ASSERT(!snuk_string_n_equal_ignore_case("hi", "hi", 5));
 
     TEST_PASSED;
 }
