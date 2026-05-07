@@ -6,6 +6,16 @@
 
 #include <string.h>
 
+SNUK_INLINE bool snuk_char_in_string(char c, const char *s) {
+    if (!s) return false;
+    for (uint64_t i = 0; s[i] || i == 0; ++i) if (s[i] == c) return true;
+    return false;
+}
+
+SNUK_INLINE bool snuk_is_white_space(char c) {
+    return snuk_char_in_string(c, " \t\r\n");
+}
+
 SNUK_INLINE bool snuk_is_alpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
@@ -90,12 +100,6 @@ SNUK_INLINE bool snuk_string_n_equal_ignore_case(const char *a, const char *b, u
     }
 
     return i == n;
-}
-
-SNUK_INLINE bool snuk_char_in_string(char c, const char *s) {
-    if (!s) return false;
-    for (uint64_t i = 0; s[i] || i == 0; ++i) if (s[i] == c) return true;
-    return false;
 }
 
 // if len == 0 (of any string), snuk_string_length will be called.

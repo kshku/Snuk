@@ -58,6 +58,7 @@ typedef enum SnukTokenType {
     SNUK_TOKEN_RBRACKET, // ]
     SNUK_TOKEN_COMMA, // ,
     SNUK_TOKEN_SEMICOLON, // ;
+    SNUK_TOKEN_VSEMICOLON, // virtual semicolon
     SNUK_TOKEN_COLON, // :
     SNUK_TOKEN_DOT, // .
     SNUK_TOKEN_ARROW, // ->
@@ -156,6 +157,10 @@ typedef struct SnukLexer {
 
     uint64_t line;
     uint64_t col;
+
+    SnukTokenType previous_token_type;
+    uint32_t paren_depth;
+    uint32_t bracket_depth;
 } SnukLexer;
 
 /**
@@ -176,6 +181,9 @@ SNUK_INLINE void snuk_lexer_init(SnukLexer *lexer, const char *src) {
         .token_start_col = 0,
         .line = 0,
         .col = 0,
+        .previous_token_type = SNUK_TOKEN_MAX,
+        .paren_depth = 0,
+        .bracket_depth = 0,
     };
 }
 
