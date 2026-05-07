@@ -131,11 +131,13 @@ SNUK_INLINE bool lexer_match(SnukLexer *lexer, char expected) {
  * @param lexer Lexer state to advance.
  */
 SNUK_INLINE void lexer_skip_white_spaces(SnukLexer *lexer) {
-    while (snuk_char_in_string(lexer_peek(lexer), " \t\r\n")) lexer_advance(lexer);
+    while (snuk_char_in_string(lexer_peek(lexer), " \t\r")) lexer_advance(lexer);
 }
 
 /**
  * @brief Build a token spanning from token_start to the current cursor.
+ *
+ * Also updates the lexer's context required to decide for emitting SNUK_TOKEN_VSEMICOLON.
  *
  * @param lexer Lexer state containing the token bounds.
  * @param type Token type to assign.
@@ -143,6 +145,24 @@ SNUK_INLINE void lexer_skip_white_spaces(SnukLexer *lexer) {
  * @return Token with a source slice and starting position.
  */
 SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
+    lexer->previous_token_type = type;
+    switch (type) {
+        case SNUK_TOKEN_LBRACKET:
+            lexer->bracket_depth++;
+            break;
+        case SNUK_TOKEN_RBRACKET:
+            lexer->bracket_depth--;
+            break;
+        case SNUK_TOKEN_LPAREN:
+            lexer->paren_depth++;
+            break;
+        case SNUK_TOKEN_RPAREN:
+            lexer->paren_depth--;
+            break;
+        default:
+            break;
+    }
+
     uint64_t len = lexer->cur - lexer->token_start;
     return (SnukToken){
         .type = type,
@@ -156,12 +176,16 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
 /**
  * @brief Build an error token for the current source line.
  *
+ * Also updates the lexer's context required to decide for emitting SNUK_TOKEN_VSEMICOLON.
+ *
  * @param lexer Lexer state at the error location.
  * @param err_msg Static error message describing the failure.
  *
  * @return Error token containing the current line text and location.
  */
 SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_msg) {
+    lexer->previous_token_type = SNUK_TOKEN_ERROR;
+
     const char *line_start = lexer->cur - lexer->col;
     uint64_t len = 0;
     for (len = 0; line_start[len] && line_start[len] != '\n'; ++len);
@@ -181,6 +205,7 @@ static SnukToken lexer_scan_word(SnukLexer *lexer);
 static SnukToken lexer_scan_number(SnukLexer *lexer);
 static SnukToken lexer_scan_string(SnukLexer *lexer, char quote);
 static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line);
+static bool lexer_should_insert_vsemicolon(SnukLexer *lexer);
 
 /**
  * @brief Scan an identifier-like word and classify keywords or literal values.
@@ -417,6 +442,41 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     return token;
 }
 
+/**
+ * @brief Check whether to insert SNUK_TOKEN_VSEMICOLON or not.
+ *
+ * @param lexer Lexer state.
+ *
+ * @return True if should insert SNUK_TOKEN_VSEMICOLON.
+ */
+static bool lexer_should_insert_vsemicolon(SnukLexer *lexer) {
+    if (lexer->paren_depth || lexer->bracket_depth) return false;
+
+    switch (lexer->previous_token_type) {
+        case SNUK_TOKEN_IDENTIFIER:
+        case SNUK_TOKEN_INTEGER:
+        case SNUK_TOKEN_FLOAT:
+        case SNUK_TOKEN_STRING:
+        case SNUK_TOKEN_TRUE:
+        case SNUK_TOKEN_FALSE:
+        case SNUK_TOKEN_NULL:
+        case SNUK_TOKEN_NAN:
+        case SNUK_TOKEN_INF:
+        case SNUK_TOKEN_ANY: // after the type annotation
+        case SNUK_TOKEN_RETURN:
+        case SNUK_TOKEN_BREAK:
+        case SNUK_TOKEN_CONTINUE:
+        case SNUK_TOKEN_RPAREN:
+        case SNUK_TOKEN_RBRACE:
+        case SNUK_TOKEN_RBRACKET:
+            return true;
+        default:
+            break;
+    }
+
+    return false;
+}
+
 SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
     lexer_skip_white_spaces(lexer);
     lexer->token_start = lexer->cur;
@@ -513,6 +573,11 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
         case '\'':
             return lexer_scan_string(lexer, c);
 
+        case '\n':
+            if (lexer_should_insert_vsemicolon(lexer))
+                return lexer_build_token(lexer, SNUK_TOKEN_VSEMICOLON);
+            return snuk_lexer_next_token(lexer);
+
         default:
             break;
     }
@@ -608,6 +673,8 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_COMMA);
         case SNUK_TOKEN_SEMICOLON:
             return SNUK_STRINGIFY(SNUK_TOKEN_SEMICOLON);
+        case SNUK_TOKEN_VSEMICOLON:
+            return SNUK_STRINGIFY(SNUK_TOKEN_VSEMICOLON);
         case SNUK_TOKEN_COLON:
             return SNUK_STRINGIFY(SNUK_TOKEN_COLON);
         case SNUK_TOKEN_DOT:
