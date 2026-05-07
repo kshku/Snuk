@@ -980,3 +980,23 @@ SNUK_INLINE bool parser_match(SnukParser *parser, SnukTokenType expected) {
 SNUK_INLINE void parser_expect(SnukParser *parser, SnukTokenType expected, const char *err_msg) {
     if (!parser_match(parser, expected)) parser_error(parser, err_msg);
 }
+
+/**
+ * @brief Consume item end token if exists.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return True when token is consumed.
+ */
+SNUK_INLINE bool parser_match_item_end(SnukParser *parser) {
+    return parser_match(parser, SNUK_TOKEN_SEMICOLON) || parser_match(parser, SNUK_TOKEN_VSEMICOLON) || parser_match(parser, SNUK_TOKEN_EOF);
+}
+
+/**
+ * @brief Require and consume item end token.
+ *
+ * @param parser Parser context to operate on.
+ */
+SNUK_INLINE void parser_expect_item_end(SnukParser *parser) {
+    if (!parser_match_item_end(parser)) parser_error(parser, "expected a new line or a semicolon");
+}

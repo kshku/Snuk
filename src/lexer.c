@@ -126,15 +126,6 @@ SNUK_INLINE bool lexer_match(SnukLexer *lexer, char expected) {
 }
 
 /**
- * @brief Consume whitespace before the next token.
- *
- * @param lexer Lexer state to advance.
- */
-SNUK_INLINE void lexer_skip_white_spaces(SnukLexer *lexer) {
-    while (snuk_char_in_string(lexer_peek(lexer), " \t\r")) lexer_advance(lexer);
-}
-
-/**
  * @brief Build a token spanning from token_start to the current cursor.
  *
  * Also updates the lexer's context required to decide for emitting SNUK_TOKEN_VSEMICOLON.
@@ -343,6 +334,8 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
         token.type = SNUK_TOKEN_INTEGER;
     }
 
+    lexer->previous_token_type = token.type;
+
     return token;
 }
 
@@ -426,7 +419,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     if (!multi_line) {
         while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n') lexer_advance(lexer);
         SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_LINE_COMMENT);
-        lexer_advance(lexer); // consume newline
+        // do not consume new line
         return token;
     }
 
@@ -469,6 +462,8 @@ static bool lexer_should_insert_vsemicolon(SnukLexer *lexer) {
         case SNUK_TOKEN_RPAREN:
         case SNUK_TOKEN_RBRACE:
         case SNUK_TOKEN_RBRACKET:
+        case SNUK_TOKEN_LINE_COMMENT:
+        case SNUK_TOKEN_BLOCK_COMMENT:
             return true;
         default:
             break;
@@ -478,7 +473,21 @@ static bool lexer_should_insert_vsemicolon(SnukLexer *lexer) {
 }
 
 SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
-    lexer_skip_white_spaces(lexer);
+#define AUTO_SEMICOLON_CANDIDATES "}\n"
+#define IGNORED_WHITE_SPACES " \t\r"
+
+    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES))
+        lexer_advance(lexer);
+
+    lexer->token_start = lexer->cur;
+    lexer->token_start_line = lexer->line;
+    lexer->token_start_col = lexer->col;
+
+    if (snuk_char_in_string(lexer_peek(lexer), AUTO_SEMICOLON_CANDIDATES)
+            && lexer_should_insert_vsemicolon(lexer))
+        return lexer_build_token(lexer, SNUK_TOKEN_VSEMICOLON);
+
+    while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
     lexer->token_start = lexer->cur;
     lexer->token_start_line = lexer->line;
     lexer->token_start_col = lexer->col;
@@ -572,11 +581,6 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
         case '"':
         case '\'':
             return lexer_scan_string(lexer, c);
-
-        case '\n':
-            if (lexer_should_insert_vsemicolon(lexer))
-                return lexer_build_token(lexer, SNUK_TOKEN_VSEMICOLON);
-            return snuk_lexer_next_token(lexer);
 
         default:
             break;

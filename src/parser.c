@@ -39,7 +39,9 @@ static SnukItem *parse_item(SnukParser *parser) {
  * @brief Parse an expression item.
  */
 static SnukItem *parse_expr_item(SnukParser *parser) {
-    return build_expr_item(parser, parse_expression(parser));
+    SnukExpr *expr = parse_expression(parser);
+    parser_expect_item_end(parser);
+    return build_expr_item(parser, expr);
 }
 
 /**
@@ -59,6 +61,8 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
     if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser);
     else init = build_null_expr(parser);
 
+    parser_expect_item_end(parser);
+
     return build_decl_item(parser, identifier, type, init, is_const ? SNUK_ITEM_CONST_DECL : SNUK_ITEM_VAR_DECL);
 }
 
@@ -73,6 +77,8 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
         // TODO: break and return items should be at the end of block only?
         value = parse_expression(parser);
 
+    parser_expect_item_end(parser);
+
     return build_flow_item(parser, type, value);
 }
 
@@ -83,6 +89,7 @@ static SnukItem *parse_type_item(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
     SnukStringView identifier = parser->previous.string_literal;
     SnukExpr *type_expr = parse_type(parser);
+    parser_expect_item_end(parser);
     return build_decl_item(parser, identifier, NULL, type_expr, SNUK_ITEM_TYPE_DECL);
 }
 
@@ -93,6 +100,9 @@ static SnukItem *parse_print_item(SnukParser *parser) {
     SnukItem *print_item = build_print_item(parser, NULL, parse_expression(parser));
     while (parser_match(parser, SNUK_TOKEN_COMMA))
         print_item = build_print_item(parser, print_item, parse_expression(parser));
+
+    parser_expect_item_end(parser);
+
     return print_item;
 }
 
@@ -303,8 +313,8 @@ static SnukExpr *parse_for(SnukParser *parser) {
 
     // Case 2: for var ... → must be C-style
     if (parser_match(parser, SNUK_TOKEN_VAR)) {
+        // semicolon is handled in parse_decl_item
         init = parse_decl_item(parser, false);
-        parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after init");
 
         if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser);
         parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
@@ -490,7 +500,7 @@ static void parser_error(SnukParser *parser, const char *err_msg) {
     snuk_eprint("%lu:%lu error", t.line, t.col);
     if (t.type == SNUK_TOKEN_EOF) snuk_eprint(" at end");
     else snuk_eprint(" at '"SNUK_STRING_VIEW_FORMAT"'", SNUK_STRING_VIEW_ARG(t.string_literal));
-    snuk_eprintln(" at '%s", err_msg);
+    snuk_eprintln(" message: '%s'", err_msg);
 }
 
 /**
