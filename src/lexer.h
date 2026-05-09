@@ -136,6 +136,9 @@ typedef struct SnukToken {
 
     const char *err_msg;
 
+    SnukStringView leading_comment;
+    SnukStringView trailing_comment;
+
     uint64_t line, col;
 } SnukToken;
 

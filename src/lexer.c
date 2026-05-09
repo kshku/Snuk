@@ -197,6 +197,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer);
 static SnukToken lexer_scan_string(SnukLexer *lexer, char quote);
 static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line);
 static bool lexer_should_insert_vsemicolon(SnukLexer *lexer);
+static SnukToken lexer_next_token(SnukLexer *lexer);
 
 /**
  * @brief Scan an identifier-like word and classify keywords or literal values.
@@ -419,7 +420,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     if (!multi_line) {
         while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n') lexer_advance(lexer);
         SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_LINE_COMMENT);
-        // do not consume new line
+        lexer_advance(lexer); // consume new line
         return token;
     }
 
@@ -472,22 +473,7 @@ static bool lexer_should_insert_vsemicolon(SnukLexer *lexer) {
     return false;
 }
 
-SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
-#define AUTO_SEMICOLON_CANDIDATES "}\n"
-#define IGNORED_WHITE_SPACES " \t\r"
-
-    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES))
-        lexer_advance(lexer);
-
-    lexer->token_start = lexer->cur;
-    lexer->token_start_line = lexer->line;
-    lexer->token_start_col = lexer->col;
-
-    if (snuk_char_in_string(lexer_peek(lexer), AUTO_SEMICOLON_CANDIDATES)
-            && lexer_should_insert_vsemicolon(lexer))
-        return lexer_build_token(lexer, SNUK_TOKEN_VSEMICOLON);
-
-    while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
+static SnukToken lexer_next_token(SnukLexer *lexer) {
     lexer->token_start = lexer->cur;
     lexer->token_start_line = lexer->line;
     lexer->token_start_col = lexer->col;
@@ -535,6 +521,7 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
             return lexer_build_token(lexer, SNUK_TOKEN_STAR);
         case '/':
             if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_SLASH_ASSIGN);
+            // comments are triggered only when we have line comments in continuous multiple lines
             if (lexer_match(lexer, '/')) return lexer_scan_comment(lexer, false);
             if (lexer_match(lexer, '*')) return lexer_scan_comment(lexer, true);
             return lexer_build_token(lexer, SNUK_TOKEN_SLASH);
@@ -587,6 +574,65 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
     }
 
     return lexer_build_error_token(lexer, "unexpected character");
+}
+
+/*
+ * Comment position                                             Result
+ * Before token, one newline between                            Leading of next token
+ * Before token, zero newlines (same line, no prior token)      Leading of next token
+ * After token, starts on same line                             Trailing of that token
+ * Followed by more than one newline                            Standalone comment token
+ * Multiple continous line comments                             Standalone comment token with leading comment
+ *
+ * This makes the standalone comment never interfere witht the parsing
+ * and also preserves the comments.
+ */
+SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
+    SnukToken leading_comment = {0};
+    SnukToken trailing_comment = {0};
+
+#define AUTO_SEMICOLON_CANDIDATES "}\n"
+#define IGNORED_WHITE_SPACES " \t\r"
+
+    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES))
+        lexer_advance(lexer);
+
+    lexer->token_start = lexer->cur;
+    lexer->token_start_line = lexer->line;
+    lexer->token_start_col = lexer->col;
+
+    if (snuk_char_in_string(lexer_peek(lexer), AUTO_SEMICOLON_CANDIDATES)
+            && lexer_should_insert_vsemicolon(lexer))
+        return lexer_build_token(lexer, SNUK_TOKEN_VSEMICOLON);
+
+    while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
+
+    if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+        lexer_advance(lexer);
+        leading_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
+        uint64_t count = 0;
+        for (uint64_t i = 0; snuk_is_white_space(lexer->cur[i]); ++i)
+            if (lexer->cur[i] == '\n') ++count;
+
+        // standalone comment
+        // line comment consumes new line
+        if (count > 0) return leading_comment;
+    }
+
+    SnukToken token = lexer_next_token(lexer);
+
+    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES))
+        lexer_advance(lexer);
+
+    if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+        lexer_advance(lexer);
+        trailing_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
+    }
+
+    token.leading_comment = leading_comment.string_literal;
+    token.trailing_comment = trailing_comment.string_literal;
+
+    return token;
 }
 
 void snuk_lexer_log_token(SnukToken token) {
