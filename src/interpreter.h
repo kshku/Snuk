@@ -166,3 +166,19 @@ void snuk_interpreter_log_value(SnukValue value);
  * @param value Value to print.
  */
 void snuk_interpreter_print_value(SnukValue value);
+
+/**
+ * @brief Free the value.
+ *
+ * Releases the resources held by value.
+ *
+ * @param value Value to free.
+ */
+void snuk_interpreter_free_value(SnukValue value);
+
+/**
+ * @brief Copy the value.
+ *
+ * @param value Value to copy.
+ */
+SnukValue snuk_interpreter_copy_value(SnukValue value);
