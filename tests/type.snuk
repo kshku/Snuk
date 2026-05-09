@@ -1,0 +1,14 @@
+type Point {
+    var x: int
+    var y: int
+}
+
+type Square {
+    var top_left: Point
+    var width: int
+    var height: int
+    
+    fn area() {
+        // self.width * self.height
+    }
+}
