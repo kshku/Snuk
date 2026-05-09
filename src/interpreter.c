@@ -62,7 +62,7 @@ SNUK_INLINE void snuk_free_scope(void *data, void *ptr) {
 
     snuk_darray_destroy(scope->vars);
 
-    if (scope->parent) snuk_ref_counter_release(scope->parent);
+    if (scope->parent) snuk_ref_counter_release(&scope->parent);
 
     snuk_free(scope);
 }
@@ -101,7 +101,7 @@ SNUK_INLINE void snuk_scope_pop(SnukInterpreter *intpret) {
     SnukScope *scope = GET_SCOPE(intpret->current);
     SnukRefCounter *parent = snuk_ref_counter_retain(scope->parent);
 
-    snuk_ref_counter_release(intpret->current);
+    snuk_ref_counter_release(&intpret->current);
     intpret->current = snuk_ref_counter_move(&parent);
 }
 
@@ -200,8 +200,8 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret) {
         rc = scope->parent;
     }
 
-    snuk_ref_counter_release(intpret->current);
-    snuk_ref_counter_release(intpret->global);
+    snuk_ref_counter_release(&intpret->current);
+    snuk_ref_counter_release(&intpret->global);
 
     *intpret = (SnukInterpreter){0};
 }
@@ -211,7 +211,6 @@ SnukValue snuk_interpreter_copy_value(SnukValue value) {
         case SNUK_VALUE_FN:
             value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
             break;
-
         case SNUK_VALUE_TYPE:
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
@@ -230,9 +229,8 @@ SnukValue snuk_interpreter_copy_value(SnukValue value) {
 void snuk_interpreter_free_value(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_FN:
-            snuk_ref_counter_release(value.fn_value.closure);
+            snuk_ref_counter_release(&value.fn_value.closure);
             break;
-
         case SNUK_VALUE_TYPE:
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
@@ -1020,7 +1018,7 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 
     new_scope = snuk_ref_counter_move(&intpret->current);
     intpret->current = snuk_ref_counter_move(&temp);
-    snuk_ref_counter_release(new_scope);
+    snuk_ref_counter_release(&new_scope);
 
     snuk_interpreter_free_value(fn);
     return ret;
