@@ -349,15 +349,6 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const);
 static SnukItem *parse_flow_item(SnukParser *parser);
 
 /**
- * @brief Parse a type declaration item.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed item, or NULL on parse failure.
- */
-static SnukItem *parse_type_item(SnukParser *parser);
-
-/**
  * @brief Parse a print item.
  *
  * @param parser Parser context to operate on.
@@ -801,14 +792,15 @@ SNUK_INLINE SnukExpr *build_fn_expr(SnukParser *parser, SnukParam **params, Snuk
  *
  * @param parser Parser context to operate on.
  * @param members Member items in type.
+ * @param name Name of type in case of syntax sugar.
  *
  * @return Newly allocated type expression node.
  */
-SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **members) {
+SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **members, SnukStringView name) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
-        .members = members,
+        .type_expr = {.members = members, .name = name},
     };
     return expr;
 }

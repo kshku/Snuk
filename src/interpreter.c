@@ -263,10 +263,6 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
                 return snuk_interpreter_copy_value(value);
             }
 
-            // TODO: Stroing types
-        case SNUK_ITEM_TYPE_DECL:
-            break;
-
         case SNUK_ITEM_PRINT:
             print_exprs(intpret, item->print_exprs);
             // TODO: return something else?
