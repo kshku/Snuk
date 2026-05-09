@@ -28,8 +28,6 @@ static SnukItem *parse_item(SnukParser *parser) {
             || parser_match(parser, SNUK_TOKEN_BREAK))
         return parse_flow_item(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_TYPE)) return parse_type_item(parser);
-
     if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
 
     return parse_expr_item(parser);
@@ -83,17 +81,6 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
 }
 
 /**
- * @brief Parse a type declaration item.
- */
-static SnukItem *parse_type_item(SnukParser *parser) {
-    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected name of type");
-    SnukStringView identifier = parser->previous.string_literal;
-    SnukExpr *type_expr = parse_type(parser);
-    parser_expect_item_end(parser);
-    return build_decl_item(parser, identifier, NULL, type_expr, SNUK_ITEM_TYPE_DECL);
-}
-
-/**
  * @brief Parse a print item.
  */
 static SnukItem *parse_print_item(SnukParser *parser) {
@@ -110,6 +97,25 @@ static SnukItem *parse_print_item(SnukParser *parser) {
  * @breif Parse a type annotation.
  */
 static SnukType *parse_type_annot(SnukParser *parser) {
+    if (parser_match(parser, SNUK_TOKEN_TYPE)) {
+        SnukType *type = build_type_type(parser, NULL, NULL);
+        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+        while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+                && parser->current.type != SNUK_TOKEN_EOF) {
+            SnukType *member_type = parse_type_annot(parser);
+            type = build_type_type(parser, type, member_type);
+            if (!parser_check(parser, SNUK_TOKEN_RBRACE))
+                parser_expect_item_end(parser);
+        }
+
+        if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+            parser_error(parser, "expected '}'");
+            return NULL;
+        }
+
+        return type;
+    }
+
     if (parser_match(parser, SNUK_TOKEN_FN)) {
         SnukType *type = build_fn_type(parser, NULL, NULL, NULL);
         parser_expect(parser, SNUK_TOKEN_LPAREN, "exptected '('");
@@ -444,6 +450,10 @@ static SnukExpr *parse_comment(SnukParser *parser) {
  * @brief Parse an type expression.
  */
 static SnukExpr *parse_type(SnukParser *parser) {
+    SnukStringView name = {0};
+    if (parser_match(parser, SNUK_TOKEN_IDENTIFIER))
+        name = parser->previous.string_literal;
+
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
     SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
@@ -451,13 +461,13 @@ static SnukExpr *parse_type(SnukParser *parser) {
     while (!parser_match(parser, SNUK_TOKEN_RBRACE)
             && parser->current.type !=  SNUK_TOKEN_EOF) {
 
-        if (parser_match(parser, SNUK_TOKEN_VAR)
-                || parser_match(parser, SNUK_TOKEN_CONST)
-                || parser_match(parser, SNUK_TOKEN_FN)
-                || parser_match(parser, SNUK_TOKEN_TYPE)) {
+        if (parser_check(parser, SNUK_TOKEN_VAR)
+                || parser_check(parser, SNUK_TOKEN_CONST)
+                || parser_check(parser, SNUK_TOKEN_FN)
+                || parser_check(parser, SNUK_TOKEN_TYPE)) {
             snuk_darray_push(&members, parse_item(parser));
         } else {
-            parser_error(parser, "Unexpected token");
+            parser_error(parser, "unexpected token");
         }
     }
 
@@ -466,7 +476,7 @@ static SnukExpr *parse_type(SnukParser *parser) {
         return NULL;
     }
 
-    return build_type_expr(parser, members);
+    return build_type_expr(parser, members, name);
 }
 
 /**
@@ -550,16 +560,12 @@ void snuk_parser_log_item(SnukItem *item) {
             break;
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
-        case SNUK_ITEM_TYPE_DECL:
             switch (item->type) {
                 case SNUK_ITEM_VAR_DECL:
                     log_trace("var:", NULL);
                     break;
                 case SNUK_ITEM_CONST_DECL:
                     log_trace("const:", NULL);
-                    break;
-                case SNUK_ITEM_TYPE_DECL:
-                    log_trace("type:", NULL);
                     break;
                 default:
                     break;
@@ -672,6 +678,8 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             break;
         case SNUK_EXPR_FN:
             log_trace("fn expression:", NULL);
+            if (expr->fn_expr.name.len)
+                log_trace("Name: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->fn_expr.name));
             count = snuk_darray_get_length(expr->fn_expr.params);
             for (uint64_t i = 0; i < count; ++i)
                 snuk_parser_log_param(expr->fn_expr.params[i]);
@@ -680,8 +688,12 @@ void snuk_parser_log_expr(SnukExpr *expr) {
             snuk_parser_log_type(expr->fn_expr.return_type);
             break;
         case SNUK_EXPR_TYPE:
-            // TODO:
             log_trace("type expression:", NULL);
+            if (expr->type_expr.name.len)
+                log_trace("Name: "SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->type_expr.name));
+            count = snuk_darray_get_length(expr->type_expr.members);
+            for (uint64_t i = 0; i < count; ++i)
+                snuk_parser_log_item(expr->type_expr.members[i]);
             break;
         case SNUK_EXPR_BLOCK:
             log_trace("block expression:", NULL);
@@ -770,8 +782,6 @@ const char *snuk_parser_item_type_to_string(SnukItemType type) {
             return SNUK_STRINGIFY(SNUK_ITEM_VAR_DECL);
         case SNUK_ITEM_CONST_DECL:
             return SNUK_STRINGIFY(SNUK_ITEM_CONST_DECL);
-        case SNUK_ITEM_TYPE_DECL:
-            return SNUK_STRINGIFY(SNUK_ITEM_TYPE_DECL);
         case SNUK_ITEM_PRINT:
             return SNUK_STRINGIFY(SNUK_ITEM_PRINT);
         case SNUK_ITEM_RETURN:

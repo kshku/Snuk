@@ -51,6 +51,7 @@ struct SnukValue {
         SNUK_VALUE_NULL,
         SNUK_VALUE_FN,
         SNUK_VALUE_TYPE,
+        SNUK_VALUE_TYPE_INST,
 
         SNUK_VALUE_MAX
     } type;
@@ -66,7 +67,14 @@ struct SnukValue {
             SnukParam **params;
             SnukType *return_type;
         } fn_value;
-        // TODO: type
+        struct {
+            SnukRefCounter *closure;
+            SnukItem **members;
+        } type_value;
+
+        struct {
+            SnukRefCounter *self;
+        } type_inst;
     };
 };
 

@@ -62,7 +62,7 @@ SNUK_INLINE void snuk_free_scope(void *data, void *ptr) {
 
     snuk_darray_destroy(scope->vars);
 
-    if (scope->parent) snuk_ref_counter_release(scope->parent);
+    if (scope->parent) snuk_ref_counter_release(&scope->parent);
 
     snuk_free(scope);
 }
@@ -101,7 +101,7 @@ SNUK_INLINE void snuk_scope_pop(SnukInterpreter *intpret) {
     SnukScope *scope = GET_SCOPE(intpret->current);
     SnukRefCounter *parent = snuk_ref_counter_retain(scope->parent);
 
-    snuk_ref_counter_release(intpret->current);
+    snuk_ref_counter_release(&intpret->current);
     intpret->current = snuk_ref_counter_move(&parent);
 }
 
@@ -161,10 +161,12 @@ SNUK_INLINE bool is_true_value(SnukValue value) {
             return value.string_value.len != 0;
 
         case SNUK_VALUE_FN:
+        case SNUK_VALUE_TYPE:
             return true;
 
-        // TODO:
-        case SNUK_VALUE_TYPE:
+        case SNUK_VALUE_TYPE_INST:
+            return value.type_inst.self != NULL;
+
         default:
             return false;
     }
@@ -200,8 +202,8 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret) {
         rc = scope->parent;
     }
 
-    snuk_ref_counter_release(intpret->current);
-    snuk_ref_counter_release(intpret->global);
+    snuk_ref_counter_release(&intpret->current);
+    snuk_ref_counter_release(&intpret->global);
 
     *intpret = (SnukInterpreter){0};
 }
@@ -211,8 +213,13 @@ SnukValue snuk_interpreter_copy_value(SnukValue value) {
         case SNUK_VALUE_FN:
             value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
             break;
-
         case SNUK_VALUE_TYPE:
+            value.type_value.closure = snuk_ref_counter_retain(value.type_value.closure);
+            break;
+        case SNUK_VALUE_TYPE_INST:
+            value.type_inst.self = snuk_ref_counter_retain(value.type_inst.self);
+            break;
+
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
         case SNUK_VALUE_FLOAT:
@@ -230,10 +237,15 @@ SnukValue snuk_interpreter_copy_value(SnukValue value) {
 void snuk_interpreter_free_value(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_FN:
-            snuk_ref_counter_release(value.fn_value.closure);
+            snuk_ref_counter_release(&value.fn_value.closure);
+            break;
+        case SNUK_VALUE_TYPE:
+            snuk_ref_counter_release(&value.type_value.closure);
+            break;
+        case SNUK_VALUE_TYPE_INST:
+            snuk_ref_counter_release(&value.type_inst.self);
             break;
 
-        case SNUK_VALUE_TYPE:
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
         case SNUK_VALUE_FLOAT:
@@ -262,10 +274,6 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
                 SnukValue value = snuk_scope_add_env(GET_SCOPE(intpret->current), env)->value;
                 return snuk_interpreter_copy_value(value);
             }
-
-            // TODO: Stroing types
-        case SNUK_ITEM_TYPE_DECL:
-            break;
 
         case SNUK_ITEM_PRINT:
             print_exprs(intpret, item->print_exprs);
@@ -391,7 +399,25 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
             }
 
         case SNUK_EXPR_TYPE:
-            break;
+            {
+                SnukValue value = {
+                    .type = SNUK_VALUE_TYPE,
+                    .type_value = {
+                        .closure = snuk_ref_counter_retain(intpret->current),
+                        .members = expr->type_expr.members,
+                    },
+                };
+
+                // Syntax sugar
+                if (expr->type_expr.name.len) {
+                    SnukStringView name = expr->type_expr.name;
+                    expr->type_expr.name = (SnukStringView){0};
+                    SnukEnv *env = snuk_create_env(intpret, name, expr);
+                    snuk_scope_add_env(GET_SCOPE(intpret->current), env);
+                }
+
+                return value;
+            }
 
         case SNUK_EXPR_BLOCK:
             return execute_block_expr(intpret, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_NONE);
@@ -711,8 +737,10 @@ static void print_exprs(SnukInterpreter *intpret, SnukExpr **exprs) {
                     snuk_print(SNUK_STRING_VIEW_FORMAT", ", SNUK_STRING_VIEW_ARG(value.fn_value.params[k]->name));
                 break;
             case SNUK_VALUE_TYPE:
-                // TODO:
                 snuk_print("type:", NULL);
+                break;
+            case SNUK_VALUE_TYPE_INST:
+                snuk_print("type inst:", NULL);
                 break;
             default:
                 SNUK_SHOULD_NOT_REACH_HERE;
@@ -763,6 +791,9 @@ void snuk_interpreter_log_value(SnukValue value) {
         case SNUK_VALUE_TYPE:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE));
             break;
+        case SNUK_VALUE_TYPE_INST:
+            log_trace("type %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE_INST));
+            break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;
             break;
@@ -801,8 +832,10 @@ void snuk_interpreter_print_value(SnukValue value) {
                 snuk_print(SNUK_STRING_VIEW_FORMAT", ", SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
             break;
         case SNUK_VALUE_TYPE:
-            // TODO:
             snuk_println("type:", NULL);
+            break;
+        case SNUK_VALUE_TYPE_INST:
+            snuk_println("type inst:", NULL);
             break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;
@@ -1024,7 +1057,7 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 
     new_scope = snuk_ref_counter_move(&intpret->current);
     intpret->current = snuk_ref_counter_move(&temp);
-    snuk_ref_counter_release(new_scope);
+    snuk_ref_counter_release(&new_scope);
 
     snuk_interpreter_free_value(fn);
     return ret;

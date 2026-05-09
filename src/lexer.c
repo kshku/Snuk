@@ -619,6 +619,8 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
         if (count > 0) return leading_comment;
     }
 
+    while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
+
     SnukToken token = lexer_next_token(lexer);
 
     while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES))

@@ -30,8 +30,6 @@ typedef enum SnukItemType {
     SNUK_ITEM_VAR_DECL, /**< Variable declaration (expression with restriction) */
     SNUK_ITEM_CONST_DECL, /**< Constant declaration (expression with restriction) */
 
-    SNUK_ITEM_TYPE_DECL, /**< Type declaration (syntax sugar) */
-
     SNUK_ITEM_PRINT, /**< Printing expression (special expression, always returns null) */
 
     SNUK_ITEM_RETURN, /**< Return expression, transfer control out of function, may carry value with them */
@@ -102,6 +100,7 @@ struct SnukType {
         TYPE_ANY, /**< No type annotation */
         TYPE_NAMED, /**< Named type */
         TYPE_FN, /**< Function type */
+        TYPE_TYPE, /**< Type type */
 
         TYPE_MAX /**< Sentinel value for type kinds. */
     } type;
@@ -113,6 +112,8 @@ struct SnukType {
             SnukType *return_type; /**< The return type of function */
             SnukType **param_types; /**< Darray of parameter types */
         } fn;
+
+        SnukType **member_types; /**< Darray of type of the members */
     };
 };
 
@@ -198,10 +199,13 @@ struct SnukExpr {
             SnukParam **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
             SnukType *return_type; /**< Return type of function */
-            SnukStringView name;
+            SnukStringView name; /**< Name in case of syntax sugar */
         } fn_expr;
 
-        SnukItem **members; /**< Dynamic array of members items in the type */
+        struct {
+            SnukItem **members; /**< Dynamic array of members items in the type */
+            SnukStringView name; /**< Name in case of syntax sugar */
+        } type_expr;
 
         SnukItem **block_items; /**< Dynamic array of items in the block. */
 
