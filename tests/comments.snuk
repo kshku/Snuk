@@ -1,0 +1,18 @@
+fn add(
+    param1 // here goes a comment trailing comment of param1
+) {
+    print param1
+}
+
+// Here is a standalone comment
+
+// this is attached as leading comment to var
+var x = "Hello, World!" // and this one is attached as trailing comment to "Hello, World!"
+
+// this is not allowed
+// add(x) /*
+// to ')' */ print x
+
+add(x) /*
+to ')' */
+print x
