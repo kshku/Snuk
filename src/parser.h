@@ -100,7 +100,7 @@ struct SnukType {
         TYPE_ANY, /**< No type annotation */
         TYPE_NAMED, /**< Named type */
         TYPE_FN, /**< Function type */
-        // TODO: add type expression type?
+        TYPE_TYPE, /**< Type type */
 
         TYPE_MAX /**< Sentinel value for type kinds. */
     } type;
@@ -112,6 +112,8 @@ struct SnukType {
             SnukType *return_type; /**< The return type of function */
             SnukType **param_types; /**< Darray of parameter types */
         } fn;
+
+        SnukType **member_types; /**< Darray of type of the members */
     };
 };
 

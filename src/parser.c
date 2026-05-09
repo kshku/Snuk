@@ -97,6 +97,25 @@ static SnukItem *parse_print_item(SnukParser *parser) {
  * @breif Parse a type annotation.
  */
 static SnukType *parse_type_annot(SnukParser *parser) {
+    if (parser_match(parser, SNUK_TOKEN_TYPE)) {
+        SnukType *type = build_type_type(parser, NULL, NULL);
+        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+        while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+                && parser->current.type != SNUK_TOKEN_EOF) {
+            SnukType *member_type = parse_type_annot(parser);
+            type = build_type_type(parser, type, member_type);
+            if (!parser_check(parser, SNUK_TOKEN_RBRACE))
+                parser_expect_item_end(parser);
+        }
+
+        if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+            parser_error(parser, "expected '}'");
+            return NULL;
+        }
+
+        return type;
+    }
+
     if (parser_match(parser, SNUK_TOKEN_FN)) {
         SnukType *type = build_fn_type(parser, NULL, NULL, NULL);
         parser_expect(parser, SNUK_TOKEN_LPAREN, "exptected '('");

@@ -925,6 +925,27 @@ SNUK_INLINE SnukType *build_fn_type(SnukParser *parser, SnukType *type, SnukType
 }
 
 /**
+ * @brief Build a type type.
+ * 
+ * @param parser Parser context to operate on.
+ * @param type Existing type type to append member type or NULL to create one.
+ * @param member_type The member type to append.
+ *
+ * @return Newly allocated type node.
+ */
+SNUK_INLINE SnukType *build_type_type(SnukParser *parser, SnukType *type, SnukType *member_type) {
+    if (!type) {
+        type = parser_create_type(parser);
+        *type = (SnukType){
+            .type = TYPE_TYPE,
+            .member_types = snuk_darray_create(SnukType *, parser->allocator),
+        };
+    }
+    if (member_type) snuk_darray_push(&type->member_types, member_type);
+    return type;
+}
+
+/**
  * @brief Advance to the next token.
  *
  * @param parser Parser context to operate on.
