@@ -161,10 +161,12 @@ SNUK_INLINE bool is_true_value(SnukValue value) {
             return value.string_value.len != 0;
 
         case SNUK_VALUE_FN:
+        case SNUK_VALUE_TYPE:
             return true;
 
-        // TODO:
-        case SNUK_VALUE_TYPE:
+        case SNUK_VALUE_TYPE_INST:
+            return value.type_inst.self != NULL;
+
         default:
             return false;
     }
@@ -212,6 +214,12 @@ SnukValue snuk_interpreter_copy_value(SnukValue value) {
             value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
+            value.type_value.closure = snuk_ref_counter_retain(value.type_value.closure);
+            break;
+        case SNUK_VALUE_TYPE_INST:
+            value.type_inst.self = snuk_ref_counter_retain(value.type_inst.self);
+            break;
+
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
         case SNUK_VALUE_FLOAT:
@@ -232,6 +240,12 @@ void snuk_interpreter_free_value(SnukValue value) {
             snuk_ref_counter_release(&value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
+            snuk_ref_counter_release(&value.type_value.closure);
+            break;
+        case SNUK_VALUE_TYPE_INST:
+            snuk_ref_counter_release(&value.type_inst.self);
+            break;
+
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
         case SNUK_VALUE_FLOAT:
@@ -385,7 +399,25 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
             }
 
         case SNUK_EXPR_TYPE:
-            break;
+            {
+                SnukValue value = {
+                    .type = SNUK_VALUE_TYPE,
+                    .type_value = {
+                        .closure = snuk_ref_counter_retain(intpret->current),
+                        .members = expr->type_expr.members,
+                    },
+                };
+
+                // Syntax sugar
+                if (expr->type_expr.name.len) {
+                    SnukStringView name = expr->type_expr.name;
+                    expr->type_expr.name = (SnukStringView){0};
+                    SnukEnv *env = snuk_create_env(intpret, name, expr);
+                    snuk_scope_add_env(GET_SCOPE(intpret->current), env);
+                }
+
+                return value;
+            }
 
         case SNUK_EXPR_BLOCK:
             return execute_block_expr(intpret, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_NONE);
@@ -705,8 +737,10 @@ static void print_exprs(SnukInterpreter *intpret, SnukExpr **exprs) {
                     snuk_print(SNUK_STRING_VIEW_FORMAT", ", SNUK_STRING_VIEW_ARG(value.fn_value.params[k]->name));
                 break;
             case SNUK_VALUE_TYPE:
-                // TODO:
                 snuk_print("type:", NULL);
+                break;
+            case SNUK_VALUE_TYPE_INST:
+                snuk_print("type inst:", NULL);
                 break;
             default:
                 SNUK_SHOULD_NOT_REACH_HERE;
@@ -757,6 +791,9 @@ void snuk_interpreter_log_value(SnukValue value) {
         case SNUK_VALUE_TYPE:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE));
             break;
+        case SNUK_VALUE_TYPE_INST:
+            log_trace("type %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE_INST));
+            break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;
             break;
@@ -795,8 +832,10 @@ void snuk_interpreter_print_value(SnukValue value) {
                 snuk_print(SNUK_STRING_VIEW_FORMAT", ", SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
             break;
         case SNUK_VALUE_TYPE:
-            // TODO:
             snuk_println("type:", NULL);
+            break;
+        case SNUK_VALUE_TYPE_INST:
+            snuk_println("type inst:", NULL);
             break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;
