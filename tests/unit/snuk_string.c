@@ -95,9 +95,9 @@ ADD_TEST(test_is_hex_digit) {
     TEST_PASSED;
 }
 
-ADD_TEST(test_string_length_edge_cases) {
+ADD_TEST(test_string_length) {
     // basic cases
-    ASSERT_EQ(snuk_string_length("hello"), 5);
+    ASSERT_EQ(snuk_string_length("Hello"), 5);
     ASSERT_EQ(snuk_string_length(""), 0);
 
     // string with spaces and symbols
@@ -110,17 +110,10 @@ ADD_TEST(test_string_length_edge_cases) {
     TEST_PASSED;
 }
 
-ADD_TEST(test_string_length) {
-    ASSERT_EQ(snuk_string_length("Hello"), 5);
-    ASSERT_EQ(snuk_string_length(""), 0);
-
-    TEST_PASSED;
-}
-
 ADD_TEST(test_string_equal) {
-    ASSERT_STR_EQ("Hi", "Hi");
-    ASSERT_STR_EQ("", "");
-    ASSERT_STR_NE("Hello", "Hi");
+    ASSERT(snuk_string_equal("Hi", "Hi"));
+    ASSERT(snuk_string_equal("", ""));
+    ASSERT(!snuk_string_equal("Hello", "Hi"));
 
     TEST_PASSED;
 }
