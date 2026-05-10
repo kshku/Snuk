@@ -8,8 +8,8 @@ ADD_TEST(test_string_view_create_with_len) {
     SnukStringView view = snuk_string_view_create_with_len("hello world", 5);
 
     ASSERT_EQ(view.len, 5);
-    ASSERT(view.str != NULL);
-    ASSERT(snuk_string_n_equal(view.str, "hello", 5));
+    ASSERT_NOT_NULL(view.str);
+    ASSERT_STR_N_EQ(view.str, "hello", 5);
 
     TEST_PASSED;
 }
@@ -18,17 +18,18 @@ ADD_TEST(test_string_view_create) {
     SnukStringView view = snuk_string_view_create("hello");
 
     ASSERT_EQ(view.len, 5);
-    ASSERT(view.str != NULL);
-    ASSERT(snuk_string_equal(view.str, "hello"));
+    ASSERT_NOT_NULL(view.str);
+    ASSERT_STR_EQ(view.str, "hello");
 
     TEST_PASSED;
 }
 
 ADD_TEST(test_string_view_get_cstr) {
     SnukStringView view = snuk_string_view_create("hello world");
-    char* str = snuk_string_view_get_cstr(view);
+    char *str = snuk_string_view_get_cstr(view);
 
-    ASSERT(snuk_string_equal(str, "hello world"));
+    ASSERT_NOT_NULL(str);
+    ASSERT_STR_EQ(str, "hello world");
 
     snuk_free(str);
 
@@ -40,8 +41,8 @@ ADD_TEST(test_string_view_copy) {
     SnukStringView copy = snuk_string_view_copy(view);
 
     ASSERT_EQ(view.len, copy.len);
-    ASSERT(copy.str != view.str);
-    ASSERT(snuk_string_equal(view.str, copy.str));
+    ASSERT_PTR_NE(copy.str, view.str);
+    ASSERT_STR_EQ(view.str, copy.str);
 
     snuk_free((void *)copy.str);
 
@@ -54,10 +55,11 @@ ADD_TEST(test_string_view_concat) {
     SnukStringView result = snuk_string_view_concat(a, b);
 
     ASSERT_EQ(result.len, 11);
-    ASSERT(snuk_string_n_equal(result.str, "hello world", result.len));
+    ASSERT_NOT_NULL(result.str);
+    ASSERT_STR_N_EQ(result.str, "hello world", result.len);
 
     snuk_free((void *)result.str);
-  
+
     TEST_PASSED;
 }
 
