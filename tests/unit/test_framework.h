@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #include <logger.h>
+#include <string.h>
 #include <memory.h>
 
 typedef bool (*snuk_test_fn)(void);
@@ -179,7 +180,12 @@ static inline bool snuk_run_all_tests(void) {
         const char *snuk_str_a = (a); \
         const char *snuk_str_b = (b); \
         \
-        if (!snuk_string_equal(snuk_str_a, snuk_str_b)) { \
+        bool snuk_equal = \
+            (snuk_str_a == NULL && snuk_str_b == NULL) || \
+            (snuk_str_a != NULL && snuk_str_b != NULL && \
+             strcmp(snuk_str_a, snuk_str_b) == 0); \
+        \
+        if (!snuk_equal) { \
             log_error( \
                 "Assertion failed: strings %s == %s (%s:%d) in %s\n" \
                 "  left : \"%s\"\n" \
@@ -197,7 +203,12 @@ static inline bool snuk_run_all_tests(void) {
         const char *snuk_str_a = (a); \
         const char *snuk_str_b = (b); \
         \
-        if (snuk_string_equal(snuk_str_a, snuk_str_b)) { \
+        bool snuk_equal = \
+            (snuk_str_a == NULL && snuk_str_b == NULL) || \
+            (snuk_str_a != NULL && snuk_str_b != NULL && \
+             strcmp(snuk_str_a, snuk_str_b) == 0); \
+        \
+        if (snuk_equal) { \
             log_error( \
                 "Assertion failed: strings %s != %s (%s:%d) in %s\n" \
                 "  both: \"%s\"", \
@@ -214,7 +225,12 @@ static inline bool snuk_run_all_tests(void) {
         const char *snuk_str_b = (b); \
         size_t snuk_str_n = (n); \
         \
-        if (!snuk_string_n_equal(snuk_str_a, snuk_str_b, snuk_str_n)) { \
+        bool snuk_equal = \
+            (snuk_str_a == NULL && snuk_str_b == NULL) || \
+            (snuk_str_a != NULL && snuk_str_b != NULL && \
+             strncmp(snuk_str_a, snuk_str_b, snuk_str_n) == 0); \
+        \
+        if (!snuk_equal) { \
             log_error( \
                 "Assertion failed: first %zu chars of %s == %s (%s:%d) in %s", \
                 snuk_str_n, #a, #b, __FILE__, __LINE__, __func__ \
