@@ -65,6 +65,7 @@ typedef enum SnukExprType {
 
     SNUK_EXPR_FN, /**< Funtion expression */
     SNUK_EXPR_TYPE, /**< Type expression */
+    SNUK_EXPR_TYPE_INST, /**< Type instance */
 
     SNUK_EXPR_BLOCK, /**< Block expression */
 
@@ -206,6 +207,11 @@ struct SnukExpr {
             SnukItem **members; /**< Dynamic array of members items in the type */
             SnukStringView name; /**< Name in case of syntax sugar */
         } type_expr;
+
+        struct {
+            SnukExpr *type_name; /**< Name of the type */
+            SnukExpr **init; /**< initial values of members */
+        } type_inst_expr;
 
         SnukItem **block_items; /**< Dynamic array of items in the block. */
 

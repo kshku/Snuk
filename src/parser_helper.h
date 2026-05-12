@@ -209,6 +209,16 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left, ParseFlag flag);
  */
 static SnukExpr *parse_comment(SnukParser *parser, ParseFlag flag);
 
+/**
+ * @brief Parse type instance.
+ *
+ * @param parser Parser context to operate on.
+ * @param left Name of the type.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_type_inst(SnukParser *parser, SnukExpr *left, ParseFlag flag);
+
 static ParseRule rules[] = {
     [SNUK_TOKEN_IDENTIFIER] = {parse_primary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_INTEGER] = {parse_primary, NULL, PRECEDENCE_NONE},
@@ -277,7 +287,7 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_FN] = {parse_fn, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_TYPE] = {parse_type, NULL, PRECEDENCE_NONE},
 
-    [SNUK_TOKEN_LBRACE] = {parse_block, NULL, PRECEDENCE_NONE},
+    [SNUK_TOKEN_LBRACE] = {parse_block, parse_type_inst, PRECEDENCE_PRIMARY},
 
     [SNUK_TOKEN_LINE_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_BLOCK_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
@@ -808,6 +818,24 @@ SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **members, Sn
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
         .type_expr = {.members = members, .name = name},
+    };
+    return expr;
+}
+
+/**
+ * @brief Build an type instance node.
+ *
+ * @param parser Parser context to operate on.
+ * @param type_name Name of the type.
+ * @param init Initialization values.
+ *
+ * @return Newly allocated type expression node.
+ */
+SNUK_INLINE SnukExpr *build_type_inst_expr(SnukParser *parser, SnukExpr *type_name, SnukExpr **init) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){
+        .type = SNUK_EXPR_TYPE_INST,
+        .type_inst_expr = {.type_name = type_name, .init = init},
     };
     return expr;
 }

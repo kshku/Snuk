@@ -489,6 +489,27 @@ static SnukExpr *parse_type(SnukParser *parser, ParseFlag flag) {
     return build_type_expr(parser, members, name);
 }
 
+static SnukExpr *parse_type_inst(SnukParser *parser, SnukExpr *left, ParseFlag flag) {
+    SnukExpr **init = snuk_darray_create(SnukExpr *, parser->allocator);
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+            && parser->current.type != SNUK_TOKEN_EOF) {
+        parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an member name");
+        SnukExpr *identifier = parse_primary(parser, flag);
+        parser_expect(parser, SNUK_TOKEN_COLON, "expected ':'");
+        SnukExpr *value = parse_expression(parser, flag);
+        parser_expect_item_end(parser);
+        SnukExpr *assign = build_assign_expr(parser, identifier, value);
+        snuk_darray_push(&init, assign);
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "expected '}'");
+        return NULL;
+    }
+
+    return build_type_inst_expr(parser, left, init);
+}
+
 /**
  * @brief Parse an block expression.
  */
