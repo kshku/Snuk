@@ -343,7 +343,7 @@ var BlueThing = make_type("blue")
 // instantiation — named fields, any order
 // fields with defaults can be omitted
 var origin = Point {}                  // x=0.0, y=0.0
-var p = Point { x: 3.0, y: 4.0 }
+var p = Point { x: 3.0; y: 4.0 }
 
 // field access and method calls
 print p.x
@@ -434,7 +434,7 @@ fn print_shape(shape) {
     print "area: " + shape.area()
 }
 
-print_shape(Rectangle { width: 10.0, height: 5.0 })
+print_shape(Rectangle { width: 10.0; height: 5.0 })
 print_shape(Circle { radius: 7.0 })
 
 
@@ -491,7 +491,7 @@ type Account {
     }
 }
 
-var acc = Account { owner: "alice", balance: 100.0 }
+var acc = Account { owner: "alice"; balance: 100.0 }
 acc.deposit(50.0)
 acc.withdraw(30.0)
 print acc.to_string()    // alice: 120.0

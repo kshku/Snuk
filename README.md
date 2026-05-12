@@ -180,7 +180,7 @@ fn make_type(default_color) {
     }
 }
 
-var p = Point { x: 3.0, y: 4.0 }
+var p = Point { x: 3.0; y: 4.0 }
 print p.to_string()
 p.x = 10.0
 ```
@@ -214,7 +214,7 @@ type Circle {
     fn area() { 3.14159 * self.radius * self.radius }
 }
 
-print_area(Rectangle { width: 10.0, height: 5.0 })
+print_area(Rectangle { width: 10.0; height: 5.0 })
 print_area(Circle { radius: 7.0 })
 ```
 
