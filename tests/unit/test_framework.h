@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #include <logger.h>
+#include <string.h>
 #include <memory.h>
 
 typedef bool (*snuk_test_fn)(void);
@@ -123,7 +124,150 @@ static inline bool snuk_run_all_tests(void) {
 #define ASSERT_EQ(a, b) \
     do { \
         if ((a) != (b)) { \
-            log_error("Assertion failed: %s == %s (%s:%d) in %s", #a, #b, __FILE__, __LINE__, __func__); \
+            log_error("Assertion failed: %s == %s (%s:%d) in %s", \
+            #a, #b, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_NE(a, b) \
+    do { \
+        if ((a) == (b)) { \
+            log_error("Assertion failed: %s != %s (%s:%d) in %s", \
+            #a, #b, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_NULL(x) \
+    do { \
+        if ((x) != NULL) { \
+            log_error("Assertion failed: expected %s to be NULL (%s:%d) in %s", \
+            #x, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_NOT_NULL(x) \
+    do { \
+        if ((x) == NULL) { \
+            log_error("Assertion failed: expected %s to be non-NULL (%s:%d) in %s", \
+            #x, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_PTR_EQ(a, b) \
+    do { \
+        if ((void *)(a) != (void *)(b)) { \
+            log_error("Assertion failed: pointers %s == %s (%s:%d) in %s", \
+            #a, #b, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_PTR_NE(a, b) \
+    do { \
+        if ((void *)(a) == (void *)(b)) { \
+            log_error("Assertion failed: pointers %s != %s (%s:%d) in %s", \
+            #a, #b, __FILE__, __LINE__, __func__); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_STR_EQ(a, b) \
+    do { \
+        const char *snuk_str_a = (a); \
+        const char *snuk_str_b = (b); \
+        \
+        bool snuk_equal = \
+            (snuk_str_a == NULL && snuk_str_b == NULL) || \
+            (snuk_str_a != NULL && snuk_str_b != NULL && \
+             strcmp(snuk_str_a, snuk_str_b) == 0); \
+        \
+        if (!snuk_equal) { \
+            log_error( \
+                "Assertion failed: strings %s == %s (%s:%d) in %s\n" \
+                "  left : \"%s\"\n" \
+                "  right: \"%s\"", \
+                #a, #b, __FILE__, __LINE__, __func__, \
+                snuk_str_a ? snuk_str_a : "(null)", \
+                snuk_str_b ? snuk_str_b : "(null)" \
+            ); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_STR_NE(a, b) \
+    do { \
+        const char *snuk_str_a = (a); \
+        const char *snuk_str_b = (b); \
+        \
+        bool snuk_equal = \
+            (snuk_str_a == NULL && snuk_str_b == NULL) || \
+            (snuk_str_a != NULL && snuk_str_b != NULL && \
+             strcmp(snuk_str_a, snuk_str_b) == 0); \
+        \
+        if (snuk_equal) { \
+            log_error( \
+                "Assertion failed: strings %s != %s (%s:%d) in %s\n" \
+                "  both: \"%s\"", \
+                #a, #b, __FILE__, __LINE__, __func__, \
+                snuk_str_a ? snuk_str_a : "(null)" \
+            ); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_STR_N_EQ(a, b, n) \
+    do { \
+        const char *snuk_str_a = (a); \
+        const char *snuk_str_b = (b); \
+        size_t snuk_str_n = (n); \
+        \
+        bool snuk_equal = \
+            (snuk_str_a == NULL && snuk_str_b == NULL) || \
+            (snuk_str_a != NULL && snuk_str_b != NULL && \
+             strncmp(snuk_str_a, snuk_str_b, snuk_str_n) == 0); \
+        \
+        if (!snuk_equal) { \
+            log_error( \
+                "Assertion failed: first %zu chars of %s == %s (%s:%d) in %s", \
+                snuk_str_n, #a, #b, __FILE__, __LINE__, __func__ \
+            ); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_CHAR_EQ(a, b) \
+    do { \
+        char snuk_char_a = (a); \
+        char snuk_char_b = (b); \
+        \
+        if (snuk_char_a != snuk_char_b) { \
+            log_error( \
+                "Assertion failed: chars %s == %s (%s:%d) in %s\n" \
+                "  left : '%c' (%d)\n" \
+                "  right: '%c' (%d)", \
+                #a, #b, __FILE__, __LINE__, __func__, \
+                snuk_char_a, snuk_char_a, \
+                snuk_char_b, snuk_char_b \
+            ); \
+            TEST_FAILED; \
+        } \
+    } while (0)
+
+#define ASSERT_MEM_EQ(a, b, size) \
+    do { \
+        const void *snuk_mem_a = (a); \
+        const void *snuk_mem_b = (b); \
+        size_t snuk_mem_size = (size); \
+        \
+        if (memcmp(snuk_mem_a, snuk_mem_b, snuk_mem_size) != 0) { \
+            log_error( \
+                "Assertion failed: memory %s == %s with size %zu (%s:%d) in %s", \
+                #a, #b, snuk_mem_size, __FILE__, __LINE__, __func__ \
+            ); \
             TEST_FAILED; \
         } \
     } while (0)
