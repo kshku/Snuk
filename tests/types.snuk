@@ -7,7 +7,7 @@ var on_click: fn() = fn() {}
 var transform: fn(float) -> float
 var n: fn()
 var o: fn(int, any)
-var z: fn(any, fn ()) -> fn (int) -> int
+var z2: fn(any, fn ()) -> fn (int) -> int
 var something: type {int; float}
 var anotherthing: type {
     int

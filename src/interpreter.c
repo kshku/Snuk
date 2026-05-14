@@ -106,17 +106,6 @@ SNUK_INLINE void snuk_scope_pop(SnukInterpreter *intpret) {
 }
 
 /**
- * @brief Append a binding to a scope's variable list.
- */
-SNUK_INLINE SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
-    // TODO: multiple declaration errors
-
-    snuk_darray_push(&scope->vars, env);
-
-    return env;
-}
-
-/**
  * @brief Find a binding by name within a single scope, without walking parents.
  */
 SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
@@ -127,6 +116,21 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
             return scope->vars[j];
     }
     return NULL;
+}
+
+/**
+ * @brief Append a binding to a scope's variable list.
+ * Takes ownership of env regardless of success or failure.
+ */
+SNUK_INLINE SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
+    if (snuk_scope_lookup(scope, env->name)) {
+        log_error("multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'",
+                  SNUK_STRING_VIEW_ARG(env->name));
+        snuk_free_env(env);
+        return NULL;
+    }
+    snuk_darray_push(&scope->vars, env);
+    return env;
 }
 
 /**
@@ -263,41 +267,46 @@ void snuk_interpreter_free_value(SnukValue value) {
  */
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
     switch (item->type) {
-        case SNUK_ITEM_EXPR:
-            return snuk_interpreter_eval_expr(intpret, item->expr);
+    case SNUK_ITEM_EXPR:
+        return snuk_interpreter_eval_expr(intpret, item->expr);
 
-        case SNUK_ITEM_VAR_DECL:
-        case SNUK_ITEM_CONST_DECL:
-            {
-                // TODO: const
-                SnukEnv *env = snuk_create_env(intpret, item->decl_item.name, item->decl_item.expr);
-                SnukValue value = snuk_scope_add_env(GET_SCOPE(intpret->current), env)->value;
-                return snuk_interpreter_copy_value(value);
-            }
+    case SNUK_ITEM_VAR_DECL:
+    case SNUK_ITEM_CONST_DECL: {
+        // TODO: const
+        SnukEnv *env = snuk_create_env(intpret, item->decl_item.name,
+                                       item->decl_item.expr);
 
-        case SNUK_ITEM_PRINT:
-            print_exprs(intpret, item->print_exprs);
-            // TODO: return something else?
-            return (SnukValue){.type = SNUK_VALUE_NULL};
-            break;
+        SnukEnv *added = snuk_scope_add_env(GET_SCOPE(intpret->current), env);
 
-        // TODO:
-        case SNUK_ITEM_RETURN:
-        case SNUK_ITEM_BREAK:
-            {
-                SnukValue value = {.type = SNUK_VALUE_NULL};
-                if (item->expr)
-                    value = snuk_interpreter_eval_expr(intpret, item->expr);
-                intpret->signal = item->type == SNUK_ITEM_RETURN ? SNUK_SIGNAL_RETURN : SNUK_SIGNAL_BREAK;
-                return value;
-            }
-        case SNUK_ITEM_CONTINUE:
-            intpret->signal = SNUK_SIGNAL_CONTINUE;
-            return (SnukValue){.type = SNUK_VALUE_NULL};
+        if (!added)
+            return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 
-        case SNUK_ITEM_MAX:
-        default:
-            break;
+        return snuk_interpreter_copy_value(added->value);
+    }
+
+    case SNUK_ITEM_PRINT:
+        print_exprs(intpret, item->print_exprs);
+        // TODO: return something else?
+        return (SnukValue){.type = SNUK_VALUE_NULL};
+        break;
+
+    // TODO:
+    case SNUK_ITEM_RETURN:
+    case SNUK_ITEM_BREAK: {
+        SnukValue value = {.type = SNUK_VALUE_NULL};
+        if (item->expr)
+            value = snuk_interpreter_eval_expr(intpret, item->expr);
+        intpret->signal = item->type == SNUK_ITEM_RETURN ? SNUK_SIGNAL_RETURN
+                                                         : SNUK_SIGNAL_BREAK;
+        return value;
+    }
+    case SNUK_ITEM_CONTINUE:
+        intpret->signal = SNUK_SIGNAL_CONTINUE;
+        return (SnukValue){.type = SNUK_VALUE_NULL};
+
+    case SNUK_ITEM_MAX:
+    default:
+        break;
     }
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
