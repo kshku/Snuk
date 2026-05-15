@@ -67,14 +67,8 @@ struct SnukValue {
             SnukParam **params;
             SnukType *return_type;
         } fn_value;
-        struct {
-            SnukRefCounter *closure;
-            SnukItem **members;
-        } type_value;
 
-        struct {
-            SnukRefCounter *self;
-        } type_inst;
+        SnukRefCounter *closure;
     };
 };
 

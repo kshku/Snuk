@@ -25,6 +25,13 @@ typedef enum Precedence {
     PRECEDENCE_PRIMARY /**< Primary expression precedence. */
 } Precedence;
 
+typedef enum ParseFlag {
+    PARSE_FLAG_NORMAL,
+    PARSE_FLAG_STOP_LBRACE,
+
+    PARSE_FLAG_MAX
+} ParseFlag;
+
 /**
  * @brief Prefix parse function for tokens that start expressions.
  *
@@ -32,7 +39,7 @@ typedef enum Precedence {
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-typedef SnukExpr *(*prefix_fn)(SnukParser *parser);
+typedef SnukExpr *(*prefix_fn)(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Infix parse function for tokens that continue expressions.
@@ -42,7 +49,7 @@ typedef SnukExpr *(*prefix_fn)(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-typedef SnukExpr *(*infix_fn)(SnukParser *parser, SnukExpr *expr);
+typedef SnukExpr *(*infix_fn)(SnukParser *parser, SnukExpr *expr, ParseFlag flag);
 
 /**
  * @brief Pratt parser rule for a token type.
@@ -61,7 +68,7 @@ typedef struct ParseRule {
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence);
+static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence, ParseFlag flag);
 
 /**
  * @brief Parse a primary expression.
@@ -70,7 +77,7 @@ static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_primary(SnukParser *parser);
+static SnukExpr *parse_primary(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse a grouped expression.
@@ -79,7 +86,7 @@ static SnukExpr *parse_primary(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_grouping(SnukParser *parser);
+static SnukExpr *parse_grouping(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse a unary expression.
@@ -88,7 +95,7 @@ static SnukExpr *parse_grouping(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_unary(SnukParser *parser);
+static SnukExpr *parse_unary(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse a binary expression.
@@ -98,7 +105,7 @@ static SnukExpr *parse_unary(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left);
+static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left, ParseFlag flag);
 
 /**
  * @brief Parse an assignment expression.
@@ -108,7 +115,7 @@ static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left);
+static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left, ParseFlag flag);
 
 /**
  * @brief Parse an compound assignment expression.
@@ -118,7 +125,7 @@ static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left);
+static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left, ParseFlag flag);
 
 /**
  * @brief Parse an if expression.
@@ -127,7 +134,7 @@ static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_if(SnukParser *parser);
+static SnukExpr *parse_if(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse an match expression.
@@ -136,7 +143,7 @@ static SnukExpr *parse_if(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_match(SnukParser *parser);
+static SnukExpr *parse_match(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse an while or do while loop expression.
@@ -145,7 +152,7 @@ static SnukExpr *parse_match(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_while(SnukParser *parser);
+static SnukExpr *parse_while(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse an for loop expression.
@@ -154,7 +161,7 @@ static SnukExpr *parse_while(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_for(SnukParser *parser);
+static SnukExpr *parse_for(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse an function expression.
@@ -163,7 +170,7 @@ static SnukExpr *parse_for(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_fn(SnukParser *parser);
+static SnukExpr *parse_fn(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse an type expression.
@@ -172,7 +179,7 @@ static SnukExpr *parse_fn(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_type(SnukParser *parser);
+static SnukExpr *parse_type(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse an block expression.
@@ -181,7 +188,7 @@ static SnukExpr *parse_type(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_block(SnukParser *parser);
+static SnukExpr *parse_block(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse function call expression.
@@ -191,7 +198,7 @@ static SnukExpr *parse_block(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left);
+static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left, ParseFlag flag);
 
 /**
  * @brief Parse comment expression.
@@ -200,7 +207,17 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_comment(SnukParser *parser);
+static SnukExpr *parse_comment(SnukParser *parser, ParseFlag flag);
+
+/**
+ * @brief Parse type instance.
+ *
+ * @param parser Parser context to operate on.
+ * @param left Name of the type.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_type_inst(SnukParser *parser, SnukExpr *left, ParseFlag flag);
 
 static ParseRule rules[] = {
     [SNUK_TOKEN_IDENTIFIER] = {parse_primary, NULL, PRECEDENCE_NONE},
@@ -270,7 +287,7 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_FN] = {parse_fn, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_TYPE] = {parse_type, NULL, PRECEDENCE_NONE},
 
-    [SNUK_TOKEN_LBRACE] = {parse_block, NULL, PRECEDENCE_NONE},
+    [SNUK_TOKEN_LBRACE] = {parse_block, parse_type_inst, PRECEDENCE_PRIMARY},
 
     [SNUK_TOKEN_LINE_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_BLOCK_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
@@ -309,7 +326,7 @@ static void parser_sync(SnukParser *parser);
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-static SnukExpr *parse_expression(SnukParser *parser);
+static SnukExpr *parse_expression(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse the next item.
@@ -318,7 +335,7 @@ static SnukExpr *parse_expression(SnukParser *parser);
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_item(SnukParser *parser);
+static SnukItem *parse_item(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse an expression item.
@@ -327,7 +344,7 @@ static SnukItem *parse_item(SnukParser *parser);
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_expr_item(SnukParser *parser);
+static SnukItem *parse_expr_item(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse a variable or constant declaration item.
@@ -337,7 +354,7 @@ static SnukItem *parse_expr_item(SnukParser *parser);
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_decl_item(SnukParser *parser, bool is_const);
+static SnukItem *parse_decl_item(SnukParser *parser, bool is_const, ParseFlag flag);
 
 /**
  * @brief Parse return, break, or continue items.
@@ -346,7 +363,7 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const);
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_flow_item(SnukParser *parser);
+static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Parse a print item.
@@ -355,7 +372,7 @@ static SnukItem *parse_flow_item(SnukParser *parser);
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_print_item(SnukParser *parser);
+static SnukItem *parse_print_item(SnukParser *parser, ParseFlag flag);
 
 /**
  * @breif Parse a type annotation.
@@ -364,7 +381,7 @@ static SnukItem *parse_print_item(SnukParser *parser);
  *
  * @return Parsed type, or NULL on parse failure.
  */
-static SnukType *parse_type_annot(SnukParser *parser);
+static SnukType *parse_type_annot(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Allocate a item.
@@ -801,6 +818,24 @@ SNUK_INLINE SnukExpr *build_type_expr(SnukParser *parser, SnukItem **members, Sn
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
         .type_expr = {.members = members, .name = name},
+    };
+    return expr;
+}
+
+/**
+ * @brief Build an type instance node.
+ *
+ * @param parser Parser context to operate on.
+ * @param type_name Name of the type.
+ * @param init Initialization values.
+ *
+ * @return Newly allocated type expression node.
+ */
+SNUK_INLINE SnukExpr *build_type_inst_expr(SnukParser *parser, SnukExpr *type_name, SnukExpr **init) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){
+        .type = SNUK_EXPR_TYPE_INST,
+        .type_inst_expr = {.type_name = type_name, .init = init},
     };
     return expr;
 }

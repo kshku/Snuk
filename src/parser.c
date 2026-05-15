@@ -12,7 +12,7 @@
  */
 SnukItem *snuk_parser_next_item(SnukParser *parser) {
     if (parser->current.type == SNUK_TOKEN_EOF) return NULL;
-    SnukItem *item = parse_item(parser);
+    SnukItem *item = parse_item(parser, PARSE_FLAG_NORMAL);
     if (parser->panic_mode) parser_sync(parser);
     return item;
 }
@@ -20,24 +20,24 @@ SnukItem *snuk_parser_next_item(SnukParser *parser) {
 /**
  * @brief Dispatch item parsing based on the current token.
  */
-static SnukItem *parse_item(SnukParser *parser) {
+static SnukItem *parse_item(SnukParser *parser, ParseFlag flag) {
     if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST))
-        return parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST);
+        return parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST, flag);
 
     if (parser_match(parser, SNUK_TOKEN_RETURN) || parser_match(parser, SNUK_TOKEN_CONTINUE)
             || parser_match(parser, SNUK_TOKEN_BREAK))
-        return parse_flow_item(parser);
+        return parse_flow_item(parser, flag);
 
-    if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
+    if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser, flag);
 
-    return parse_expr_item(parser);
+    return parse_expr_item(parser, flag);
 }
 
 /**
  * @brief Parse an expression item.
  */
-static SnukItem *parse_expr_item(SnukParser *parser) {
-    SnukExpr *expr = parse_expression(parser);
+static SnukItem *parse_expr_item(SnukParser *parser, ParseFlag flag) {
+    SnukExpr *expr = parse_expression(parser, flag);
     parser_expect_item_end(parser);
     return build_expr_item(parser, expr);
 }
@@ -45,18 +45,18 @@ static SnukItem *parse_expr_item(SnukParser *parser) {
 /**
  * @brief Parse a variable or constant declaration item.
  */
-static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
+static SnukItem *parse_decl_item(SnukParser *parser, bool is_const, ParseFlag flag) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
     SnukStringView identifier = parser->previous.string_literal;
 
     SnukType *type = NULL;
     if (parser_match(parser, SNUK_TOKEN_COLON))
-        type = parse_type_annot(parser);
+        type = parse_type_annot(parser, flag);
     else
         type = build_any_type(parser);
 
     SnukExpr *init = NULL;
-    if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser);
+    if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = parse_expression(parser, flag);
     else init = build_null_expr(parser);
 
     parser_expect_item_end(parser);
@@ -67,13 +67,13 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
 /**
  * @brief Parse return, break, or continue items.
  */
-static SnukItem *parse_flow_item(SnukParser *parser) {
+static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag) {
     SnukTokenType type = parser->previous.type;
     SnukExpr *value = NULL;
     if (parser->previous.type == SNUK_TOKEN_RETURN || parser->previous.type == SNUK_TOKEN_BREAK)
         // TODO: look for delimiter, value is optional
         // TODO: break and return items should be at the end of block only?
-        value = parse_expression(parser);
+        value = parse_expression(parser, flag);
 
     parser_expect_item_end(parser);
 
@@ -83,10 +83,10 @@ static SnukItem *parse_flow_item(SnukParser *parser) {
 /**
  * @brief Parse a print item.
  */
-static SnukItem *parse_print_item(SnukParser *parser) {
-    SnukItem *print_item = build_print_item(parser, NULL, parse_expression(parser));
+static SnukItem *parse_print_item(SnukParser *parser, ParseFlag flag) {
+    SnukItem *print_item = build_print_item(parser, NULL, parse_expression(parser, flag));
     while (parser_match(parser, SNUK_TOKEN_COMMA))
-        print_item = build_print_item(parser, print_item, parse_expression(parser));
+        print_item = build_print_item(parser, print_item, parse_expression(parser, flag));
 
     parser_expect_item_end(parser);
 
@@ -96,13 +96,13 @@ static SnukItem *parse_print_item(SnukParser *parser) {
 /**
  * @breif Parse a type annotation.
  */
-static SnukType *parse_type_annot(SnukParser *parser) {
+static SnukType *parse_type_annot(SnukParser *parser, ParseFlag flag) {
     if (parser_match(parser, SNUK_TOKEN_TYPE)) {
         SnukType *type = build_type_type(parser, NULL, NULL);
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
         while (!parser_match(parser, SNUK_TOKEN_RBRACE)
                 && parser->current.type != SNUK_TOKEN_EOF) {
-            SnukType *member_type = parse_type_annot(parser);
+            SnukType *member_type = parse_type_annot(parser, flag);
             type = build_type_type(parser, type, member_type);
             if (!parser_check(parser, SNUK_TOKEN_RBRACE))
                 parser_expect_item_end(parser);
@@ -121,7 +121,7 @@ static SnukType *parse_type_annot(SnukParser *parser) {
         parser_expect(parser, SNUK_TOKEN_LPAREN, "exptected '('");
         while (!parser_match(parser, SNUK_TOKEN_RPAREN)
                 && parser->current.type != SNUK_TOKEN_EOF) {
-            SnukType *param = parse_type_annot(parser);
+            SnukType *param = parse_type_annot(parser, flag);
             type = build_fn_type(parser, type, param, NULL);
             if (!parser_check(parser, SNUK_TOKEN_RPAREN))
                 parser_expect(parser, SNUK_TOKEN_COMMA, "expected ','");
@@ -134,7 +134,7 @@ static SnukType *parse_type_annot(SnukParser *parser) {
 
         SnukType *ret_type = NULL;
         if (parser_match(parser, SNUK_TOKEN_ARROW))
-            ret_type = parse_type_annot(parser);
+            ret_type = parse_type_annot(parser, flag);
 
         type = build_fn_type(parser, type, NULL, ret_type);
         return type;
@@ -151,14 +151,14 @@ static SnukType *parse_type_annot(SnukParser *parser) {
 /**
  * @brief Parse an expression from the lowest precedence.
  */
-static SnukExpr *parse_expression(SnukParser *parser) {
-    return parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
+static SnukExpr *parse_expression(SnukParser *parser, ParseFlag flag) {
+    return parse_precedence(parser, PRECEDENCE_ASSIGNMENT, flag);
 }
 
 /**
  * @brief Parse an expression at or above the given precedence.
  */
-static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence) {
+static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence, ParseFlag flag) {
     parser_advance(parser);
     prefix_fn pfn = get_rule(parser->previous.type)->pfn;
     if (!pfn) {
@@ -166,11 +166,15 @@ static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence) {
         return NULL;
     }
 
-    SnukExpr *left = pfn(parser);
+    SnukExpr *left = pfn(parser, flag);
+
     while (precedence <= get_rule(parser->current.type)->precedence) {
+        if (flag == PARSE_FLAG_STOP_LBRACE && parser->current.type == SNUK_TOKEN_LBRACE)
+            return left;
+
         parser_advance(parser);
         infix_fn ifn = get_rule(parser->previous.type)->ifn;
-        left = ifn(parser, left);
+        left = ifn(parser, left, flag);
     } 
 
     return left;
@@ -179,7 +183,8 @@ static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence) {
 /**
  * @brief Parse a primary expression.
  */
-static SnukExpr *parse_primary(SnukParser *parser) {
+static SnukExpr *parse_primary(SnukParser *parser, ParseFlag flag) {
+    SNUK_UNUSED(flag);
     SnukToken t = parser->previous;
     switch (t.type) {
         case SNUK_TOKEN_IDENTIFIER:
@@ -212,8 +217,8 @@ static SnukExpr *parse_primary(SnukParser *parser) {
 /**
  * @brief Parse a grouped expression.
  */
-static SnukExpr *parse_grouping(SnukParser *parser) {
-    SnukExpr *expr = parse_expression(parser);
+static SnukExpr *parse_grouping(SnukParser *parser, ParseFlag flag) {
+    SnukExpr *expr = parse_expression(parser, flag);
     parser_expect(parser, SNUK_TOKEN_RPAREN, "expected ')'");
     return expr;
 }
@@ -221,56 +226,56 @@ static SnukExpr *parse_grouping(SnukParser *parser) {
 /**
  * @brief Parse a unary expression.
  */
-static SnukExpr *parse_unary(SnukParser *parser) {
+static SnukExpr *parse_unary(SnukParser *parser, ParseFlag flag) {
     SnukToken op = parser->previous;
-    SnukExpr *right = parse_precedence(parser, PRECEDENCE_UNARY);
+    SnukExpr *right = parse_precedence(parser, PRECEDENCE_UNARY, flag);
     return build_unary_expr(parser, op.type, right);
 }
 
 /**
  * @brief Parse a binary expression.
  */
-static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left) {
+static SnukExpr *parse_binary(SnukParser *parser, SnukExpr *left, ParseFlag flag) {
     SnukToken op = parser->previous;
     ParseRule *rule = get_rule(op.type);
-    SnukExpr *right = parse_precedence(parser, rule->precedence + 1);
+    SnukExpr *right = parse_precedence(parser, rule->precedence + 1, flag);
     return build_binary_expr(parser, op.type, left, right);
 }
 
 /**
  * @brief Parse an assignment expression.
  */
-static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
-    SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
+static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left, ParseFlag flag) {
+    SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT, flag);
     return build_assign_expr(parser, left, value);
 }
 
 /**
  * @brief Parse an compound assignment expression.
  */
-static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left) {
+static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left, ParseFlag flag) {
     if (left->type != SNUK_EXPR_IDENTIFIER) {
         parser_error(parser, "invalid assignment target");
         return NULL;
     }
     SnukTokenType op = parser->previous.type;
-    SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
+    SnukExpr *value = parse_precedence(parser, PRECEDENCE_ASSIGNMENT, flag);
     return build_compound_assign_expr(parser, op, left, value);
 }
 
 /**
  * @brief Parse an if expression.
  */
-static SnukExpr *parse_if(SnukParser *parser) {
-    SnukExpr *condition = parse_expression(parser);
+static SnukExpr *parse_if(SnukParser *parser, ParseFlag flag) {
+    SnukExpr *condition = parse_expression(parser, PARSE_FLAG_STOP_LBRACE);
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-    SnukExpr *then_block = parse_block(parser);
+    SnukExpr *then_block = parse_block(parser, flag);
     SnukExpr *else_block = NULL;
     if (parser_match(parser, SNUK_TOKEN_ELSE)) {
         if (parser_match(parser, SNUK_TOKEN_IF))
-            else_block = parse_if(parser);
+            else_block = parse_if(parser, flag);
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-        else_block = parse_block(parser);
+        else_block = parse_block(parser, flag);
     }
     return build_if_expr(parser, condition, then_block, else_block);
 }
@@ -278,7 +283,8 @@ static SnukExpr *parse_if(SnukParser *parser) {
 /**
  * @brief Parse an match expression.
  */
-static SnukExpr *parse_match(SnukParser *parser) {
+static SnukExpr *parse_match(SnukParser *parser, ParseFlag flag) {
+    SNUK_UNUSED(flag);
     // TODO:
     return build_match_expr(parser, NULL);
 }
@@ -286,31 +292,31 @@ static SnukExpr *parse_match(SnukParser *parser) {
 /**
  * @brief Parse an while or do while loop expression.
  */
-static SnukExpr *parse_while(SnukParser *parser) {
+static SnukExpr *parse_while(SnukParser *parser, ParseFlag flag) {
     SnukExpr *condition = NULL;
     SnukExpr *body = NULL;
 
     if (parser->previous.type == SNUK_TOKEN_DO) {
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-        body = parse_block(parser);
+        body = parse_block(parser, flag);
         parser_expect(parser, SNUK_TOKEN_WHILE, "expected while");
-        condition = parse_expression(parser);
+        condition = parse_expression(parser, PARSE_FLAG_STOP_LBRACE);
         return build_while_expr(parser, condition, body, true);
     }
 
-    condition = parse_expression(parser);
+    condition = parse_expression(parser, PARSE_FLAG_STOP_LBRACE);
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-    body = parse_block(parser);
+    body = parse_block(parser, flag);
     return build_while_expr(parser, condition, body, false);
 }
 
 /**
  * @brief Parse an for loop expression.
  */
-static SnukExpr *parse_for(SnukParser *parser) {
+static SnukExpr *parse_for(SnukParser *parser, ParseFlag flag) {
     // Case 1: for { ... }
     if (parser_match(parser, SNUK_TOKEN_LBRACE))
-        return build_for_expr(parser, NULL, NULL, NULL, parse_block(parser));
+        return build_for_expr(parser, NULL, NULL, NULL, parse_block(parser, flag));
 
     SnukItem *init = NULL;
     SnukExpr *condition = NULL;
@@ -320,15 +326,15 @@ static SnukExpr *parse_for(SnukParser *parser) {
     // Case 2: for var ... → must be C-style
     if (parser_match(parser, SNUK_TOKEN_VAR)) {
         // semicolon is handled in parse_decl_item
-        init = parse_decl_item(parser, false);
+        init = parse_decl_item(parser, false, flag);
 
-        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser);
+        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser, flag);
         parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
 
-        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser);
+        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser, PARSE_FLAG_STOP_LBRACE);
 
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
-        body = parse_block(parser);
+        body = parse_block(parser, flag);
 
         return build_for_expr(parser, init, condition, update, body);
     }
@@ -336,27 +342,29 @@ static SnukExpr *parse_for(SnukParser *parser) {
     // Case 3: for ; ... → C-style with no init
     if (parser_match(parser, SNUK_TOKEN_SEMICOLON)) {
         // condition (optional)
-        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser);
+        // No need to have PARSE_FLAG_STOP_LBRACE since we are expecting ';' after condition
+        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser, flag);
         parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
 
         // update (optional)
-        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser);
+        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser, PARSE_FLAG_STOP_LBRACE);
 
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
-        body = parse_block(parser);
+        body = parse_block(parser, flag);
 
         return build_for_expr(parser, NULL, condition, update, body);
     }
 
     // Otherwise parse an expression first
-    SnukExpr *first = parse_expression(parser);
+    // Well, we are preventing user from having type inst if it is init position of for loop
+    SnukExpr *first = parse_expression(parser, PARSE_FLAG_STOP_LBRACE);
 
     // Case 4: for condition { ... }
     if (parser_check(parser, SNUK_TOKEN_LBRACE)) {
         condition = first;
 
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
-        body = parse_block(parser);
+        body = parse_block(parser, flag);
 
         return build_for_expr(parser, NULL, condition, NULL, body);
     }
@@ -366,13 +374,13 @@ static SnukExpr *parse_for(SnukParser *parser) {
 
     init = build_expr_item(parser, first);
 
-    if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser);
+    if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = parse_expression(parser, flag);
     parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
 
-    if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser);
+    if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = parse_expression(parser, PARSE_FLAG_STOP_LBRACE);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
-    body = parse_block(parser);
+    body = parse_block(parser, flag);
 
     return build_for_expr(parser, init, condition, update, body);
 }
@@ -380,7 +388,7 @@ static SnukExpr *parse_for(SnukParser *parser) {
 /**
  * @brief Parse an function expression.
  */
-static SnukExpr *parse_fn(SnukParser *parser) {
+static SnukExpr *parse_fn(SnukParser *parser, ParseFlag flag) {
     SnukStringView name = {0};
     if (parser_match(parser, SNUK_TOKEN_IDENTIFIER))
         name = parser->previous.string_literal;
@@ -396,12 +404,12 @@ static SnukExpr *parse_fn(SnukParser *parser) {
         SnukType *type = NULL;
 
         if (parser_match(parser, SNUK_TOKEN_COLON))
-            type = parse_type_annot(parser);
+            type = parse_type_annot(parser, flag);
         else
             type = build_any_type(parser);
 
         if (parser_match(parser, SNUK_TOKEN_ASSIGN))
-            default_value = parse_expression(parser);
+            default_value = parse_expression(parser, flag);
 
         snuk_darray_push(&params, build_param(parser,name, type, default_value));
 
@@ -416,19 +424,19 @@ static SnukExpr *parse_fn(SnukParser *parser) {
 
     SnukType *ret_type = NULL;
     if (parser_match(parser, SNUK_TOKEN_ARROW))
-        ret_type = parse_type_annot(parser);
+        ret_type = parse_type_annot(parser, flag);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
-    SnukExpr *body = parse_block(parser);
+    SnukExpr *body = parse_block(parser, flag);
 
     return build_fn_expr(parser, params, body, ret_type, name);
 }
 
-static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
+static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left, ParseFlag flag) {
     SnukExpr **params = snuk_darray_create(SnukExpr *, parser->allocator);
     while (!parser_match(parser, SNUK_TOKEN_RPAREN)
             && parser->current.type != SNUK_TOKEN_EOF) {
-        SnukExpr *expr = parse_expression(parser);
+        SnukExpr *expr = parse_expression(parser, flag);
         snuk_darray_push(&params, expr);
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
@@ -441,7 +449,8 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
     return build_call_expr(parser, left, params);
 }
 
-static SnukExpr *parse_comment(SnukParser *parser) {
+static SnukExpr *parse_comment(SnukParser *parser, ParseFlag flag) {
+    SNUK_UNUSED(flag);
     SnukToken t = parser->previous;
     return build_comment_expr(parser, t);
 }
@@ -449,7 +458,8 @@ static SnukExpr *parse_comment(SnukParser *parser) {
 /**
  * @brief Parse an type expression.
  */
-static SnukExpr *parse_type(SnukParser *parser) {
+static SnukExpr *parse_type(SnukParser *parser, ParseFlag flag) {
+    SNUK_UNUSED(flag);
     SnukStringView name = {0};
     if (parser_match(parser, SNUK_TOKEN_IDENTIFIER))
         name = parser->previous.string_literal;
@@ -465,7 +475,7 @@ static SnukExpr *parse_type(SnukParser *parser) {
                 || parser_check(parser, SNUK_TOKEN_CONST)
                 || parser_check(parser, SNUK_TOKEN_FN)
                 || parser_check(parser, SNUK_TOKEN_TYPE)) {
-            snuk_darray_push(&members, parse_item(parser));
+            snuk_darray_push(&members, parse_item(parser, flag));
         } else {
             parser_error(parser, "unexpected token");
         }
@@ -479,15 +489,37 @@ static SnukExpr *parse_type(SnukParser *parser) {
     return build_type_expr(parser, members, name);
 }
 
+static SnukExpr *parse_type_inst(SnukParser *parser, SnukExpr *left, ParseFlag flag) {
+    SnukExpr **init = snuk_darray_create(SnukExpr *, parser->allocator);
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
+            && parser->current.type != SNUK_TOKEN_EOF) {
+        parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an member name");
+        SnukExpr *identifier = parse_primary(parser, flag);
+        parser_expect(parser, SNUK_TOKEN_COLON, "expected ':'");
+        SnukExpr *value = parse_expression(parser, flag);
+        parser_expect_item_end(parser);
+        SnukExpr *assign = build_assign_expr(parser, identifier, value);
+        snuk_darray_push(&init, assign);
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "expected '}'");
+        return NULL;
+    }
+
+    return build_type_inst_expr(parser, left, init);
+}
+
 /**
  * @brief Parse an block expression.
  */
-static SnukExpr *parse_block(SnukParser *parser) {
+static SnukExpr *parse_block(SnukParser *parser, ParseFlag flag) {
+    SNUK_UNUSED(flag);
     SnukExpr *block_expr = build_block_expr(parser, NULL, NULL);
 
     while (!parser_match(parser, SNUK_TOKEN_RBRACE)
             && parser->current.type != SNUK_TOKEN_EOF)
-        block_expr = build_block_expr(parser, block_expr, parse_item(parser));
+        block_expr = build_block_expr(parser, block_expr, parse_item(parser, flag));
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
         parser_error(parser, "block was not closed");
