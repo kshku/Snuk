@@ -190,8 +190,8 @@ SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_
     };
 }
 
-static SnukTokenType check_keyword(const char *s, uint64_t len);
-static SnukTokenType check_values(const char *s, uint64_t len);
+static SnukTokenType check_keyword(SnukStringView word);
+static SnukTokenType check_values(SnukStringView word);
 static SnukToken lexer_scan_word(SnukLexer *lexer);
 static SnukToken lexer_scan_number(SnukLexer *lexer);
 static SnukToken lexer_scan_string(SnukLexer *lexer, char quote);
@@ -217,12 +217,14 @@ static SnukToken lexer_scan_word(SnukLexer *lexer) {
         lexer_advance(lexer);
     }
 
+    SnukStringView word = snuk_string_view_create_with_len(lexer->token_start, lexer->cur - lexer->token_start);
+
     SnukTokenType type;
-    type = check_keyword(lexer->token_start, lexer->cur - lexer->token_start);
+    type = check_keyword(word);
     if (type != SNUK_TOKEN_EOF) 
         return lexer_build_token(lexer, type);
 
-    type = check_values(lexer->token_start, lexer->cur - lexer->token_start);
+    type = check_values(word);
     if (type != SNUK_TOKEN_EOF)
         return lexer_build_token(lexer, type);
 
@@ -366,36 +368,30 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
 /**
  * @brief Check whether a word is a reserved keyword.
  *
- * @param s Start of the word.
- * @param len Length of the word.
+ * @param word The word to check.
  *
  * @return Keyword token type, or SNUK_TOKEN_EOF when the word is not a keyword.
  */
-static SnukTokenType check_keyword(const char *s, uint64_t len) {
-    for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i) {
-        if (len != keywords[i].keyword.len) continue;
-
-        if (snuk_string_n_equal(s, keywords[i].keyword.str, keywords[i].keyword.len))
+static SnukTokenType check_keyword(SnukStringView word) {
+    for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i)
+        if (snuk_string_view_equal(word, keywords[i].keyword))
             return keywords[i].type;
-    }
     return SNUK_TOKEN_EOF;
 }
 
 /**
  * @brief Check whether a word is a built-in literal value.
  *
- * @param s Start of the word.
- * @param len Length of the word.
+ * @param word The word to check.
  *
  * @return Value token type, or SNUK_TOKEN_EOF when the word is not a value.
  */
-static SnukTokenType check_values(const char *s, uint64_t len) {
+static SnukTokenType check_values(SnukStringView word) {
     for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
-        if (len != values[i].value.len) continue;
-
-        if (values[i].ignore_case && snuk_string_n_equal_ignore_case(s, values[i].value.str, values[i].value.len))
+        if (values[i].ignore_case
+                && snuk_string_view_equal_ignore_case(word, values[i].value))
             return values[i].type;
-        else if (snuk_string_n_equal(s, values[i].value.str, values[i].value.len))
+        else if (snuk_string_view_equal(word, values[i].value))
             return values[i].type;
     }
 
