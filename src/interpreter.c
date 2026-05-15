@@ -119,11 +119,10 @@ SNUK_INLINE void snuk_scope_pop(SnukInterpreter *intpret) {
  */
 SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
     uint64_t count = snuk_darray_get_length(scope->vars);
-    for (uint64_t j = 0; j < count; ++j) {
-        if (name.len != scope->vars[j]->name.len) continue;
-        if (snuk_string_n_equal(name.str, scope->vars[j]->name.str, name.len))
-            return scope->vars[j];
-    }
+    for (uint64_t i = 0; i < count; ++i)
+        if (snuk_string_view_equal(scope->vars[i]->name, name))
+            return scope->vars[i];
+
     return NULL;
 }
 
@@ -999,12 +998,8 @@ end:
  * @brief Test whether a parameter name appears in the function's parameter list.
  */
 SNUK_INLINE bool name_exists_in_param_list(SnukParam **params, uint64_t count, SnukStringView name) {
-    for (uint64_t i = 0; i < count; ++i) {
-        if (params[i]->name.len != name.len) continue;
-
-        if (snuk_string_n_equal(params[i]->name.str, name.str, name.len))
-            return true;
-    }
+    for (uint64_t i = 0; i < count; ++i)
+        if (snuk_string_view_equal(params[i]->name, name)) return true;
     return false;
 }
 
