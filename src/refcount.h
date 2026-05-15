@@ -44,16 +44,17 @@ SNUK_INLINE void *snuk_ref_counter_get(SnukRefCounter *rc) {
 }
 
 SNUK_INLINE void snuk_ref_counter_release(SnukRefCounter **rc) {
-    SNUK_ASSERT(rc, "SnukRefCounter is null");
+    SNUK_ASSERT(*rc, "SnukRefCounter is null");
     log_debug("released a ref counter", NULL);
     (*rc)->ref_count--;
 
     if ((*rc)->ref_count == 0) {
         (*rc)->free_fn((*rc)->data, (*rc)->mem);
         snuk_free(*rc);
-        *rc = NULL;
         log_debug("a ref counter got destroyed", NULL);
     }
+
+    *rc = NULL;
 }
 
 SNUK_FORCE_INLINE SnukRefCounter *snuk_ref_counter_move(SnukRefCounter **rc) {
