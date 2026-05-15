@@ -55,3 +55,13 @@ SNUK_INLINE bool snuk_string_view_equal(SnukStringView a, SnukStringView b) {
     
     return memcmp(a.str, b.str, a.len) == 0;
 }
+
+SNUK_INLINE bool snuk_string_view_equal_ignore_case(SnukStringView a, SnukStringView b) {
+    if (a.len != b.len) return false;
+    if (a.len == 0) return true;
+
+    for (uint64_t i = 0; i < a.len; ++i)
+        if (snuk_lower_case(a.str[i]) != snuk_lower_case(b.str[i]))
+            return false;
+    return true;
+}
