@@ -449,6 +449,11 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left, ParseFlag flag) 
     return build_call_expr(parser, left, params);
 }
 
+static SnukExpr *parse_member(SnukParser *parser, SnukExpr *left, ParseFlag flag) {
+    SnukExpr *field = parse_expression(parser, flag);
+    return build_member_access_expr(parser, left, field);
+}
+
 static SnukExpr *parse_comment(SnukParser *parser, ParseFlag flag) {
     SNUK_UNUSED(flag);
     SnukToken t = parser->previous;

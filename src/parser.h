@@ -219,6 +219,11 @@ struct SnukExpr {
             SnukExpr *fn; /**< Expression to call */
             SnukExpr **params; /**< Darray of call argument expressions. */
         } call;
+
+        struct {
+            SnukExpr *type; /**< Type from which to access the field/member */
+            SnukExpr *field; /**< The field/member */
+        } member_access;
     };
 };
 

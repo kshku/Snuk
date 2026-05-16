@@ -219,6 +219,14 @@ static SnukExpr *parse_comment(SnukParser *parser, ParseFlag flag);
  */
 static SnukExpr *parse_type_inst(SnukParser *parser, SnukExpr *left, ParseFlag flag);
 
+/**
+ * @brief Parse member access.
+ *
+ * @param parser Parser context to operate on.
+ * @param left type to access field from.
+ */
+static SnukExpr *parse_member(SnukParser *parser, SnukExpr *left, ParseFlag flag);
+
 static ParseRule rules[] = {
     [SNUK_TOKEN_IDENTIFIER] = {parse_primary, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_INTEGER] = {parse_primary, NULL, PRECEDENCE_NONE},
@@ -291,6 +299,8 @@ static ParseRule rules[] = {
 
     [SNUK_TOKEN_LINE_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
     [SNUK_TOKEN_BLOCK_COMMENT] = {parse_comment, NULL, PRECEDENCE_NONE},
+
+    [SNUK_TOKEN_DOT] = {NULL, parse_member, PRECEDENCE_PRIMARY},
 };
 
 /**
@@ -878,6 +888,22 @@ SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukExpr *fn, SnukExpr
             .fn = fn,
             .params = params
         },
+    };
+    return expr;
+}
+
+/**
+ * @brief Build member access expression node.
+ *
+ * @param parser Parser context to operate on.
+ * @param type The type to access member from.
+ * @param field The member to access.
+ */
+SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *type, SnukExpr *field) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){
+        .type = SNUK_EXPR_MEMBER,
+        .member_access = {.type = type, .field = field},
     };
     return expr;
 }
