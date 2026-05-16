@@ -409,12 +409,13 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         case SNUK_EXPR_FN: {
             SnukValue value = {
                 .type = SNUK_VALUE_FN,
-                .fn_value = {
-                             .closure = snuk_ref_counter_retain(intpret->current),
-                             .body = expr->fn_expr.body,
-                             .params = expr->fn_expr.params,
-                             .return_type = expr->fn_expr.return_type,
-                             },
+                .fn_value =
+                    {
+                               .closure = snuk_ref_counter_retain(intpret->current),
+                               .body = expr->fn_expr.body,
+                               .params = expr->fn_expr.params,
+                               .return_type = expr->fn_expr.return_type,
+                               },
             };
 
             // Syntax sugar

@@ -767,11 +767,10 @@ SNUK_INLINE SnukExpr *build_if_expr(
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_IF,
-        .if_else = {
-                    .condition = condition,
-                    .then_block = then_block,
-                    .else_block = else_block
-        },
+        .if_else =
+            {.condition = condition,
+                      .then_block = then_block,
+                      .else_block = else_block},
     };
     return expr;
 }
@@ -829,9 +828,11 @@ SNUK_INLINE SnukExpr *build_for_expr(
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FOR,
-        .for_loop = {
-                     .init = init, .condition = condition, .update = update, .body = body
-        },
+        .for_loop =
+            {.init = init,
+                       .condition = condition,
+                       .update = update,
+                       .body = body},
     };
     return expr;
 }
@@ -853,12 +854,11 @@ SNUK_INLINE SnukExpr *build_fn_expr(
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FN,
-        .fn_expr = {
-                    .params = params,
-                    .body = body,
-                    .return_type = return_type,
-                    .name = name
-        },
+        .fn_expr =
+            {.params = params,
+                      .body = body,
+                      .return_type = return_type,
+                      .name = name},
     };
     return expr;
 }
@@ -1032,9 +1032,9 @@ SNUK_INLINE SnukType *build_fn_type(
         type = parser_create_type(parser);
         *type = (SnukType){
             .type = TYPE_FN,
-            .fn = {
-                .param_types = snuk_darray_create(SnukType *, parser->allocator)
-            },
+            .fn =
+                {.param_types =
+                     snuk_darray_create(SnukType *, parser->allocator)},
         };
     }
     if (param) snuk_darray_push(&type->fn.param_types, param);

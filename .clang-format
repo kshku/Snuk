@@ -13,9 +13,7 @@ AllowShortFunctionsOnASingleLine: InlineOnly
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AlwaysBreakBeforeMultilineStrings: false
 BreakArrays: false
-BreakAfterOpenBracketBracedList: true
 BreakBeforeBinaryOperators: NonAssignment
-BreakBeforeCloseBracketBracedList: true
 IndentAccessModifiers: true
 IndentExternBlock: Indent
 IndentPPDirectives: BeforeHash
