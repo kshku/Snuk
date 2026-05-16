@@ -1,10 +1,9 @@
 #pragma once
 
+#include "darray.h"
 #include "defines.h"
-
 #include "lexer.h"
 #include "string_view.h"
-#include "darray.h"
 
 /*
  * We will have Items similar to Rust.
@@ -13,9 +12,9 @@
  *
  * In Snuk items are actually special kind of expressions, that may have some
  * restrictions (var, const declaration statements, cannot appear everywhere)
- * or may be syntax sugars (fn function() {} is syntax sugar of var function = fn () {})
- * or keywords with special purpose (like print keyword)
- * or may be just expressions.
+ * or may be syntax sugars (fn function() {} is syntax sugar of var function =
+ * fn () {}) or keywords with special purpose (like print keyword) or may be
+ * just expressions.
  *
  * Parser parses the source and returns items.
  * Everything else that produces a value is a `SnukExpr`.
@@ -27,13 +26,18 @@
 typedef enum SnukItemType {
     SNUK_ITEM_EXPR, /**< Expression items */
 
-    SNUK_ITEM_VAR_DECL, /**< Variable declaration (expression with restriction) */
-    SNUK_ITEM_CONST_DECL, /**< Constant declaration (expression with restriction) */
+    SNUK_ITEM_VAR_DECL, /**< Variable declaration (expression with restriction)
+                         */
+    SNUK_ITEM_CONST_DECL, /**< Constant declaration (expression with
+                             restriction) */
 
-    SNUK_ITEM_PRINT, /**< Printing expression (special expression, always returns null) */
+    SNUK_ITEM_PRINT, /**< Printing expression (special expression, always
+                        returns null) */
 
-    SNUK_ITEM_RETURN, /**< Return expression, transfer control out of function, may carry value with them */
-    SNUK_ITEM_BREAK, /**< Transfer control out of loop, may carray value with them. */
+    SNUK_ITEM_RETURN, /**< Return expression, transfer control out of function,
+                         may carry value with them */
+    SNUK_ITEM_BREAK, /**< Transfer control out of loop, may carray value with
+                        them. */
     SNUK_ITEM_CONTINUE, /**< Transfer control to next iteration. */
 
     SNUK_ITEM_MAX /**< Sentinel value for item kinds. */
@@ -88,155 +92,174 @@ typedef struct SnukType SnukType;
  * @brief Parsed function parameter.
  */
 struct SnukParam {
-    SnukStringView name; /**< Parameter name expression. */
-    SnukType *type; /**< Type information of the parameter */
-    SnukExpr *default_value; /**< Optional default value expression. */
+        SnukStringView name; /**< Parameter name expression. */
+        SnukType *type; /**< Type information of the parameter */
+        SnukExpr *default_value; /**< Optional default value expression. */
 };
 
 /**
  * @brief Parsed type.
  */
 struct SnukType {
-    enum {
-        TYPE_ANY, /**< No type annotation */
-        TYPE_NAMED, /**< Named type */
-        TYPE_FN, /**< Function type */
-        TYPE_TYPE, /**< Type type */
+        enum {
+            TYPE_ANY, /**< No type annotation */
+            TYPE_NAMED, /**< Named type */
+            TYPE_FN, /**< Function type */
+            TYPE_TYPE, /**< Type type */
 
-        TYPE_MAX /**< Sentinel value for type kinds. */
-    } type;
+            TYPE_MAX /**< Sentinel value for type kinds. */
+        } type;
 
-    union {
-        SnukStringView name; /**< Type name (for named parameters) */
+        union {
+                SnukStringView name; /**< Type name (for named parameters) */
 
-        struct {
-            SnukType *return_type; /**< The return type of function */
-            SnukType **param_types; /**< Darray of parameter types */
-        } fn;
+                struct {
+                        SnukType
+                            *return_type; /**< The return type of function */
+                        SnukType *
+                            *param_types; /**< Darray of parameter types */
+                } fn;
 
-        SnukType **member_types; /**< Darray of type of the members */
-    };
+                SnukType **member_types; /**< Darray of type of the members */
+        };
 };
 
 /**
  * @brief Parsed item.
  */
 struct SnukItem {
-    SnukItemType type; /**< Discriminant selecting the active item payload. */
+        SnukItemType
+            type; /**< Discriminant selecting the active item payload. */
 
-    union {
-        SnukExpr *expr; /**< expression item payload (also used for return and break). */
+        union {
+                SnukExpr *expr; /**< expression item payload (also used for
+                                   return and break). */
 
-        struct {
-            SnukStringView name; /**< Name. */
-            SnukType *type; /**< Type information. */
-            SnukExpr *expr; /**< Expression. */
-        } decl_item;
+                struct {
+                        SnukStringView name; /**< Name. */
+                        SnukType *type; /**< Type information. */
+                        SnukExpr *expr; /**< Expression. */
+                } decl_item;
 
-        SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
-    };
+                SnukExpr *
+                    *print_exprs; /**< Dynamic array of expressions to print. */
+        };
 };
 
 /**
  * @brief Parsed expression node.
  */
 struct SnukExpr {
-    SnukExprType type; /**< Discriminant selecting the active expression payload. */
+        SnukExprType
+            type; /**< Discriminant selecting the active expression payload. */
 
-    union {
-        SnukStringView identifier;
-        int64_t int_literal;
-        double float_literal;
-        SnukStringView string_literal;
-        bool bool_literal;
-        SnukStringView comment; /**< Comment */
+        union {
+                SnukStringView identifier;
+                int64_t int_literal;
+                double float_literal;
+                SnukStringView string_literal;
+                bool bool_literal;
+                SnukStringView comment; /**< Comment */
 
-        struct {
-            SnukTokenType op; /**< Unary operator token. */
-            SnukExpr *operand; /**< Unary operand expression. */
-        } unary;
+                struct {
+                        SnukTokenType op; /**< Unary operator token. */
+                        SnukExpr *operand; /**< Unary operand expression. */
+                } unary;
 
-        struct {
-            SnukTokenType op; /**< Binary operator token. */
-            SnukExpr *left; /**< Left-hand operand expression. */
-            SnukExpr *right; /**< Right-hand operand expression. */
-        } binary;
+                struct {
+                        SnukTokenType op; /**< Binary operator token. */
+                        SnukExpr *left; /**< Left-hand operand expression. */
+                        SnukExpr *right; /**< Right-hand operand expression. */
+                } binary;
 
-        struct {
-            SnukExpr *identifier; /**< Assignment target identifier expression. */
-            SnukExpr *value; /**< Assigned value expression. */
-        } assign;
+                struct {
+                        SnukExpr *identifier; /**< Assignment target identifier
+                                                 expression. */
+                        SnukExpr *value; /**< Assigned value expression. */
+                } assign;
 
-        struct {
-            SnukTokenType op; /**< Compound assignment token */
-            SnukExpr *identifier; /**< Assignment target identifier expression. */
-            SnukExpr *value; /**< Assigned value expression. */
-        } compound_assign;
+                struct {
+                        SnukTokenType op; /**< Compound assignment token */
+                        SnukExpr *identifier; /**< Assignment target identifier
+                                                 expression. */
+                        SnukExpr *value; /**< Assigned value expression. */
+                } compound_assign;
 
-        struct {
-            SnukExpr *condition; /**< Condition expression. */
-            SnukExpr *then_block; /**< Block expression to execute on true condition */
-            SnukExpr *else_block; /**< Block expression to execute on false condition */
-        } if_else;
+                struct {
+                        SnukExpr *condition; /**< Condition expression. */
+                        SnukExpr *then_block; /**< Block expression to execute
+                                                 on true condition */
+                        SnukExpr *else_block; /**< Block expression to execute
+                                                 on false condition */
+                } if_else;
 
-        struct {
-            SnukExpr *value; /**< Value expression being matched. */
-            // TODO:
-        } match;
+                struct {
+                        SnukExpr *value; /**< Value expression being matched. */
+                        // TODO:
+                } match;
 
-        struct {
-            SnukExpr *condition; /**< Loop condition expression. */
-            SnukExpr *body; /**< Loop body block. */
-        } while_loop; // while, do while
+                struct {
+                        SnukExpr *condition; /**< Loop condition expression. */
+                        SnukExpr *body; /**< Loop body block. */
+                } while_loop;  // while, do while
 
-        struct {
-            SnukItem *init; /**< Optional initializer. */
-            SnukExpr *condition; /**< Optional loop condition expression. */
-            SnukExpr *update; /**< Optional loop update expression. */
-            SnukExpr *body; /**< Loop body block. */
-        } for_loop;
+                struct {
+                        SnukItem *init; /**< Optional initializer. */
+                        SnukExpr *condition; /**< Optional loop condition
+                                                expression. */
+                        SnukExpr
+                            *update; /**< Optional loop update expression. */
+                        SnukExpr *body; /**< Loop body block. */
+                } for_loop;
 
-        struct {
-            SnukParam **params; /**< Darray of parameters. */
-            SnukExpr *body; /**< Body of function */
-            SnukType *return_type; /**< Return type of function */
-            SnukStringView name; /**< Name in case of syntax sugar */
-        } fn_expr;
+                struct {
+                        SnukParam **params; /**< Darray of parameters. */
+                        SnukExpr *body; /**< Body of function */
+                        SnukType *return_type; /**< Return type of function */
+                        SnukStringView
+                            name; /**< Name in case of syntax sugar */
+                } fn_expr;
 
-        struct {
-            SnukItem **members; /**< Dynamic array of members items in the type */
-            SnukStringView name; /**< Name in case of syntax sugar */
-        } type_expr;
+                struct {
+                        SnukItem **members; /**< Dynamic array of members items
+                                               in the type */
+                        SnukStringView
+                            name; /**< Name in case of syntax sugar */
+                } type_expr;
 
-        struct {
-            SnukExpr *type_name; /**< Name of the type */
-            SnukExpr **init; /**< initial values of members */
-        } type_inst_expr;
+                struct {
+                        SnukExpr *type_name; /**< Name of the type */
+                        SnukExpr **init; /**< initial values of members */
+                } type_inst_expr;
 
-        SnukItem **block_items; /**< Dynamic array of items in the block. */
+                SnukItem *
+                    *block_items; /**< Dynamic array of items in the block. */
 
-        struct {
-            SnukExpr *fn; /**< Expression to call */
-            SnukExpr **params; /**< Darray of call argument expressions. */
-        } call;
+                struct {
+                        SnukExpr *fn; /**< Expression to call */
+                        SnukExpr **
+                            params; /**< Darray of call argument expressions. */
+                } call;
 
-        struct {
-            SnukExpr *type; /**< Type from which to access the field/member */
-            SnukExpr *field; /**< The field/member */
-        } member_access;
-    };
+                struct {
+                        SnukExpr *type; /**< Type from which to access the
+                                           field/member */
+                        SnukExpr *field; /**< The field/member */
+                } member_access;
+        };
 };
 
 /**
  * @brief Parser state for a single source buffer.
  */
 typedef struct SnukParser {
-    SnukLexer lexer; /**< Lexer used to produce tokens. */
-    SnukToken current, previous; /**< Current and previously consumed tokens. */
+        SnukLexer lexer; /**< Lexer used to produce tokens. */
+        SnukToken current,
+            previous; /**< Current and previously consumed tokens. */
 
-    SnukAllocator *allocator;
+        SnukAllocator *allocator;
 
-    bool had_error, panic_mode; /**< Error and recovery state flags. */
+        bool had_error, panic_mode; /**< Error and recovery state flags. */
 
 } SnukParser;
 
@@ -254,7 +277,8 @@ typedef struct SnukParser {
  * @note The source text must remain valid for the lifetime of parsed nodes that
  * reference token text.
  */
-SNUK_INLINE void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator) {
+SNUK_INLINE void snuk_parser_init(
+    SnukParser *parser, const char *src, SnukAllocator *allocator) {
     *parser = (SnukParser){
         .allocator = allocator,
         .had_error = false,

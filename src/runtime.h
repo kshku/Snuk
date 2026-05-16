@@ -1,20 +1,19 @@
 #pragma once
 
-#include "defines.h"
-
-#include "memory.h"
-#include "interpreter.h"
-#include "snuk_string.h"
-
 #include <snmemory/frame.h>
+
+#include "defines.h"
+#include "interpreter.h"
+#include "memory.h"
+#include "snuk_string.h"
 
 #define PAGES 10
 
 typedef struct Runtime {
-    void *mem;
-    snLinearAllocator la;
-    SnukInterpreter interpreter;
-    SnukAllocator parser_allocator;
+        void *mem;
+        snLinearAllocator la;
+        SnukInterpreter interpreter;
+        SnukAllocator parser_allocator;
 } Runtime;
 
 SNUK_INLINE void *runtime_alloc_fn(void *data, uint64_t size, uint64_t align) {
@@ -22,7 +21,8 @@ SNUK_INLINE void *runtime_alloc_fn(void *data, uint64_t size, uint64_t align) {
     return sn_linear_allocator_allocate(la, size, align);
 }
 
-SNUK_INLINE void *runtime_realloc_fn(void *data, void *ptr, uint64_t new_size, uint64_t align) {
+SNUK_INLINE void *runtime_realloc_fn(
+    void *data, void *ptr, uint64_t new_size, uint64_t align) {
     snLinearAllocator *la = (snLinearAllocator *)data;
     void *new = sn_linear_allocator_allocate(la, new_size, align);
     // No need to worry about how much to copy
@@ -40,11 +40,11 @@ SNUK_INLINE void snuk_runtime_init(Runtime *rt) {
     *rt = (Runtime){
         .mem = snuk_allocate_pages(PAGES),
         .parser_allocator = {
-            .data = (void *)&rt->la,
-            .alloc = runtime_alloc_fn,
-            .realloc = runtime_realloc_fn,
-            .free = runtime_free_fn,
-        },
+                             .data = (void *)&rt->la,
+                             .alloc = runtime_alloc_fn,
+                             .realloc = runtime_realloc_fn,
+                             .free = runtime_free_fn,
+                             },
     };
     sn_linear_allocator_init(&rt->la, rt->mem, PAGES * snuk_page_size());
     snuk_interpreter_init(&rt->interpreter);

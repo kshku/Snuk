@@ -16,4 +16,4 @@ void snuk_println(const char *fmt, ...);
 void snuk_eprint(const char *fmt, ...);
 
 // stderr
-void snuk_eprintln(const char *fmt, ...); 
+void snuk_eprintln(const char *fmt, ...);

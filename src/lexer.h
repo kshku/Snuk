@@ -1,10 +1,10 @@
 #pragma once
 
 #include "defines.h"
-
 #include "string_view.h"
 
-SNUK_STATIC_ASSERT(sizeof(double) == 8, "Expected sizeof(double) to be 8 bytes.");
+SNUK_STATIC_ASSERT(
+    sizeof(double) == 8, "Expected sizeof(double) to be 8 bytes.");
 
 /**
  * @brief Token categories emitted by the Snuk lexer.
@@ -50,67 +50,67 @@ typedef enum SnukTokenType {
     SNUK_TOKEN_PRINT,
 
     // punctuation
-    SNUK_TOKEN_LPAREN, // (
-    SNUK_TOKEN_RPAREN, // )
-    SNUK_TOKEN_LBRACE, // {
-    SNUK_TOKEN_RBRACE, // }
-    SNUK_TOKEN_LBRACKET, // [
-    SNUK_TOKEN_RBRACKET, // ]
-    SNUK_TOKEN_COMMA, // ,
-    SNUK_TOKEN_SEMICOLON, // ;
-    SNUK_TOKEN_VSEMICOLON, // virtual semicolon
-    SNUK_TOKEN_COLON, // :
-    SNUK_TOKEN_DOT, // .
-    SNUK_TOKEN_ARROW, // ->
+    SNUK_TOKEN_LPAREN,  // (
+    SNUK_TOKEN_RPAREN,  // )
+    SNUK_TOKEN_LBRACE,  // {
+    SNUK_TOKEN_RBRACE,  // }
+    SNUK_TOKEN_LBRACKET,  // [
+    SNUK_TOKEN_RBRACKET,  // ]
+    SNUK_TOKEN_COMMA,  // ,
+    SNUK_TOKEN_SEMICOLON,  // ;
+    SNUK_TOKEN_VSEMICOLON,  // virtual semicolon
+    SNUK_TOKEN_COLON,  // :
+    SNUK_TOKEN_DOT,  // .
+    SNUK_TOKEN_ARROW,  // ->
 
     // arithmetic operators
-    SNUK_TOKEN_PLUS,         // +
-    SNUK_TOKEN_MINUS,        // -
-    SNUK_TOKEN_STAR,         // *
-    SNUK_TOKEN_SLASH,        // /
-    SNUK_TOKEN_PERCENT,      // %
+    SNUK_TOKEN_PLUS,  // +
+    SNUK_TOKEN_MINUS,  // -
+    SNUK_TOKEN_STAR,  // *
+    SNUK_TOKEN_SLASH,  // /
+    SNUK_TOKEN_PERCENT,  // %
 
     // bitwise operators
-    SNUK_TOKEN_AMP,          // &
-    SNUK_TOKEN_PIPE,         // |
-    SNUK_TOKEN_CARET,        // ^
-    SNUK_TOKEN_TILDE,        // ~
-    SNUK_TOKEN_LSHIFT,       // <<
-    SNUK_TOKEN_RSHIFT,       // >>
+    SNUK_TOKEN_AMP,  // &
+    SNUK_TOKEN_PIPE,  // |
+    SNUK_TOKEN_CARET,  // ^
+    SNUK_TOKEN_TILDE,  // ~
+    SNUK_TOKEN_LSHIFT,  // <<
+    SNUK_TOKEN_RSHIFT,  // >>
 
     // logical operators
-    SNUK_TOKEN_AMP_AMP,      // &&
-    SNUK_TOKEN_PIPE_PIPE,    // ||
-    SNUK_TOKEN_BANG,         // !
-    SNUK_TOKEN_KW_AND,       // and
-    SNUK_TOKEN_KW_OR,        // or
-    SNUK_TOKEN_KW_NOT,       // not
+    SNUK_TOKEN_AMP_AMP,  // &&
+    SNUK_TOKEN_PIPE_PIPE,  // ||
+    SNUK_TOKEN_BANG,  // !
+    SNUK_TOKEN_KW_AND,  // and
+    SNUK_TOKEN_KW_OR,  // or
+    SNUK_TOKEN_KW_NOT,  // not
 
     // assignment
-    SNUK_TOKEN_ASSIGN,       // =
+    SNUK_TOKEN_ASSIGN,  // =
 
     // compound assignment
     SNUK_TOKEN_PLUS_ASSIGN,  // +=
-    SNUK_TOKEN_MINUS_ASSIGN, // -=
+    SNUK_TOKEN_MINUS_ASSIGN,  // -=
     SNUK_TOKEN_STAR_ASSIGN,  // *=
-    SNUK_TOKEN_SLASH_ASSIGN, // /=
+    SNUK_TOKEN_SLASH_ASSIGN,  // /=
     SNUK_TOKEN_PERCENT_ASSIGN,  // %=
-    SNUK_TOKEN_AMP_ASSIGN,   // &=
+    SNUK_TOKEN_AMP_ASSIGN,  // &=
     SNUK_TOKEN_PIPE_ASSIGN,  // |=
-    SNUK_TOKEN_CARET_ASSIGN, // ^=
-    SNUK_TOKEN_LSHIFT_ASSIGN, // <<=
-    SNUK_TOKEN_RSHIFT_ASSIGN, // >>=
+    SNUK_TOKEN_CARET_ASSIGN,  // ^=
+    SNUK_TOKEN_LSHIFT_ASSIGN,  // <<=
+    SNUK_TOKEN_RSHIFT_ASSIGN,  // >>=
 
     // comparison
-    SNUK_TOKEN_EQUAL,        // ==
-    SNUK_TOKEN_BANG_EQUAL,   // !=
-    SNUK_TOKEN_LESS,         // <
-    SNUK_TOKEN_GREATER,      // >
-    SNUK_TOKEN_LESS_EQUAL,   // <=
-    SNUK_TOKEN_GREATER_EQUAL, // >=
+    SNUK_TOKEN_EQUAL,  // ==
+    SNUK_TOKEN_BANG_EQUAL,  // !=
+    SNUK_TOKEN_LESS,  // <
+    SNUK_TOKEN_GREATER,  // >
+    SNUK_TOKEN_LESS_EQUAL,  // <=
+    SNUK_TOKEN_GREATER_EQUAL,  // >=
 
     // comments
-    SNUK_TOKEN_LINE_COMMENT,   // //
+    SNUK_TOKEN_LINE_COMMENT,  // //
     SNUK_TOKEN_BLOCK_COMMENT,  // /* */
 
     SNUK_TOKEN_MAX
@@ -127,19 +127,20 @@ typedef enum SnukTokenType {
  * @note String views point into the source buffer owned by the caller.
  */
 typedef struct SnukToken {
-    SnukTokenType type;
-    union {
-        SnukStringView string_literal;
-        int64_t int_literal;
-        double float_literal;
-    };
+        SnukTokenType type;
 
-    const char *err_msg;
+        union {
+                SnukStringView string_literal;
+                int64_t int_literal;
+                double float_literal;
+        };
 
-    SnukStringView leading_comment;
-    SnukStringView trailing_comment;
+        const char *err_msg;
 
-    uint64_t line, col;
+        SnukStringView leading_comment;
+        SnukStringView trailing_comment;
+
+        uint64_t line, col;
 } SnukToken;
 
 /**
@@ -151,19 +152,19 @@ typedef struct SnukToken {
  * @note The source buffer must remain valid for the lifetime of the lexer.
  */
 typedef struct SnukLexer {
-    const char *src;
+        const char *src;
 
-    const char *cur;
-    const char *token_start;
-    uint64_t token_start_line;
-    uint64_t token_start_col;
+        const char *cur;
+        const char *token_start;
+        uint64_t token_start_line;
+        uint64_t token_start_col;
 
-    uint64_t line;
-    uint64_t col;
+        uint64_t line;
+        uint64_t col;
 
-    SnukTokenType previous_token_type;
-    uint32_t paren_depth;
-    uint32_t bracket_depth;
+        SnukTokenType previous_token_type;
+        uint32_t paren_depth;
+        uint32_t bracket_depth;
 } SnukLexer;
 
 /**

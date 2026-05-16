@@ -1,14 +1,14 @@
 #pragma once
 
-#include "defines.h"
-
-#include "memory.h"
-
 #include <string.h>
+
+#include "defines.h"
+#include "memory.h"
 
 SNUK_INLINE bool snuk_char_in_string(char c, const char *s) {
     if (!s) return false;
-    for (uint64_t i = 0; s[i] || i == 0; ++i) if (s[i] == c) return true;
+    for (uint64_t i = 0; s[i] || i == 0; ++i)
+        if (s[i] == c) return true;
     return false;
 }
 
@@ -76,8 +76,7 @@ SNUK_INLINE bool snuk_string_equal_ignore_case(const char *a, const char *b) {
 
     uint64_t i = 0;
     for (i = 0; a[i] && b[i]; ++i)
-        if (snuk_lower_case(a[i]) != snuk_lower_case(b[i]))
-            return false;
+        if (snuk_lower_case(a[i]) != snuk_lower_case(b[i])) return false;
 
     if (a[i] || b[i]) return false;
 
@@ -93,19 +92,20 @@ SNUK_INLINE bool snuk_string_n_equal(const char *a, const char *b, uint64_t n) {
     return i == n;
 }
 
-SNUK_INLINE bool snuk_string_n_equal_ignore_case(const char *a, const char *b, uint64_t n) {
+SNUK_INLINE bool snuk_string_n_equal_ignore_case(
+    const char *a, const char *b, uint64_t n) {
     if (!a || !b) return false;
 
     uint64_t i = 0;
     for (i = 0; i < n && a[i] && b[i]; ++i)
-        if (snuk_lower_case(a[i]) != snuk_lower_case(b[i]))
-            return false;
+        if (snuk_lower_case(a[i]) != snuk_lower_case(b[i])) return false;
 
     return i == n;
 }
 
 // if len == 0 (of any string), snuk_string_length will be called.
-SNUK_INLINE char *snuk_string_concat(const char *a, uint64_t alen, const char *b, uint64_t blen) {
+SNUK_INLINE char *snuk_string_concat(
+    const char *a, uint64_t alen, const char *b, uint64_t blen) {
     if (!alen) alen = snuk_string_length(a);
     if (!blen) blen = snuk_string_length(b);
 

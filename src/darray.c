@@ -35,14 +35,20 @@ SNUK_INLINE uint64_t read_from_bytes(void *ptr, bool reverse) {
 }
 
 #define ALIGN_BYTE(ptr) ((void *)((uint64_t)(ptr) - 1))
-#define GET_ALIGN_SHIFT(ptr) (read_from_bytes((void *)((uint64_t)(ptr) - 1), true))
-#define SET_ALIGN_SHIFT(ptr, shift) (write_to_bytes((void *)((uint64_t)(ptr) - 1), (shift), true))
-#define GET_ALIGNED_NEXT(x, align) ((((uint64_t)(x)) + (align)) & ~((align) - 1))
+#define GET_ALIGN_SHIFT(ptr) \
+    (read_from_bytes((void *)((uint64_t)(ptr) - 1), true))
+#define SET_ALIGN_SHIFT(ptr, shift) \
+    (write_to_bytes((void *)((uint64_t)(ptr) - 1), (shift), true))
+#define GET_ALIGNED_NEXT(x, align) \
+    ((((uint64_t)(x)) + (align)) & ~((align) - 1))
 
-void *impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align, SnukAllocator *allocator) {
+void *impl_snuk_darray_create(
+    uint64_t capacity, uint64_t stride, uint64_t align,
+    SnukAllocator *allocator) {
     if (!allocator) allocator = &snuk_global_allocator;
     uint64_t total = (capacity * stride) + HEADER_SIZE + align;
-    uint64_t *ptr = (uint64_t *)allocator->alloc(allocator->data, total, alignof(uint64_t));
+    uint64_t *ptr =
+        (uint64_t *)allocator->alloc(allocator->data, total, alignof(uint64_t));
     memset(ptr, 0, total);
     ptr[SNUK_DARRAY_CAPACITY] = capacity;
     ptr[SNUK_DARRAY_SIZE] = 0;
@@ -76,7 +82,10 @@ void impl_snuk_darray_resize(void **parr, uint64_t capacity) {
     uint64_t *p = (uint64_t *)ptr;
 
     SnukAllocator *allocator = (SnukAllocator *)p[SNUK_DARRAY_ALLOCATOR];
-    p = (uint64_t *)allocator->realloc(allocator->data, p, (capacity * p[SNUK_DARRAY_STRIDE]) + HEADER_SIZE + p[SNUK_DARRAY_ALIGN], alignof(uint64_t));
+    p = (uint64_t *)allocator->realloc(
+        allocator->data, p,
+        (capacity * p[SNUK_DARRAY_STRIDE]) + HEADER_SIZE + p[SNUK_DARRAY_ALIGN],
+        alignof(uint64_t));
 
     p[SNUK_DARRAY_CAPACITY] = capacity;
 
@@ -102,14 +111,16 @@ void impl_snuk_darray_push(void **parr, void *element) {
     uint64_t *p = (uint64_t *)ptr;
 
     if (p[SNUK_DARRAY_CAPACITY] <= p[SNUK_DARRAY_SIZE]) {
-        snuk_darray_resize(parr, p[SNUK_DARRAY_CAPACITY] * SNUK_DARRAY_RESIZE_FACTOR);
+        snuk_darray_resize(
+            parr, p[SNUK_DARRAY_CAPACITY] * SNUK_DARRAY_RESIZE_FACTOR);
         ptr = (uint64_t)(*parr);
         ptr -= align_shift;
         ptr -= HEADER_SIZE;
         p = (uint64_t *)ptr;
     }
 
-    void *dest = ((uint8_t *)*parr) + (p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]);
+    void *dest =
+        ((uint8_t *)*parr) + (p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]);
     memcpy(dest, element, p[SNUK_DARRAY_STRIDE]);
     ++p[SNUK_DARRAY_SIZE];
 }
@@ -130,8 +141,9 @@ void impl_snuk_darray_push_at(void **parr, uint64_t index, void *element) {
             p = (uint64_t *)ptr;
         }
 
-        memset(((uint8_t *)*parr) + (p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]), 0,
-                (index - p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]));
+        memset(
+            ((uint8_t *)*parr) + (p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]),
+            0, (index - p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]));
 
         void *dest = ((uint8_t *)*parr) + (index * p[SNUK_DARRAY_STRIDE]);
         memcpy(dest, element, p[SNUK_DARRAY_STRIDE]);
@@ -142,7 +154,8 @@ void impl_snuk_darray_push_at(void **parr, uint64_t index, void *element) {
     }
 
     if (p[SNUK_DARRAY_CAPACITY] <= p[SNUK_DARRAY_SIZE]) {
-        snuk_darray_resize(parr, p[SNUK_DARRAY_CAPACITY] * SNUK_DARRAY_RESIZE_FACTOR);
+        snuk_darray_resize(
+            parr, p[SNUK_DARRAY_CAPACITY] * SNUK_DARRAY_RESIZE_FACTOR);
         ptr = (uint64_t)(*parr);
         ptr -= align_shift;
         ptr -= HEADER_SIZE;
@@ -171,10 +184,10 @@ void impl_snuk_darray_pop(void **parr, void *element) {
     --p[SNUK_DARRAY_SIZE];
 
     if (element) {
-        void *src = ((uint8_t *)*parr) + (p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]);
+        void *src =
+            ((uint8_t *)*parr) + (p[SNUK_DARRAY_SIZE] * p[SNUK_DARRAY_STRIDE]);
         memcpy(element, src, p[SNUK_DARRAY_STRIDE]);
     }
-
 }
 
 void impl_snuk_darray_pop_at(void **parr, uint64_t index, void *element) {
@@ -184,7 +197,8 @@ void impl_snuk_darray_pop_at(void **parr, uint64_t index, void *element) {
     ptr -= HEADER_SIZE;
     uint64_t *p = (uint64_t *)ptr;
 
-    SNUK_ASSERT(index < p[SNUK_DARRAY_SIZE], "index out of bound while poping element");
+    SNUK_ASSERT(
+        index < p[SNUK_DARRAY_SIZE], "index out of bound while poping element");
 
     void *dest = ((uint8_t *)*parr) + (index * p[SNUK_DARRAY_STRIDE]);
     void *src = ((uint8_t *)*parr) + ((index + 1) * p[SNUK_DARRAY_STRIDE]);

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <assert.h>
 #include <stdalign.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #if defined(__clang__)
     #define SNUK_COMPILER_CLANG
@@ -21,23 +21,23 @@
 #define ARRAY_LEN(x) (sizeof(x) / sizeof((x)[0]))
 
 #if defined(SNUK_DEBUG)
-#if defined(SNUK_COMPILER_GCC) || defined(SNUK_COMPILER_CLANG)
-#define SNUK_ASSERT(cond, msg) \
-    do {\
-        if (!(cond)) {\
-            __builtin_trap();\
-        }\
-    } while (0)
+    #if defined(SNUK_COMPILER_GCC) || defined(SNUK_COMPILER_CLANG)
+        #define SNUK_ASSERT(cond, msg) \
+            do {                       \
+                if (!(cond)) {         \
+                    __builtin_trap();  \
+                }                      \
+            } while (0)
+    #else
+        #define SNUK_ASSERT(cond, msg) \
+            do {                       \
+                if (!(cond)) {         \
+                    __debugbreak();    \
+                }                      \
+            } while (0)
+    #endif
 #else
-#define SNUK_ASSERT(cond, msg) \
-    do {\
-        if (!(cond)) {\
-            __debugbreak();\
-        }\
-    } while (0)
-#endif
-#else
-#define SNUK_ASSERT(cond, msg) SNUK_UNUSED(cond), SNUK_UNUSED(msg)
+    #define SNUK_ASSERT(cond, msg) SNUK_UNUSED(cond), SNUK_UNUSED(msg)
 #endif
 
 #define SNUK_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
@@ -45,9 +45,9 @@
 #define SNUK_INLINE static inline
 
 #if defined(SNUK_COMPILER_MSVC)
-#define SNUK_FORCE_INLINE  static __forceinline
+    #define SNUK_FORCE_INLINE static __forceinline
 #else
-#define SNUK_FORCE_INLINE  static inline __attribute__((always_inline))
+    #define SNUK_FORCE_INLINE static inline __attribute__((always_inline))
 #endif
 
 #define SNUK_STRINGIFY(x) #x
