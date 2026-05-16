@@ -1,18 +1,19 @@
 #pragma once
 
-#include "defines.h"
-
 #include <snmemory/snmemory.h>
+
+#include "defines.h"
 
 #define KIB(x) ((x) * 1024)
 #define MIB(x) (KIB((x) * 1024))
 #define GIB(x) (MIB((x) * 1024))
 
 typedef struct SnukAllocator {
-    void *data;
-    void *(*alloc)(void *data, uint64_t size, uint64_t align);
-    void *(*realloc)(void *data, void *ptr, uint64_t new_size, uint64_t align);
-    void (*free)(void *data, void *ptr);
+        void *data;
+        void *(*alloc)(void *data, uint64_t size, uint64_t align);
+        void *(*realloc)(
+            void *data, void *ptr, uint64_t new_size, uint64_t align);
+        void (*free)(void *data, void *ptr);
 } SnukAllocator;
 
 /**
@@ -55,7 +56,8 @@ void *snuk_allocate_pages(uint32_t pages);
 /**
  * @brief Frees a block of allocated memory pages.
  *
- * Releases a contiguous block of memory pages starting from the given base pointer.
+ * Releases a contiguous block of memory pages starting from the given base
+ * pointer.
  *
  * @param base Pointer to the beginning of the memory block to be freed.
  * @param pages Number of memory pages to free.
@@ -77,9 +79,9 @@ void *snuk_alloc(uint64_t size, uint64_t align);
 /**
  * @brief Resizes a previously allocated memory block.
  *
- * Reallocates the given memory block to a new size with the specified alignment.
- * The contents of the original memory are preserved up to the minimum of the old
- * and new sizes.
+ * Reallocates the given memory block to a new size with the specified
+ * alignment. The contents of the original memory are preserved up to the
+ * minimum of the old and new sizes.
  *
  * @param ptr Pointer to the previously allocated memory block.
  * @param new_size New size of the memory block in bytes.

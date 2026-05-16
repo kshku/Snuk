@@ -1,12 +1,10 @@
 #pragma once
 
-#include "defines.h"
 #include "darray.h"
-
+#include "defines.h"
 #include "parser.h"
-#include "string_view.h"
-
 #include "refcount.h"
+#include "string_view.h"
 
 /**
  * @brief Control-flow signal flags raised during item or expression evaluation.
@@ -22,7 +20,8 @@ typedef enum SnukSignal {
     SNUK_SIGNAL_BREAK = 1 << 1,
     SNUK_SIGNAL_RETURN = 1 << 2,
 
-    SNUK_SIGNAL_ALL = SNUK_SIGNAL_CONTINUE | SNUK_SIGNAL_BREAK | SNUK_SIGNAL_RETURN
+    SNUK_SIGNAL_ALL =
+        SNUK_SIGNAL_CONTINUE | SNUK_SIGNAL_BREAK | SNUK_SIGNAL_RETURN
 } SnukSignal;
 
 typedef struct SnukValue SnukValue;
@@ -42,42 +41,43 @@ typedef struct SnukScope SnukScope;
  * is reachable.
  */
 struct SnukValue {
-    enum {
-        SNUK_VALUE_UNKOWN,
-        SNUK_VALUE_INT,
-        SNUK_VALUE_FLOAT,
-        SNUK_VALUE_BOOL,
-        SNUK_VALUE_STRING,
-        SNUK_VALUE_NULL,
-        SNUK_VALUE_FN,
-        SNUK_VALUE_TYPE,
-        SNUK_VALUE_TYPE_INST,
+        enum {
+            SNUK_VALUE_UNKOWN,
+            SNUK_VALUE_INT,
+            SNUK_VALUE_FLOAT,
+            SNUK_VALUE_BOOL,
+            SNUK_VALUE_STRING,
+            SNUK_VALUE_NULL,
+            SNUK_VALUE_FN,
+            SNUK_VALUE_TYPE,
+            SNUK_VALUE_TYPE_INST,
 
-        SNUK_VALUE_MAX
-    } type;
+            SNUK_VALUE_MAX
+        } type;
 
-    union {
-        int64_t int_value;
-        double float_value;
-        bool bool_value;
-        SnukStringView string_value;
-        struct {
-            SnukRefCounter *closure;
-            SnukExpr *body;
-            SnukParam **params;
-            SnukType *return_type;
-        } fn_value;
+        union {
+                int64_t int_value;
+                double float_value;
+                bool bool_value;
+                SnukStringView string_value;
 
-        SnukRefCounter *closure;
-    };
+                struct {
+                        SnukRefCounter *closure;
+                        SnukExpr *body;
+                        SnukParam **params;
+                        SnukType *return_type;
+                } fn_value;
+
+                SnukRefCounter *closure;
+        };
 };
 
 /**
  * @brief Single name-to-value binding inside a scope.
  */
 struct SnukEnv {
-    SnukStringView name;
-    SnukValue value;
+        SnukStringView name;
+        SnukValue value;
 };
 
 /**
@@ -87,8 +87,8 @@ struct SnukEnv {
  * to the enclosing scope, or NULL for the global scope.
  */
 struct SnukScope {
-    SnukEnv **vars; // darray
-    SnukRefCounter *parent;
+        SnukEnv **vars;  // darray
+        SnukRefCounter *parent;
 };
 
 /**
@@ -100,9 +100,9 @@ struct SnukScope {
  * the most recent control-flow signal raised during evaluation.
  */
 typedef struct SnukInterpreter {
-    SnukRefCounter *current;
-    SnukRefCounter *global;
-    SnukSignal signal;
+        SnukRefCounter *current;
+        SnukRefCounter *global;
+        SnukSignal signal;
 } SnukInterpreter;
 
 /**

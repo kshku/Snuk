@@ -1,6 +1,6 @@
+#include "io.h"
 #include "logger.h"
 #include "memory.h"
-#include "io.h"
 #include "runtime.h"
 #include "snuk_string.h"
 
@@ -63,8 +63,10 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-static inline bool is_option(const char *opt, const char *short_opt, const char *long_opt) {
-    return snuk_string_equal(opt, short_opt) || snuk_string_equal(opt, long_opt);
+static inline bool is_option(
+    const char *opt, const char *short_opt, const char *long_opt) {
+    return snuk_string_equal(opt, short_opt)
+        || snuk_string_equal(opt, long_opt);
 }
 
 OpMode parse_args(int argc, char *argv[], char **data) {
@@ -133,21 +135,23 @@ static void run_command(const char *command) {
 
 static void print_help(void) {
     snuk_println(
-            "snuk - snuk interpreter\n"
-            "VERSION: %d.%d.%d\n"
-            "USAGE:\n"
-            "snuk               luanch as REPL\n"
-            "snuk file.snuk     runs the file\n"
-            "if multiple files are given, they will be ignored. Only first file gets executed."
-            "\n"
-            "ARGS:\n"
-            "-v | --version                 print the version\n"
-            "-h | --help                    print this help message and exit\n"
-            "-c | --command \"COMMAND\"     executes the given command and exits\n",
-            SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR, SNUK_VERSION_PATCH
-    );
+        "snuk - snuk interpreter\n"
+        "VERSION: %d.%d.%d\n"
+        "USAGE:\n"
+        "snuk               luanch as REPL\n"
+        "snuk file.snuk     runs the file\n"
+        "if multiple files are given, they will be ignored. Only first file "
+        "gets executed."
+        "\n"
+        "ARGS:\n"
+        "-v | --version                 print the version\n"
+        "-h | --help                    print this help message and exit\n"
+        "-c | --command \"COMMAND\"     executes the given command and exits\n",
+        SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR, SNUK_VERSION_PATCH);
 }
 
 static void print_version(void) {
-    snuk_println("Snuk version: %d.%d.%d", SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR, SNUK_VERSION_PATCH);
+    snuk_println(
+        "Snuk version: %d.%d.%d", SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR,
+        SNUK_VERSION_PATCH);
 }

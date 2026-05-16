@@ -9,6 +9,7 @@ Thank you for your interest in contributing! This document covers everything you
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Branching Strategy](#branching-strategy)
+- [Formatting Code](#formatting-code)
 - [Commit Conventions](#commit-conventions)
 - [Pull Requests](#pull-requests)
 - [Versioning](#versioning)
@@ -105,6 +106,19 @@ dev  -->  main  -->  tag vX.Y.Z
 ```
 
 When `dev` is stable and ready for release, it is merged into `main` and a version tag is created. No direct commits to `main`.
+
+---
+
+## Formatting Code
+
+Use `clang-format` for source formatting.
+`.clang-format` file defining formatting rules is there on the root of the project.
+
+To format a file,
+```bash
+clang-format -i path/to/file.c
+```
+PR may fail if formatting doesn't match required style.
 
 ---
 

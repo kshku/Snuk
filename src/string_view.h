@@ -1,20 +1,21 @@
 #pragma once
 
-#include "defines.h"
-
-#include "snuk_string.h"
-#include "memory.h"
 #include <string.h>
+
+#include "defines.h"
+#include "memory.h"
+#include "snuk_string.h"
 
 #define SNUK_STRING_VIEW_FORMAT "%.*s"
 #define SNUK_STRING_VIEW_ARG(sv) (sv).len, (sv).str
 
 typedef struct SnukStringView {
-    const char *str;
-    uint64_t len;
+        const char *str;
+        uint64_t len;
 } SnukStringView;
 
-SNUK_INLINE SnukStringView snuk_string_view_create_with_len(const char *str, uint64_t len) {
+SNUK_INLINE SnukStringView
+snuk_string_view_create_with_len(const char *str, uint64_t len) {
     return (SnukStringView){
         .str = str,
         .len = len,
@@ -33,7 +34,7 @@ SNUK_INLINE char *snuk_string_view_get_cstr(SnukStringView view) {
 }
 
 SNUK_INLINE SnukStringView snuk_string_view_copy(SnukStringView view) {
-    char *str = snuk_alloc(sizeof(char) * view.len, alignof(char)); 
+    char *str = snuk_alloc(sizeof(char) * view.len, alignof(char));
     memcpy(str, view.str, view.len);
 
     return (SnukStringView){
@@ -42,7 +43,8 @@ SNUK_INLINE SnukStringView snuk_string_view_copy(SnukStringView view) {
     };
 }
 
-SNUK_INLINE SnukStringView snuk_string_view_concat(SnukStringView a, SnukStringView b) {
+SNUK_INLINE SnukStringView
+snuk_string_view_concat(SnukStringView a, SnukStringView b) {
     return (SnukStringView){
         .str = snuk_string_concat(a.str, a.len, b.str, b.len),
         .len = a.len + b.len,
@@ -51,12 +53,13 @@ SNUK_INLINE SnukStringView snuk_string_view_concat(SnukStringView a, SnukStringV
 
 SNUK_INLINE bool snuk_string_view_equal(SnukStringView a, SnukStringView b) {
     if (a.len != b.len) return false;
-    if (a.len == 0)  return true;
-    
+    if (a.len == 0) return true;
+
     return memcmp(a.str, b.str, a.len) == 0;
 }
 
-SNUK_INLINE bool snuk_string_view_equal_ignore_case(SnukStringView a, SnukStringView b) {
+SNUK_INLINE bool snuk_string_view_equal_ignore_case(
+    SnukStringView a, SnukStringView b) {
     if (a.len != b.len) return false;
     if (a.len == 0) return true;
 

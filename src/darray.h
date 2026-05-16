@@ -1,13 +1,13 @@
 #pragma once
 
 #include "defines.h"
-
 #include "memory.h"
 
 #define SNUK_DARRAY_DEFAULT_CAPACITY 5
 #define SNUK_DARRAY_RESIZE_FACTOR 2
 
-SNUK_STATIC_ASSERT(sizeof(uint64_t) == sizeof(void *), "size of pointer != size of uint64_t");
+SNUK_STATIC_ASSERT(
+    sizeof(uint64_t) == sizeof(void *), "size of pointer != size of uint64_t");
 
 typedef enum SnukDArrayHeader {
     SNUK_DARRAY_CAPACITY,
@@ -19,7 +19,9 @@ typedef enum SnukDArrayHeader {
     SNUK_DARRAY_MAX_FIELDS
 } SnukDArrayHeader;
 
-void *impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align, SnukAllocator *allocator);
+void *impl_snuk_darray_create(
+    uint64_t capacity, uint64_t stride, uint64_t align,
+    SnukAllocator *allocator);
 
 void impl_snuk_darray_destroy(void *arr);
 
@@ -47,7 +49,8 @@ void impl_snuk_darray_clear(void **parr);
  * @return The array or NULL on failure.
  */
 #define snuk_darray_create_with_capacity(capacity, type, allocator) \
-    (type *)impl_snuk_darray_create(capacity, sizeof(type), alignof(type), allocator)
+    (type *)impl_snuk_darray_create(                                \
+        capacity, sizeof(type), alignof(type), allocator)
 
 /**
  * @brief Create a darray of given type.
@@ -58,7 +61,8 @@ void impl_snuk_darray_clear(void **parr);
  * @return The array or NULL on failure.
  */
 #define snuk_darray_create(type, allocator) \
-    snuk_darray_create_with_capacity(SNUK_DARRAY_DEFAULT_CAPACITY, type, allocator)
+    snuk_darray_create_with_capacity(       \
+        SNUK_DARRAY_DEFAULT_CAPACITY, type, allocator)
 
 /**
  * @brief Destroy the darray.
@@ -124,7 +128,8 @@ void impl_snuk_darray_clear(void **parr);
  * @param parr Pointer to the array
  * @param element Pointer to store poped element (can be NULL)
  */
-#define snuk_darray_pop(parr, element) impl_snuk_darray_pop((void **)parr, element)
+#define snuk_darray_pop(parr, element) \
+    impl_snuk_darray_pop((void **)parr, element)
 
 /**
  * @brief Push the element to given index of the array.
@@ -134,7 +139,8 @@ void impl_snuk_darray_clear(void **parr);
  * @param element The element to insert
  */
 #define snuk_darray_push_at(parr, index, element) \
-    impl_snuk_darray_push_at((void **)parr, index, (__typeof__(element)[]){element})
+    impl_snuk_darray_push_at(                     \
+        (void **)parr, index, (__typeof__(element)[]){element})
 
 /**
  * @brief Pop the element at given index of the array.

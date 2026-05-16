@@ -4,8 +4,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "memory.h"
 #include "logger.h"
+#include "memory.h"
 #include "snuk_string.h"
 
 // reads one line from stdin, caller should free

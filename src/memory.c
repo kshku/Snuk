@@ -1,21 +1,22 @@
 #include "memory.h"
 
-#include "logger.h"
-
 #include <stdlib.h>
 
+#include "logger.h"
+
 typedef struct SnukPageAllocator {
-    uint8_t *base;
-    uint32_t total_pages;
-    uint32_t committed_pages;
-    uint32_t reverse_committed_pages;
+        uint8_t *base;
+        uint32_t total_pages;
+        uint32_t committed_pages;
+        uint32_t reverse_committed_pages;
 } SnukPageAllocator;
 
 static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages);
 static void destroy_allocator(SnukPageAllocator *allocator);
 static void *commit_pages(SnukPageAllocator *allocator, uint32_t pages);
 static void *reverse_commit_pages(SnukPageAllocator *allocator, uint32_t pages);
-static void reverse_decommit_pages(SnukPageAllocator *allocator, void *base, uint32_t pages);
+static void reverse_decommit_pages(
+    SnukPageAllocator *allocator, void *base, uint32_t pages);
 
 static void try_increasing_allocator_size(void);
 
@@ -29,9 +30,8 @@ bool snuk_memory_init(uint64_t reserve_size) {
 
     void *base = commit_pages(&page_allocator, 1);
     if (!base) return false;
-    
-    if (!sn_freelist_allocator_init(&galloc, base, page_size))
-        return false;
+
+    if (!sn_freelist_allocator_init(&galloc, base, page_size)) return false;
 
     return true;
 }
@@ -60,11 +60,11 @@ void *snuk_alloc(uint64_t size, uint64_t align) {
     if (ptr) return ptr;
     try_increasing_allocator_size();
     return snuk_alloc(size, align);
-
 }
 
 void *snuk_realloc(void *ptr, uint64_t new_size, uint64_t align) {
-    void *new_ptr = sn_freelist_allocator_reallocate(&galloc, ptr, new_size, align);
+    void *new_ptr =
+        sn_freelist_allocator_reallocate(&galloc, ptr, new_size, align);
     if (new_ptr) return new_ptr;
     try_increasing_allocator_size();
     return snuk_realloc(ptr, new_size, align);
@@ -75,7 +75,7 @@ void snuk_free(void *ptr) {
 }
 
 static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages) {
-    *allocator = (SnukPageAllocator) {
+    *allocator = (SnukPageAllocator){
         .base = sn_vm_reserve(pages),
         .total_pages = pages,
         .committed_pages = 0,
@@ -96,7 +96,7 @@ static void destroy_allocator(SnukPageAllocator *allocator) {
 
 static void *commit_pages(SnukPageAllocator *allocator, uint32_t pages) {
     if (pages + allocator->committed_pages + allocator->reverse_committed_pages
-            > allocator->total_pages)
+        > allocator->total_pages)
         return NULL;
 
     uint64_t page_size = sn_vm_get_page_size();
@@ -108,14 +108,17 @@ static void *commit_pages(SnukPageAllocator *allocator, uint32_t pages) {
     return base;
 }
 
-static void *reverse_commit_pages(SnukPageAllocator *allocator, uint32_t pages) {
+static void *reverse_commit_pages(
+    SnukPageAllocator *allocator, uint32_t pages) {
     if (pages + allocator->committed_pages + allocator->reverse_committed_pages
-            > allocator->total_pages)
+        > allocator->total_pages)
         return NULL;
 
     uint64_t page_size = sn_vm_get_page_size();
-    uint8_t *base = allocator->base +
-        ((allocator->total_pages - allocator->reverse_committed_pages - pages) * page_size); 
+    uint8_t *base =
+        allocator->base
+        + ((allocator->total_pages - allocator->reverse_committed_pages - pages)
+           * page_size);
     if (!sn_vm_commit(base, pages)) return NULL;
 
     allocator->reverse_committed_pages += pages;
@@ -123,9 +126,13 @@ static void *reverse_commit_pages(SnukPageAllocator *allocator, uint32_t pages) 
     return base;
 }
 
-static void reverse_decommit_pages(SnukPageAllocator *allocator, void *base, uint32_t pages) {
+static void reverse_decommit_pages(
+    SnukPageAllocator *allocator, void *base, uint32_t pages) {
     uint64_t page_size = sn_vm_get_page_size();
-    void *actual_base = allocator->base + ((allocator->total_pages - allocator->reverse_committed_pages) * page_size);
+    void *actual_base =
+        allocator->base
+        + ((allocator->total_pages - allocator->reverse_committed_pages)
+           * page_size);
     SNUK_ASSERT(actual_base == base, "freeing in non-stack order");
     sn_vm_decommit(base, pages);
     allocator->reverse_committed_pages -= pages;
@@ -138,17 +145,17 @@ static void try_increasing_allocator_size(void) {
         exit(EXIT_FAILURE);
     }
 
-    uint64_t page_size  = sn_vm_get_page_size();
+    uint64_t page_size = sn_vm_get_page_size();
 
     // trick to increase the freelist allocator size
     // find the freelist which is just before the committed page
     // and add this page to it
 
     galloc.size += page_size;
-    
+
     if (!galloc.free_list) {
         galloc.free_list = base;
-        *galloc.free_list = (snFreeNode) {
+        *galloc.free_list = (snFreeNode){
             .size = page_size,
             .next = NULL,
         };
@@ -175,7 +182,8 @@ static void try_increasing_allocator_size(void) {
     }
 }
 
-SNUK_INLINE void *snuk_allocator_global_alloc(void *data, uint64_t size, uint64_t align) {
+SNUK_INLINE void *snuk_allocator_global_alloc(
+    void *data, uint64_t size, uint64_t align) {
     SNUK_UNUSED(data);
     return snuk_alloc(size, align);
 }
@@ -185,7 +193,8 @@ SNUK_INLINE void snuk_allocator_global_free(void *data, void *ptr) {
     snuk_free(ptr);
 }
 
-SNUK_INLINE void *snuk_allocator_global_realloc(void *data, void *ptr, uint64_t new_size, uint64_t align) {
+SNUK_INLINE void *snuk_allocator_global_realloc(
+    void *data, void *ptr, uint64_t new_size, uint64_t align) {
     SNUK_UNUSED(data);
     return snuk_realloc(ptr, new_size, align);
 }
