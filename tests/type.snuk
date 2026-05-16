@@ -23,3 +23,5 @@ var square2: Square = Square {
     width: 20
     height: 20
 }
+
+print square.top_left.x
