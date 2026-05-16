@@ -95,9 +95,9 @@ ADD_TEST(test_is_hex_digit) {
     TEST_PASSED;
 }
 
-ADD_TEST(test_string_length_edge_cases) {
+ADD_TEST(test_string_length) {
     // basic cases
-    ASSERT_EQ(snuk_string_length("hello"), 5);
+    ASSERT_EQ(snuk_string_length("Hello"), 5);
     ASSERT_EQ(snuk_string_length(""), 0);
 
     // string with spaces and symbols
@@ -106,13 +106,6 @@ ADD_TEST(test_string_length_edge_cases) {
 
     // NULL input
     ASSERT_EQ(snuk_string_length(NULL), 0);
-
-    TEST_PASSED;
-}
-
-ADD_TEST(test_string_length) {
-    ASSERT_EQ(snuk_string_length("Hello"), 5);
-    ASSERT_EQ(snuk_string_length(""), 0);
 
     TEST_PASSED;
 }
@@ -215,19 +208,23 @@ ADD_TEST(test_string_concat) {
     const char *b = "World!";
 
     char *c = snuk_string_concat(a, 0, b, 0);
-    ASSERT(snuk_string_equal(c, "Hello, World!"));
+    ASSERT_NOT_NULL(c);
+    ASSERT_STR_EQ(c, "Hello, World!");
     snuk_free(c);
 
     c = snuk_string_concat(a, 3, b, 2);
-    ASSERT(snuk_string_equal(c, "HelWo"));
+    ASSERT_NOT_NULL(c);
+    ASSERT_STR_EQ(c, "HelWo");
     snuk_free(c);
 
     c = snuk_string_concat(a, 6, b, 6);
-    ASSERT(snuk_string_equal(c, "Hello,World!"));
+    ASSERT_NOT_NULL(c);
+    ASSERT_STR_EQ(c, "Hello,World!");
     snuk_free(c);
 
     c = snuk_string_concat(a, 7, b, 6);
-    ASSERT(snuk_string_equal(c, "Hello, World!"));
+    ASSERT_NOT_NULL(c);
+    ASSERT_STR_EQ(c, "Hello, World!");
     snuk_free(c);
 
     TEST_PASSED;
