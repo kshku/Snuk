@@ -1,0 +1,31 @@
+---
+BasedOnStyle: Google
+AccessModifierOffset: -2
+AlignArrayOfStructures: Left
+AlignAfterOpenBracket: AlwaysBreak
+AlignConsecutiveAssignments:
+    PadOperators: false
+AlignOperands: AlignAfterOperator
+AlignTrailingComments:
+    Kind: Never
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AlwaysBreakBeforeMultilineStrings: false
+BreakArrays: false
+BreakAfterOpenBracketBracedList: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeCloseBracketBracedList: true
+IndentAccessModifiers: true
+IndentExternBlock: Indent
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+InsertNewlineAtEOF: true
+KeepEmptyLinesAtEOF: true
+SeparateDefinitionBlocks: Always
+SpaceAfterTemplateKeyword: false
+NamespaceIndentation: All
+PointerAlignment: Right
+ReferenceAlignment: Pointer
+DerivePointerAlignment: false
+...
