@@ -174,7 +174,8 @@ SNUK_INLINE SnukExpr *build_comment_expr(
         .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT
                   ? SNUK_EXPR_BLOCK_COMMENT
                   : SNUK_EXPR_LINE_COMMENT,
-        .comment = comment_token.string_literal,
+        .comment =
+            parser_copy_string_view(parser, comment_token.string_literal),
     };
     return expr;
 }
@@ -221,7 +222,8 @@ SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
     SnukExpr *string_expr = parser_create_expr(parser);
     *string_expr = (SnukExpr){
         .type = SNUK_EXPR_STRING,
-        .string_literal = parser->previous.string_literal,
+        .string_literal =
+            parser_copy_string_view(parser, parser->previous.string_literal),
     };
     return string_expr;
 }
@@ -237,7 +239,8 @@ SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
     SnukExpr *identifier = parser_create_expr(parser);
     *identifier = (SnukExpr){
         .type = SNUK_EXPR_IDENTIFIER,
-        .identifier = parser->previous.string_literal,
+        .identifier =
+            parser_copy_string_view(parser, parser->previous.string_literal),
     };
     return identifier;
 }
@@ -460,7 +463,7 @@ SNUK_INLINE SnukExpr *build_fn_expr(
             {.params = params,
                       .body = body,
                       .return_type = return_type,
-                      .name = name},
+                      .name = parser_copy_string_view(parser, name)},
     };
     return expr;
 }
@@ -479,7 +482,8 @@ SNUK_INLINE SnukExpr *build_type_expr(
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
-        .type_expr = {.members = members, .name = name},
+        .type_expr =
+            {.members = members, .name = parser_copy_string_view(parser, name)},
     };
     return expr;
 }

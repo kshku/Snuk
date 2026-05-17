@@ -72,7 +72,7 @@ SNUK_INLINE SnukType *build_named_type(
     SnukType *type = parser_create_type(parser);
     *type = (SnukType){
         .type = TYPE_NAMED,
-        .name = name,
+        .name = parser_copy_string_view(parser, name),
     };
     return type;
 }
@@ -142,3 +142,7 @@ SnukType *snuk_type_parse(SnukParser *parser, ParseFlag flag);
  * @param type The type to log.
  */
 void snuk_type_log(SnukType *type);
+
+SnukType *snuk_type_copy(SnukType *type);
+
+void snuk_type_free(SnukType *type);

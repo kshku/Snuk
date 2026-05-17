@@ -88,3 +88,11 @@ SNUK_INLINE void parser_expect_item_end(SnukParser *parser) {
     if (!parser_match_item_end(parser))
         parser_error(parser, "expected a new line or a semicolon");
 }
+
+SNUK_INLINE SnukStringView
+parser_copy_string_view(SnukParser *parser, SnukStringView sv) {
+    char *str = parser->allocator->alloc(
+        parser->allocator->data, sizeof(char) * sv.len, alignof(char));
+    memcpy(str, sv.str, sv.len);
+    return snuk_string_view_create_with_len(str, sv.len);
+}

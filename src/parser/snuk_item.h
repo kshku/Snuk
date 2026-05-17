@@ -96,7 +96,10 @@ SNUK_INLINE SnukItem *build_decl_item(
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = item_type,
-        .decl_item = {.name = name, .type = type, .expr = expr},
+        .decl_item =
+            {.name = parser_copy_string_view(parser, name),
+                        .type = type,
+                        .expr = expr},
     };
     return item;
 }

@@ -81,4 +81,3 @@ void snuk_type_log(SnukType *type) {
             break;
     }
 }
-
