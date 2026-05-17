@@ -2,7 +2,10 @@
 
 #include "darray.h"
 #include "defines.h"
-#include "parser.h"
+#include "parser/snuk_expr.h"
+#include "parser/snuk_item.h"
+#include "parser/snuk_param.h"
+#include "parser/snuk_type.h"
 #include "refcount.h"
 #include "string_view.h"
 

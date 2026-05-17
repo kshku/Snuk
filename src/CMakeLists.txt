@@ -5,8 +5,6 @@ set(HEADERS
     io.h
     snuk_string.h
     lexer.h
-    parser.h
-    parser_helper.h
     darray.h
     interpreter.h
     runtime.h
@@ -18,10 +16,13 @@ set(SRCS
     memory.c
     io.c
     lexer.c
-    parser.c
     darray.c
     interpreter.c
     runtime.c
 )
 
+target_include_directories(snuk PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 target_sources(snuk PRIVATE ${HEADERS} ${SRCS})
+
+add_subdirectory(parser)
