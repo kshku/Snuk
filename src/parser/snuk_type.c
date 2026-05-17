@@ -39,6 +39,7 @@ SnukType *snuk_type_parse(SnukParser *parser, ParseFlag flag) {
         SnukType *ret_type = NULL;
         if (parser_match(parser, SNUK_TOKEN_ARROW))
             ret_type = snuk_type_parse(parser, flag);
+        else ret_type = build_any_type(parser);
 
         type = build_fn_type(parser, type, NULL, ret_type);
         return type;
