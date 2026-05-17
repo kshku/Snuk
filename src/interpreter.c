@@ -19,7 +19,7 @@ SNUK_INLINE SnukEnv *snuk_create_env(
     SnukValue value = snuk_interpreter_eval_expr(intpret, val);
 
     *env = (SnukEnv){
-        .name = name,
+        .name = snuk_string_view_copy(name),
         .value = snuk_interpreter_copy_value(value),
     };
 
@@ -31,6 +31,7 @@ SNUK_INLINE SnukEnv *snuk_create_env(
 SNUK_INLINE void snuk_free_env(SnukEnv *env) {
     if (!env) return;
 
+    snuk_free((void *)env->name.str);
     snuk_interpreter_free_value(env->value);
 
     snuk_free(env);
