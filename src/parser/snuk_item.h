@@ -161,6 +161,15 @@ SNUK_INLINE SnukItem *build_print_item(
 }
 
 /**
+ * @brief Parse the next item.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed item, or NULL on parse failure.
+ */
+SnukItem *parse_item(SnukParser *parser, ParseFlag flag);
+
+/**
  * @brief Get a string name for a item type.
  *
  * @param type Item type to convert.

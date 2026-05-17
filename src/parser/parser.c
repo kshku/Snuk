@@ -1,7 +1,7 @@
 #include "parser.h"
 
 #include "io.h"
-#include "parser_common.h"
+#include "snuk_item.h"
 
 SnukItem *snuk_parser_next_item(SnukParser *parser) {
     if (parser->current.type == SNUK_TOKEN_EOF) return NULL;
