@@ -3,7 +3,7 @@
 #include <snmemory/frame.h>
 
 #include "defines.h"
-#include "interpreter.h"
+#include "interpreter/interpreter.h"
 #include "memory.h"
 #include "snuk_string.h"
 

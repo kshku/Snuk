@@ -1,0 +1,114 @@
+#pragma once
+
+#include "defines.h"
+#include "parser/snuk_expr.h"
+#include "parser/snuk_param.h"
+#include "parser/snuk_type.h"
+#include "refcount.h"
+#include "string_view.h"
+
+typedef struct SnukValue SnukValue;
+
+/**
+ * @brief Runtime value produced by expression evaluation.
+ *
+ * The type tag selects which union member is meaningful: int_value for
+ * integers, float_value for floats, bool_value for booleans, string_value for
+ * string views, and fn_value for function values. SNUK_VALUE_NULL,
+ * SNUK_VALUE_UNKOWN, and SNUK_VALUE_TYPE carry no payload today.
+ *
+ * @note A function value holds a refcounted reference to its closure scope,
+ * which keeps the captured bindings alive for as long as the function value
+ * is reachable.
+ */
+struct SnukValue {
+        enum {
+            SNUK_VALUE_UNKOWN,
+            SNUK_VALUE_INT,
+            SNUK_VALUE_FLOAT,
+            SNUK_VALUE_BOOL,
+            SNUK_VALUE_STRING,
+            SNUK_VALUE_NULL,
+            SNUK_VALUE_FN,
+            SNUK_VALUE_TYPE,
+            SNUK_VALUE_TYPE_INST,
+
+            SNUK_VALUE_MAX
+        } type;
+
+        union {
+                int64_t int_value;
+                double float_value;
+                bool bool_value;
+                SnukStringView string_value;
+
+                struct {
+                        SnukRefCounter *closure;
+                        SnukExpr *body;
+                        SnukParam **params;
+                        SnukType *return_type;
+                } fn_value;
+
+                SnukRefCounter *closure;
+        };
+};
+
+/**
+ * @brief Coerce a runtime value to a boolean for conditions and loops.
+ */
+SNUK_INLINE bool snuk_value_is_true(SnukValue value) {
+    switch (value.type) {
+        case SNUK_VALUE_UNKOWN:
+        case SNUK_VALUE_NULL:
+            return false;
+        case SNUK_VALUE_BOOL:
+            return value.bool_value;
+        case SNUK_VALUE_INT:
+            return value.int_value != 0;
+        case SNUK_VALUE_FLOAT:
+            return value.float_value != 0;
+        case SNUK_VALUE_STRING:
+            return value.string_value.len != 0;
+
+        case SNUK_VALUE_FN:
+        case SNUK_VALUE_TYPE:
+            return true;
+
+        case SNUK_VALUE_TYPE_INST:
+            return value.closure != NULL;
+
+        default:
+            return false;
+    }
+}
+
+/**
+ * @brief Copy the value.
+ *
+ * @param value Value to copy.
+ */
+SnukValue snuk_value_copy(SnukValue value);
+
+/**
+ * @brief Free the value.
+ *
+ * Releases the resources held by value.
+ *
+ * @param value Value to free.
+ */
+void snuk_value_free(SnukValue value);
+
+/**
+ * @brief Log a runtime value to the trace logger for debugging.
+ *
+ * @param value Value to log.
+ */
+void snuk_value_log(SnukValue value);
+
+/**
+ * @brief Print a runtime value to standard output.
+ *
+ * @param value Value to print.
+ */
+void snuk_value_print(SnukValue value);
+
