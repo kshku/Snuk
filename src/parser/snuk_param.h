@@ -52,4 +52,4 @@ SNUK_INLINE SnukParam *build_param(
  *
  * @param param Parameter to log.
  */
-void snuk_parser_log_param(SnukParam *param);
+void snuk_param_log(SnukParam *param);

@@ -167,7 +167,7 @@ SNUK_INLINE SnukItem *build_print_item(
  *
  * @return Parsed item, or NULL on parse failure.
  */
-SnukItem *parse_item(SnukParser *parser, ParseFlag flag);
+SnukItem *snuk_item_parse(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Get a string name for a item type.
@@ -176,12 +176,12 @@ SnukItem *parse_item(SnukParser *parser, ParseFlag flag);
  *
  * @return Static string describing the item type.
  */
-const char *snuk_parser_item_type_to_string(SnukItemType type);
+const char *snuk_item_type_to_string(SnukItemType type);
 
 /**
  * @brief Log a parsed item tree.
  *
  * @param item item to log.
  */
-void snuk_parser_log_item(SnukItem *item);
+void snuk_item_log(SnukItem *item);
 

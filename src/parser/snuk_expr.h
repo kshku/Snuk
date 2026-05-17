@@ -568,7 +568,7 @@ SNUK_INLINE SnukExpr *build_member_access_expr(
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-SnukExpr *parse_expression(SnukParser *parser, ParseFlag flag);
+SnukExpr *snuk_expr_parse(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Get a string name for an expression type.
@@ -577,12 +577,12 @@ SnukExpr *parse_expression(SnukParser *parser, ParseFlag flag);
  *
  * @return Static string describing the expression type.
  */
-const char *snuk_parser_expr_type_to_string(SnukExprType type);
+const char *snuk_expr_type_to_string(SnukExprType type);
 
 /**
  * @brief Log a parsed expression tree.
  *
  * @param expr Expression to log.
  */
-void snuk_parser_log_expr(SnukExpr *expr);
+void snuk_expr_log(SnukExpr *expr);
 

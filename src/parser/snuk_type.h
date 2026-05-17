@@ -134,11 +134,11 @@ SNUK_INLINE SnukType *build_type_type(
  *
  * @return Parsed type, or NULL on parse failure.
  */
-SnukType *parse_type_annot(SnukParser *parser, ParseFlag flag);
+SnukType *snuk_type_parse(SnukParser *parser, ParseFlag flag);
 
 /**
  * @brief Log a parsed type annotation.
  *
  * @param type The type to log.
  */
-void snuk_parser_log_type(SnukType *type);
+void snuk_type_log(SnukType *type);

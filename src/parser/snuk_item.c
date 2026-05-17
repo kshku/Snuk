@@ -41,7 +41,7 @@ static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag);
  */
 static SnukItem *parse_print_item(SnukParser *parser, ParseFlag flag);
 
-SnukItem *parse_item(SnukParser *parser, ParseFlag flag) {
+SnukItem *snuk_item_parse(SnukParser *parser, ParseFlag flag) {
     if (parser_match(parser, SNUK_TOKEN_VAR)
         || parser_match(parser, SNUK_TOKEN_CONST))
         return parse_decl_item(
@@ -59,7 +59,7 @@ SnukItem *parse_item(SnukParser *parser, ParseFlag flag) {
 }
 
 static SnukItem *parse_expr_item(SnukParser *parser, ParseFlag flag) {
-    SnukExpr *expr = parse_expression(parser, flag);
+    SnukExpr *expr = snuk_expr_parse(parser, flag);
     parser_expect_item_end(parser);
     return build_expr_item(parser, expr);
 }
@@ -71,12 +71,12 @@ static SnukItem *parse_decl_item(
 
     SnukType *type = NULL;
     if (parser_match(parser, SNUK_TOKEN_COLON))
-        type = parse_type_annot(parser, flag);
+        type = snuk_type_parse(parser, flag);
     else type = build_any_type(parser);
 
     SnukExpr *init = NULL;
     if (parser_match(parser, SNUK_TOKEN_ASSIGN))
-        init = parse_expression(parser, flag);
+        init = snuk_expr_parse(parser, flag);
     else init = build_null_expr(parser);
 
     parser_expect_item_end(parser);
@@ -93,7 +93,7 @@ static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag) {
         || parser->previous.type == SNUK_TOKEN_BREAK)
         // TODO: look for delimiter, value is optional
         // TODO: break and return items should be at the end of block only?
-        value = parse_expression(parser, flag);
+        value = snuk_expr_parse(parser, flag);
 
     parser_expect_item_end(parser);
 
@@ -102,17 +102,17 @@ static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag) {
 
 static SnukItem *parse_print_item(SnukParser *parser, ParseFlag flag) {
     SnukItem *print_item =
-        build_print_item(parser, NULL, parse_expression(parser, flag));
+        build_print_item(parser, NULL, snuk_expr_parse(parser, flag));
     while (parser_match(parser, SNUK_TOKEN_COMMA))
-        print_item = build_print_item(
-            parser, print_item, parse_expression(parser, flag));
+        print_item =
+            build_print_item(parser, print_item, snuk_expr_parse(parser, flag));
 
     parser_expect_item_end(parser);
 
     return print_item;
 }
 
-const char *snuk_parser_item_type_to_string(SnukItemType type) {
+const char *snuk_item_type_to_string(SnukItemType type) {
     switch (type) {
         case SNUK_ITEM_EXPR:
             return SNUK_STRINGIFY(SNUK_ITEM_EXPR);
@@ -135,15 +135,15 @@ const char *snuk_parser_item_type_to_string(SnukItemType type) {
     }
 }
 
-void snuk_parser_log_item(SnukItem *item) {
+void snuk_item_log(SnukItem *item) {
     if (!item) return;
-    log_trace("item type: %s", snuk_parser_item_type_to_string(item->type));
+    log_trace("item type: %s", snuk_item_type_to_string(item->type));
 
     uint64_t count;
     switch (item->type) {
         case SNUK_ITEM_EXPR:
             log_trace("Expr:", NULL);
-            snuk_parser_log_expr(item->expr);
+            snuk_expr_log(item->expr);
             break;
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL:
@@ -161,16 +161,16 @@ void snuk_parser_log_item(SnukItem *item) {
                 "identifier: " SNUK_STRING_VIEW_FORMAT,
                 SNUK_STRING_VIEW_ARG(item->decl_item.name));
             if (item->decl_item.type) log_trace("type: ", NULL);
-            snuk_parser_log_type(item->decl_item.type);
-            snuk_parser_log_expr(item->decl_item.expr);
+            snuk_type_log(item->decl_item.type);
+            snuk_expr_log(item->decl_item.expr);
             break;
         case SNUK_ITEM_RETURN:
             log_trace("return:", NULL);
-            snuk_parser_log_expr(item->expr);
+            snuk_expr_log(item->expr);
             break;
         case SNUK_ITEM_BREAK:
             log_trace("break", NULL);
-            snuk_parser_log_expr(item->expr);
+            snuk_expr_log(item->expr);
             break;
         case SNUK_ITEM_CONTINUE:
             log_trace("continue", NULL);
@@ -179,7 +179,7 @@ void snuk_parser_log_item(SnukItem *item) {
             log_trace("print:", NULL);
             count = snuk_darray_get_length(item->print_exprs);
             for (uint64_t i = 0; i < count; ++i)
-                snuk_parser_log_expr(item->print_exprs[i]);
+                snuk_expr_log(item->print_exprs[i]);
             break;
         default:
             break;
