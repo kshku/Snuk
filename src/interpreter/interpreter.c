@@ -4,6 +4,21 @@
 #include "snuk_scope.h"
 
 /**
+ * @brief Walk the scope chain from current to global to resolve a name.
+ */
+SNUK_INLINE SnukEnv *interpreter_lookup(
+    SnukInterpreter *intpret, SnukStringView name) {
+    SnukRefCounter *rc = intpret->current;
+    SnukEnv *env;
+    while (rc) {
+        SnukScope *scope = GET_SCOPE(rc);
+        if ((env = snuk_scope_lookup(scope, name))) return env;
+        rc = scope->parent;
+    }
+    return NULL;
+}
+
+/**
  * @brief Push a new child scope and make it the interpreter's current scope.
  */
 SNUK_INLINE void interpreter_push_scope(SnukInterpreter *intpret) {
@@ -67,16 +82,21 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret) {
     *intpret = (SnukInterpreter){0};
 }
 
-SnukEnv *snuk_interpreter_lookup(
+SnukValue snuk_interpreter_get_env(
     SnukInterpreter *intpret, SnukStringView name) {
-    SnukRefCounter *rc = intpret->current;
-    SnukEnv *env;
-    while (rc) {
-        SnukScope *scope = GET_SCOPE(rc);
-        if ((env = snuk_scope_lookup(scope, name))) return env;
-        rc = scope->parent;
-    }
-    return NULL;
+    SnukEnv *env = interpreter_lookup(intpret, name);
+    if (!env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+    return snuk_value_copy(env->value);
+}
+
+bool snuk_interpreter_set_env(
+    SnukInterpreter *intpret, SnukStringView name, SnukValue value) {
+    SnukEnv *env = interpreter_lookup(intpret, name);
+    if (!env) return false;
+    if (!snuk_interpreter_value_is_of_type(intpret, value, env->type))
+        return false;
+    env->value = snuk_value_copy(value);
+    return true;
 }
 
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
@@ -133,11 +153,8 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
  */
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
     switch (expr->type) {
-        case SNUK_EXPR_IDENTIFIER: {
-            SnukEnv *env = snuk_interpreter_lookup(intpret, expr->identifier);
-            if (!env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-            return snuk_value_copy(env->value);
-        }
+        case SNUK_EXPR_IDENTIFIER:
+            return snuk_interpreter_get_env(intpret, expr->identifier);
 
         case SNUK_EXPR_INT:
             return (SnukValue){
@@ -177,9 +194,8 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         case SNUK_EXPR_ASSIGN: {
             SnukValue value =
                 snuk_interpreter_eval_expr(intpret, expr->assign.value);
-            snuk_interpreter_lookup(
-                intpret, expr->assign.identifier->identifier)
-                ->value = snuk_value_copy(value);
+            snuk_interpreter_set_env(
+                intpret, expr->assign.identifier->identifier, value);
             return value;
         }
 
@@ -205,12 +221,10 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
             SnukValue value = {
                 .type = SNUK_VALUE_FN,
                 .fn_value =
-                    {
-                               .closure = snuk_ref_counter_retain(intpret->current),
+                    {.closure = snuk_ref_counter_retain(intpret->current),
                                .body = expr->fn_expr.body,
                                .params = expr->fn_expr.params,
-                               .return_type = expr->fn_expr.return_type,
-                               },
+                               .type = expr->fn_expr.type},
             };
 
             // Syntax sugar
@@ -899,7 +913,7 @@ static SnukValue execute_type_declaration(
 static SnukValue execute_inst_creation(
     SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue type =
-        snuk_interpreter_eval_expr(intpret, expr->type_inst_expr.type_name);
+        snuk_interpreter_eval_expr(intpret, expr->type_inst_expr.type);
     SNUK_ASSERT(
         type.type == SNUK_VALUE_TYPE,
         "type instance creation expression on non type");
@@ -978,9 +992,10 @@ static SnukValue execute_compound_assign(
 
     SnukValue res = perform_binary_op(lhs, rhs, op_type);
 
-    snuk_interpreter_lookup(
-        intpret, expr->compound_assign.identifier->identifier)
-        ->value = snuk_value_copy(res);
+    // TODO:
+    if (!snuk_interpreter_set_env(
+            intpret, expr->compound_assign.identifier->identifier, res))
+        SNUK_SHOULD_NOT_REACH_HERE;
 
     snuk_value_free(lhs);
     snuk_value_free(rhs);
