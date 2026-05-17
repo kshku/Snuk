@@ -19,7 +19,7 @@ SNUK_INLINE SnukEnv *snuk_create_env(
     SnukValue value = snuk_interpreter_eval_expr(intpret, val);
 
     *env = (SnukEnv){
-        .name = name,
+        .name = snuk_string_view_copy(name),
         .value = snuk_interpreter_copy_value(value),
     };
 
@@ -31,6 +31,7 @@ SNUK_INLINE SnukEnv *snuk_create_env(
 SNUK_INLINE void snuk_free_env(SnukEnv *env) {
     if (!env) return;
 
+    snuk_free((void *)env->name.str);
     snuk_interpreter_free_value(env->value);
 
     snuk_free(env);
@@ -190,12 +191,12 @@ SNUK_INLINE bool is_true_value(SnukValue value) {
     }
 }
 
-static SnukValue get_unary_value(SnukInterpreter *intpret, SnukExpr *expr);
-static SnukValue get_binary_value(SnukInterpreter *intpret, SnukExpr *expr);
+static SnukValue execute_unary_op(SnukInterpreter *intpret, SnukExpr *expr);
+static SnukValue execute_binary_op(SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue perform_binary_op(
     SnukValue left, SnukValue right, SnukTokenType op);
 
-static void print_exprs(SnukInterpreter *intpret, SnukExpr **exprs);
+static void execute_print_expr(SnukInterpreter *intpret, SnukExpr **exprs);
 
 static SnukValue execute_block_expr(
     SnukInterpreter *intpret, SnukExpr *block, int capture_signals,
@@ -207,6 +208,8 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue execute_type_declaration(
     SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue execute_inst_creation(
+    SnukInterpreter *intpret, SnukExpr *expr);
+static SnukValue execute_compound_assign(
     SnukInterpreter *intpret, SnukExpr *expr);
 
 void snuk_interpreter_init(SnukInterpreter *intpret) {
@@ -307,7 +310,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
         }
 
         case SNUK_ITEM_PRINT:
-            print_exprs(intpret, item->print_exprs);
+            execute_print_expr(intpret, item->print_exprs);
             // TODO: return something else?
             return (SnukValue){.type = SNUK_VALUE_NULL};
             break;
@@ -375,10 +378,10 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
             };
 
         case SNUK_EXPR_UNARY:
-            return get_unary_value(intpret, expr);
+            return execute_unary_op(intpret, expr);
 
         case SNUK_EXPR_BINARY:
-            return get_binary_value(intpret, expr);
+            return execute_binary_op(intpret, expr);
 
         case SNUK_EXPR_ASSIGN: {
             SnukValue value =
@@ -390,7 +393,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 
         // TODO: Compound assign
         case SNUK_EXPR_COMPOUND_ASSIGN:
-            break;
+            return execute_compound_assign(intpret, expr);
 
         case SNUK_EXPR_IF:
             return execute_if_expr(intpret, expr);
@@ -462,7 +465,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 /**
  * @brief Evaluate a unary expression's operand and apply the operator.
  */
-static SnukValue get_unary_value(SnukInterpreter *intpret, SnukExpr *expr) {
+static SnukValue execute_unary_op(SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue val = snuk_interpreter_eval_expr(intpret, expr->unary.operand);
 
     switch (expr->unary.op) {
@@ -677,7 +680,7 @@ fail:
  * @brief Evaluate both operands of a binary expression and combine them with
  * perform_binary_op.
  */
-static SnukValue get_binary_value(SnukInterpreter *intpret, SnukExpr *expr) {
+static SnukValue execute_binary_op(SnukInterpreter *intpret, SnukExpr *expr) {
     switch (expr->binary.op) {
         case SNUK_TOKEN_PIPE_PIPE:
         case SNUK_TOKEN_KW_OR: {
@@ -732,7 +735,7 @@ static SnukValue get_binary_value(SnukInterpreter *intpret, SnukExpr *expr) {
 /**
  * @brief Evaluate each expression in the darray and print its value to stdout.
  */
-static void print_exprs(SnukInterpreter *intpret, SnukExpr **exprs) {
+static void execute_print_expr(SnukInterpreter *intpret, SnukExpr **exprs) {
     if (!exprs) return;
 
     uint64_t count = snuk_darray_get_length(exprs);
@@ -1231,4 +1234,59 @@ static SnukValue execute_inst_creation(
 
     snuk_interpreter_free_value(type);
     return value;
+}
+
+static SnukValue execute_compound_assign(
+    SnukInterpreter *intpret, SnukExpr *expr) {
+    SnukTokenType op_type;
+    switch (expr->compound_assign.op) {
+        case SNUK_TOKEN_PLUS_ASSIGN:
+            op_type = SNUK_TOKEN_PLUS;
+            break;
+        case SNUK_TOKEN_MINUS_ASSIGN:
+            op_type = SNUK_TOKEN_MINUS;
+            break;
+        case SNUK_TOKEN_STAR_ASSIGN:
+            op_type = SNUK_TOKEN_STAR;
+            break;
+        case SNUK_TOKEN_SLASH_ASSIGN:
+            op_type = SNUK_TOKEN_SLASH;
+            break;
+        case SNUK_TOKEN_PERCENT_ASSIGN:
+            op_type = SNUK_TOKEN_PERCENT;
+            break;
+        case SNUK_TOKEN_AMP_ASSIGN:
+            op_type = SNUK_TOKEN_AMP;
+            break;
+        case SNUK_TOKEN_PIPE_ASSIGN:
+            op_type = SNUK_TOKEN_PIPE;
+            break;
+        case SNUK_TOKEN_CARET_ASSIGN:
+            op_type = SNUK_TOKEN_CARET;
+            break;
+        case SNUK_TOKEN_LSHIFT_ASSIGN:
+            op_type = SNUK_TOKEN_LSHIFT;
+            break;
+        case SNUK_TOKEN_RSHIFT_ASSIGN:
+            op_type = SNUK_TOKEN_RSHIFT;
+            break;
+        default:
+            break;
+    }
+
+    SnukValue lhs =
+        snuk_interpreter_eval_expr(intpret, expr->compound_assign.identifier);
+
+    SnukValue rhs =
+        snuk_interpreter_eval_expr(intpret, expr->compound_assign.value);
+
+    SnukValue res = perform_binary_op(lhs, rhs, op_type);
+
+    snuk_env_lookup(intpret, expr->compound_assign.identifier->identifier)
+        ->value = snuk_interpreter_copy_value(res);
+
+    snuk_interpreter_free_value(lhs);
+    snuk_interpreter_free_value(rhs);
+
+    return res;
 }
