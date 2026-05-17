@@ -209,6 +209,8 @@ static SnukValue execute_type_declaration(
     SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue execute_inst_creation(
     SnukInterpreter *intpret, SnukExpr *expr);
+static SnukValue execute_compound_assign(
+    SnukInterpreter *intpret, SnukExpr *expr);
 
 void snuk_interpreter_init(SnukInterpreter *intpret) {
     *intpret = (SnukInterpreter){
@@ -391,7 +393,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 
         // TODO: Compound assign
         case SNUK_EXPR_COMPOUND_ASSIGN:
-            break;
+            return execute_compound_assign(intpret, expr);
 
         case SNUK_EXPR_IF:
             return execute_if_expr(intpret, expr);
@@ -1232,4 +1234,59 @@ static SnukValue execute_inst_creation(
 
     snuk_interpreter_free_value(type);
     return value;
+}
+
+static SnukValue execute_compound_assign(
+    SnukInterpreter *intpret, SnukExpr *expr) {
+    SnukTokenType op_type;
+    switch (expr->compound_assign.op) {
+        case SNUK_TOKEN_PLUS_ASSIGN:
+            op_type = SNUK_TOKEN_PLUS;
+            break;
+        case SNUK_TOKEN_MINUS_ASSIGN:
+            op_type = SNUK_TOKEN_MINUS;
+            break;
+        case SNUK_TOKEN_STAR_ASSIGN:
+            op_type = SNUK_TOKEN_STAR;
+            break;
+        case SNUK_TOKEN_SLASH_ASSIGN:
+            op_type = SNUK_TOKEN_SLASH;
+            break;
+        case SNUK_TOKEN_PERCENT_ASSIGN:
+            op_type = SNUK_TOKEN_PERCENT;
+            break;
+        case SNUK_TOKEN_AMP_ASSIGN:
+            op_type = SNUK_TOKEN_AMP;
+            break;
+        case SNUK_TOKEN_PIPE_ASSIGN:
+            op_type = SNUK_TOKEN_PIPE;
+            break;
+        case SNUK_TOKEN_CARET_ASSIGN:
+            op_type = SNUK_TOKEN_CARET;
+            break;
+        case SNUK_TOKEN_LSHIFT_ASSIGN:
+            op_type = SNUK_TOKEN_LSHIFT;
+            break;
+        case SNUK_TOKEN_RSHIFT_ASSIGN:
+            op_type = SNUK_TOKEN_RSHIFT;
+            break;
+        default:
+            break;
+    }
+
+    SnukValue lhs =
+        snuk_interpreter_eval_expr(intpret, expr->compound_assign.identifier);
+
+    SnukValue rhs =
+        snuk_interpreter_eval_expr(intpret, expr->compound_assign.value);
+
+    SnukValue res = perform_binary_op(lhs, rhs, op_type);
+
+    snuk_env_lookup(intpret, expr->compound_assign.identifier->identifier)
+        ->value = snuk_interpreter_copy_value(res);
+
+    snuk_interpreter_free_value(lhs);
+    snuk_interpreter_free_value(rhs);
+
+    return res;
 }
