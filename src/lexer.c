@@ -7,60 +7,48 @@
 #include "snuk_string.h"
 
 typedef struct KeyWord {
-        SnukStringView keyword;
+        const char *keyword;
         SnukTokenType type;
 } KeyWord;
 
 typedef struct Value {
-        SnukStringView value;
+        const char *value;
         SnukTokenType type;
         bool ignore_case;
 } Value;
 
 KeyWord keywords[] = {
-    {.keyword = {.str = "var", .len = 3},      .type = SNUK_TOKEN_VAR     },
-    {.keyword = {.str = "const", .len = 5},    .type = SNUK_TOKEN_CONST   },
-    {.keyword = {.str = "any", .len = 3},      .type = SNUK_TOKEN_ANY     },
-    {.keyword = {.str = "if", .len = 2},       .type = SNUK_TOKEN_IF      },
-    {.keyword = {.str = "else", .len = 4},     .type = SNUK_TOKEN_ELSE    },
-    {.keyword = {.str = "match", .len = 5},    .type = SNUK_TOKEN_MATCH   },
-    {.keyword = {.str = "case", .len = 4},     .type = SNUK_TOKEN_CASE    },
-    {.keyword = {.str = "while", .len = 5},    .type = SNUK_TOKEN_WHILE   },
-    {.keyword = {.str = "do", .len = 2},       .type = SNUK_TOKEN_DO      },
-    {.keyword = {.str = "for", .len = 3},      .type = SNUK_TOKEN_FOR     },
-    {.keyword = {.str = "in", .len = 2},       .type = SNUK_TOKEN_IN      },
-    {.keyword = {.str = "return", .len = 6},   .type = SNUK_TOKEN_RETURN  },
-    {.keyword = {.str = "break", .len = 5},    .type = SNUK_TOKEN_BREAK   },
-    {.keyword = {.str = "continue", .len = 8}, .type = SNUK_TOKEN_CONTINUE},
-    {.keyword = {.str = "fn", .len = 2},       .type = SNUK_TOKEN_FN      },
-    {.keyword = {.str = "print", .len = 5},    .type = SNUK_TOKEN_PRINT   },
-    {.keyword = {.str = "self", .len = 4},     .type = SNUK_TOKEN_SELF    },
-    {.keyword = {.str = "type", .len = 4},     .type = SNUK_TOKEN_TYPE    },
-    {.keyword = {.str = "or", .len = 2},       .type = SNUK_TOKEN_KW_OR   },
-    {.keyword = {.str = "and", .len = 3},      .type = SNUK_TOKEN_KW_AND  },
-    {.keyword = {.str = "not", .len = 3},      .type = SNUK_TOKEN_KW_NOT  },
+    {.keyword = "var",      .type = SNUK_TOKEN_VAR     },
+    {.keyword = "const",    .type = SNUK_TOKEN_CONST   },
+    {.keyword = "any",      .type = SNUK_TOKEN_ANY     },
+    {.keyword = "if",       .type = SNUK_TOKEN_IF      },
+    {.keyword = "else",     .type = SNUK_TOKEN_ELSE    },
+    {.keyword = "match",    .type = SNUK_TOKEN_MATCH   },
+    {.keyword = "case",     .type = SNUK_TOKEN_CASE    },
+    {.keyword = "while",    .type = SNUK_TOKEN_WHILE   },
+    {.keyword = "do",       .type = SNUK_TOKEN_DO      },
+    {.keyword = "for",      .type = SNUK_TOKEN_FOR     },
+    {.keyword = "in",       .type = SNUK_TOKEN_IN      },
+    {.keyword = "return",   .type = SNUK_TOKEN_RETURN  },
+    {.keyword = "break",    .type = SNUK_TOKEN_BREAK   },
+    {.keyword = "continue", .type = SNUK_TOKEN_CONTINUE},
+    {.keyword = "fn",       .type = SNUK_TOKEN_FN      },
+    {.keyword = "print",    .type = SNUK_TOKEN_PRINT   },
+    {.keyword = "self",     .type = SNUK_TOKEN_SELF    },
+    {.keyword = "type",     .type = SNUK_TOKEN_TYPE    },
+    {.keyword = "or",       .type = SNUK_TOKEN_KW_OR   },
+    {.keyword = "and",      .type = SNUK_TOKEN_KW_AND  },
+    {.keyword = "not",      .type = SNUK_TOKEN_KW_NOT  },
 };
 
 Value values[] = {
-    {.value = {.str = "true", .len = 4},
-     .type = SNUK_TOKEN_TRUE,
-     .ignore_case = false},
-    {.value = {.str = "false", .len = 5},
-     .type = SNUK_TOKEN_FALSE,
-     .ignore_case = false},
-    {.value = {.str = "null", .len = 4},
-     .type = SNUK_TOKEN_NULL,
-     .ignore_case = false},
+    {.value = "true",     .type = SNUK_TOKEN_TRUE,  .ignore_case = false},
+    {.value = "false",    .type = SNUK_TOKEN_FALSE, .ignore_case = false},
+    {.value = "null",     .type = SNUK_TOKEN_NULL,  .ignore_case = false},
 
-    {.value = {.str = "nan", .len = 3},
-     .type = SNUK_TOKEN_NAN,
-     .ignore_case = true },
-    {.value = {.str = "inf", .len = 3},
-     .type = SNUK_TOKEN_INF,
-     .ignore_case = true },
-    {.value = {.str = "infinity", .len = 8},
-     .type = SNUK_TOKEN_INF,
-     .ignore_case = true },
+    {.value = "nan",      .type = SNUK_TOKEN_NAN,   .ignore_case = true },
+    {.value = "inf",      .type = SNUK_TOKEN_INF,   .ignore_case = true },
+    {.value = "infinity", .type = SNUK_TOKEN_INF,   .ignore_case = true },
 };
 
 /**
@@ -398,7 +386,7 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
  */
 static SnukTokenType check_keyword(SnukStringView word) {
     for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i)
-        if (snuk_string_view_equal(word, keywords[i].keyword))
+        if (snuk_string_view_equal_cstr(word, keywords[i].keyword))
             return keywords[i].type;
     return SNUK_TOKEN_EOF;
 }
@@ -413,9 +401,9 @@ static SnukTokenType check_keyword(SnukStringView word) {
 static SnukTokenType check_values(SnukStringView word) {
     for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
         if (values[i].ignore_case
-            && snuk_string_view_equal_ignore_case(word, values[i].value))
+            && snuk_string_view_equal_cstr_ignore_case(word, values[i].value))
             return values[i].type;
-        else if (snuk_string_view_equal(word, values[i].value))
+        else if (snuk_string_view_equal_cstr(word, values[i].value))
             return values[i].type;
     }
 
