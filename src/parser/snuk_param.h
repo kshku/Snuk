@@ -40,7 +40,7 @@ SNUK_INLINE SnukParam *build_param(
     SnukExpr *default_value) {
     SnukParam *param = parser_create_param(parser);
     *param = (SnukParam){
-        .name = name,
+        .name = parser_copy_string_view(parser, name),
         .type = type,
         .default_value = default_value,
     };

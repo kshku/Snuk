@@ -32,6 +32,50 @@ struct SnukType {
         };
 };
 
+SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
+    if (type1->type != type2->type) return false;
+
+    uint64_t count1;
+    uint64_t count2;
+    switch (type1->type) {
+        case TYPE_ANY:
+            return true;
+
+        case TYPE_NAMED:
+            return snuk_string_view_equal(type1->name, type2->name);
+
+        case TYPE_FN:
+            if (!snuk_type_equal(type1->fn.return_type, type2->fn.return_type))
+                return false;
+
+            count1 = snuk_darray_get_length(type1->fn.param_types);
+            count2 = snuk_darray_get_length(type2->fn.param_types);
+            if (count1 != count2) return false;
+
+            for (uint64_t i = 0; i < count1; ++i)
+                if (!snuk_type_equal(
+                        type1->fn.param_types[i], type2->fn.param_types[i]))
+                    return false;
+            return true;
+
+        case TYPE_TYPE:
+            count1 = snuk_darray_get_length(type1->member_types);
+            count2 = snuk_darray_get_length(type2->member_types);
+            if (count1 != count2) return false;
+            for (uint64_t i = 0; i < count1; ++i)
+                if (!snuk_type_equal(
+                        type1->member_types[i], type2->member_types[i]))
+                    return false;
+
+            return true;
+
+        default:
+            SNUK_SHOULD_NOT_REACH_HERE;
+            break;
+    }
+    return false;
+}
+
 /**
  * @brief Allocate a type node.
  *
@@ -72,7 +116,7 @@ SNUK_INLINE SnukType *build_named_type(
     SnukType *type = parser_create_type(parser);
     *type = (SnukType){
         .type = TYPE_NAMED,
-        .name = name,
+        .name = parser_copy_string_view(parser, name),
     };
     return type;
 }
@@ -142,3 +186,7 @@ SnukType *snuk_type_parse(SnukParser *parser, ParseFlag flag);
  * @param type The type to log.
  */
 void snuk_type_log(SnukType *type);
+
+SnukType *snuk_type_copy(SnukType *type);
+
+void snuk_type_free(SnukType *type);

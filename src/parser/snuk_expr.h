@@ -114,9 +114,9 @@ struct SnukExpr {
                 struct {
                         SnukParam **params; /**< Darray of parameters. */
                         SnukExpr *body; /**< Body of function */
-                        SnukType *return_type; /**< Return type of function */
                         SnukStringView
                             name; /**< Name in case of syntax sugar */
+                        SnukType *type; /**< Type of the function */
                 } fn_expr;
 
                 struct {
@@ -124,10 +124,11 @@ struct SnukExpr {
                                                in the type */
                         SnukStringView
                             name; /**< Name in case of syntax sugar */
+                        SnukType *type; /**< Type of the type */
                 } type_expr;
 
                 struct {
-                        SnukExpr *type_name; /**< Name of the type */
+                        SnukExpr *type; /**< Name of the type */
                         SnukExpr **init; /**< initial values of members */
                 } type_inst_expr;
 
@@ -174,7 +175,8 @@ SNUK_INLINE SnukExpr *build_comment_expr(
         .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT
                   ? SNUK_EXPR_BLOCK_COMMENT
                   : SNUK_EXPR_LINE_COMMENT,
-        .comment = comment_token.string_literal,
+        .comment =
+            parser_copy_string_view(parser, comment_token.string_literal),
     };
     return expr;
 }
@@ -221,7 +223,8 @@ SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
     SnukExpr *string_expr = parser_create_expr(parser);
     *string_expr = (SnukExpr){
         .type = SNUK_EXPR_STRING,
-        .string_literal = parser->previous.string_literal,
+        .string_literal =
+            parser_copy_string_view(parser, parser->previous.string_literal),
     };
     return string_expr;
 }
@@ -237,7 +240,8 @@ SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
     SnukExpr *identifier = parser_create_expr(parser);
     *identifier = (SnukExpr){
         .type = SNUK_EXPR_IDENTIFIER,
-        .identifier = parser->previous.string_literal,
+        .identifier =
+            parser_copy_string_view(parser, parser->previous.string_literal),
     };
     return identifier;
 }
@@ -445,22 +449,22 @@ SNUK_INLINE SnukExpr *build_for_expr(
  * @param parser Parser context to operate on.
  * @param params Parameters of the fn expression.
  * @param body Block expression to execute.
- * @param return_type Return type of the function.
  * @param name Name of function in case of syntax sugar.
+ * @param type The type of function.
  *
  * @return Newly allocated fn expression node.
  */
 SNUK_INLINE SnukExpr *build_fn_expr(
-    SnukParser *parser, SnukParam **params, SnukExpr *body,
-    SnukType *return_type, SnukStringView name) {
+    SnukParser *parser, SnukParam **params, SnukExpr *body, SnukStringView name,
+    SnukType *type) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FN,
         .fn_expr =
             {.params = params,
                       .body = body,
-                      .return_type = return_type,
-                      .name = name},
+                      .name = parser_copy_string_view(parser, name),
+                      .type = type},
     };
     return expr;
 }
@@ -471,15 +475,20 @@ SNUK_INLINE SnukExpr *build_fn_expr(
  * @param parser Parser context to operate on.
  * @param members Member items in type.
  * @param name Name of type in case of syntax sugar.
+ * @param type Type of the type
  *
  * @return Newly allocated type expression node.
  */
 SNUK_INLINE SnukExpr *build_type_expr(
-    SnukParser *parser, SnukItem **members, SnukStringView name) {
+    SnukParser *parser, SnukItem **members, SnukStringView name,
+    SnukType *type) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
-        .type_expr = {.members = members, .name = name},
+        .type_expr =
+            {.members = members,
+                        .name = parser_copy_string_view(parser, name),
+                        .type = type},
     };
     return expr;
 }
@@ -488,17 +497,17 @@ SNUK_INLINE SnukExpr *build_type_expr(
  * @brief Build an type instance node.
  *
  * @param parser Parser context to operate on.
- * @param type_name Name of the type.
+ * @param type The type of instance.
  * @param init Initialization values.
  *
  * @return Newly allocated type expression node.
  */
 SNUK_INLINE SnukExpr *build_type_inst_expr(
-    SnukParser *parser, SnukExpr *type_name, SnukExpr **init) {
+    SnukParser *parser, SnukExpr *type, SnukExpr **init) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE_INST,
-        .type_inst_expr = {.type_name = type_name, .init = init},
+        .type_inst_expr = {.type = type, .init = init},
     };
     return expr;
 }

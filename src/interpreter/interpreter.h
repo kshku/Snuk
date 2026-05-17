@@ -73,7 +73,12 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item);
  */
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr);
 
-/**
- * @brief Walk the scope chain from current to global to resolve a name.
- */
-SnukEnv *snuk_interpreter_lookup(SnukInterpreter *intpret, SnukStringView name);
+SnukValue snuk_interpreter_get_env(
+    SnukInterpreter *intpret, SnukStringView name);
+
+bool snuk_interpreter_set_env(
+    SnukInterpreter *intpret, SnukStringView name, SnukValue value);
+
+bool snuk_interpreter_value_is_of_type(
+    SnukInterpreter *intpret, SnukValue value, SnukType *type);
+

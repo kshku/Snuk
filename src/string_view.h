@@ -68,3 +68,12 @@ SNUK_INLINE bool snuk_string_view_equal_ignore_case(
             return false;
     return true;
 }
+
+SNUK_INLINE bool snuk_string_view_equal_cstr(SnukStringView a, const char *b) {
+    return snuk_string_view_equal(a, snuk_string_view_create(b));
+}
+
+SNUK_INLINE bool snuk_string_view_equal_cstr_ignore_case(
+    SnukStringView a, const char *b) {
+    return snuk_string_view_equal_ignore_case(a, snuk_string_view_create(b));
+}

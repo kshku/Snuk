@@ -550,6 +550,8 @@ static SnukExpr *parse_fn(SnukParser *parser, ParseFlag flag) {
         name = parser->previous.string_literal;
 
     SnukParam **params = snuk_darray_create(SnukParam *, parser->allocator);
+    SnukType *fn_type = build_fn_type(parser, NULL, NULL, NULL);
+
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
     while (!parser_match(parser, SNUK_TOKEN_RPAREN)
            && parser->current.type != SNUK_TOKEN_EOF) {
@@ -566,6 +568,7 @@ static SnukExpr *parse_fn(SnukParser *parser, ParseFlag flag) {
         if (parser_match(parser, SNUK_TOKEN_ASSIGN))
             default_value = snuk_expr_parse(parser, flag);
 
+        fn_type = build_fn_type(parser, fn_type, type, NULL);
         snuk_darray_push(
             &params, build_param(parser, name, type, default_value));
 
@@ -581,11 +584,14 @@ static SnukExpr *parse_fn(SnukParser *parser, ParseFlag flag) {
     SnukType *ret_type = NULL;
     if (parser_match(parser, SNUK_TOKEN_ARROW))
         ret_type = snuk_type_parse(parser, flag);
+    else ret_type = build_any_type(parser);
+
+    fn_type = build_fn_type(parser, fn_type, NULL, ret_type);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of function");
     SnukExpr *body = parse_block(parser, flag);
 
-    return build_fn_expr(parser, params, body, ret_type, name);
+    return build_fn_expr(parser, params, body, name, fn_type);
 }
 
 static SnukExpr *parse_call(
@@ -627,6 +633,7 @@ static SnukExpr *parse_type(SnukParser *parser, ParseFlag flag) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
     SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
+    SnukType *type_type = build_type_type(parser, NULL, NULL);
 
     while (!parser_match(parser, SNUK_TOKEN_RBRACE)
            && parser->current.type != SNUK_TOKEN_EOF) {
@@ -634,7 +641,31 @@ static SnukExpr *parse_type(SnukParser *parser, ParseFlag flag) {
             || parser_check(parser, SNUK_TOKEN_CONST)
             || parser_check(parser, SNUK_TOKEN_FN)
             || parser_check(parser, SNUK_TOKEN_TYPE)) {
-            snuk_darray_push(&members, snuk_item_parse(parser, flag));
+            SnukItem *item = snuk_item_parse(parser, flag);
+            switch (item->type) {
+                case SNUK_ITEM_VAR_DECL:
+                case SNUK_ITEM_CONST_DECL:
+                    build_type_type(parser, type_type, item->decl_item.type);
+                    break;
+                case SNUK_ITEM_EXPR:
+                    switch (item->expr->type) {
+                        case SNUK_EXPR_FN:
+                            build_type_type(
+                                parser, type_type, item->expr->fn_expr.type);
+                            break;
+                        case SNUK_EXPR_TYPE:
+                            build_type_type(
+                                parser, type_type, item->expr->type_expr.type);
+                            break;
+                        default:
+                            SNUK_SHOULD_NOT_REACH_HERE;
+                    }
+                    break;
+                default:
+                    SNUK_SHOULD_NOT_REACH_HERE;
+                    break;
+            }
+            snuk_darray_push(&members, item);
         } else {
             parser_error(parser, "unexpected token");
         }
@@ -645,7 +676,7 @@ static SnukExpr *parse_type(SnukParser *parser, ParseFlag flag) {
         return NULL;
     }
 
-    return build_type_expr(parser, members, name);
+    return build_type_expr(parser, members, name, type_type);
 }
 
 static SnukExpr *parse_type_inst(
@@ -835,7 +866,7 @@ void snuk_expr_log(SnukExpr *expr) {
                 snuk_param_log(expr->fn_expr.params[i]);
             log_trace("body:", NULL);
             snuk_expr_log(expr->fn_expr.body);
-            snuk_type_log(expr->fn_expr.return_type);
+            snuk_type_log(expr->fn_expr.type);
             break;
         case SNUK_EXPR_TYPE:
             log_trace("type expression:", NULL);

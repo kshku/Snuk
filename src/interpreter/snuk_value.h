@@ -9,6 +9,20 @@
 
 typedef struct SnukValue SnukValue;
 
+typedef enum SnukValueType {
+    SNUK_VALUE_UNKOWN,
+    SNUK_VALUE_INT,
+    SNUK_VALUE_FLOAT,
+    SNUK_VALUE_BOOL,
+    SNUK_VALUE_STRING,
+    SNUK_VALUE_NULL,
+    SNUK_VALUE_FN,
+    SNUK_VALUE_TYPE,
+    SNUK_VALUE_TYPE_INST,
+
+    SNUK_VALUE_MAX
+} SnukValueType;
+
 /**
  * @brief Runtime value produced by expression evaluation.
  *
@@ -22,19 +36,7 @@ typedef struct SnukValue SnukValue;
  * is reachable.
  */
 struct SnukValue {
-        enum {
-            SNUK_VALUE_UNKOWN,
-            SNUK_VALUE_INT,
-            SNUK_VALUE_FLOAT,
-            SNUK_VALUE_BOOL,
-            SNUK_VALUE_STRING,
-            SNUK_VALUE_NULL,
-            SNUK_VALUE_FN,
-            SNUK_VALUE_TYPE,
-            SNUK_VALUE_TYPE_INST,
-
-            SNUK_VALUE_MAX
-        } type;
+        SnukValueType type;
 
         union {
                 int64_t int_value;
@@ -46,10 +48,13 @@ struct SnukValue {
                         SnukRefCounter *closure;
                         SnukExpr *body;
                         SnukParam **params;
-                        SnukType *return_type;
+                        SnukType *type;
                 } fn_value;
 
-                SnukRefCounter *closure;
+                struct {
+                        SnukRefCounter *closure;
+                        SnukType *type;
+                } type_value;
         };
 };
 
@@ -75,7 +80,7 @@ SNUK_INLINE bool snuk_value_is_true(SnukValue value) {
             return true;
 
         case SNUK_VALUE_TYPE_INST:
-            return value.closure != NULL;
+            return value.type_value.closure != NULL;
 
         default:
             return false;
