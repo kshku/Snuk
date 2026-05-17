@@ -191,12 +191,12 @@ SNUK_INLINE bool is_true_value(SnukValue value) {
     }
 }
 
-static SnukValue get_unary_value(SnukInterpreter *intpret, SnukExpr *expr);
-static SnukValue get_binary_value(SnukInterpreter *intpret, SnukExpr *expr);
+static SnukValue execute_unary_op(SnukInterpreter *intpret, SnukExpr *expr);
+static SnukValue execute_binary_op(SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue perform_binary_op(
     SnukValue left, SnukValue right, SnukTokenType op);
 
-static void print_exprs(SnukInterpreter *intpret, SnukExpr **exprs);
+static void execute_print_expr(SnukInterpreter *intpret, SnukExpr **exprs);
 
 static SnukValue execute_block_expr(
     SnukInterpreter *intpret, SnukExpr *block, int capture_signals,
@@ -308,7 +308,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
         }
 
         case SNUK_ITEM_PRINT:
-            print_exprs(intpret, item->print_exprs);
+            execute_print_expr(intpret, item->print_exprs);
             // TODO: return something else?
             return (SnukValue){.type = SNUK_VALUE_NULL};
             break;
@@ -376,10 +376,10 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
             };
 
         case SNUK_EXPR_UNARY:
-            return get_unary_value(intpret, expr);
+            return execute_unary_op(intpret, expr);
 
         case SNUK_EXPR_BINARY:
-            return get_binary_value(intpret, expr);
+            return execute_binary_op(intpret, expr);
 
         case SNUK_EXPR_ASSIGN: {
             SnukValue value =
@@ -463,7 +463,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 /**
  * @brief Evaluate a unary expression's operand and apply the operator.
  */
-static SnukValue get_unary_value(SnukInterpreter *intpret, SnukExpr *expr) {
+static SnukValue execute_unary_op(SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue val = snuk_interpreter_eval_expr(intpret, expr->unary.operand);
 
     switch (expr->unary.op) {
@@ -678,7 +678,7 @@ fail:
  * @brief Evaluate both operands of a binary expression and combine them with
  * perform_binary_op.
  */
-static SnukValue get_binary_value(SnukInterpreter *intpret, SnukExpr *expr) {
+static SnukValue execute_binary_op(SnukInterpreter *intpret, SnukExpr *expr) {
     switch (expr->binary.op) {
         case SNUK_TOKEN_PIPE_PIPE:
         case SNUK_TOKEN_KW_OR: {
@@ -733,7 +733,7 @@ static SnukValue get_binary_value(SnukInterpreter *intpret, SnukExpr *expr) {
 /**
  * @brief Evaluate each expression in the darray and print its value to stdout.
  */
-static void print_exprs(SnukInterpreter *intpret, SnukExpr **exprs) {
+static void execute_print_expr(SnukInterpreter *intpret, SnukExpr **exprs) {
     if (!exprs) return;
 
     uint64_t count = snuk_darray_get_length(exprs);
