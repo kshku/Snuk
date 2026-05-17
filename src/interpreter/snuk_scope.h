@@ -19,16 +19,16 @@ struct SnukScope {
         SnukRefCounter *parent;
 };
 
-SNUK_INLINE void loop_and_destroy_envs(SnukScope *scope) {
+SNUK_INLINE void snuk_scope_destroy_envs(SnukScope *scope) {
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i) {
         SnukEnv *env;
         snuk_darray_pop(&scope->vars, &env);
-        snuk_free_env(env);
+        snuk_env_free(env);
     }
 }
 
-SNUK_INLINE void loop_and_free_fn_closures(SnukScope *scope) {
+SNUK_INLINE void snuk_scope_free_fn_closures(SnukScope *scope) {
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i) {
         SnukEnv *env = scope->vars[i];
@@ -48,11 +48,11 @@ SNUK_INLINE void loop_and_free_fn_closures(SnukScope *scope) {
  * signature.
  * @param ptr Pointer to the SnukScope being released.
  */
-SNUK_INLINE void snuk_free_scope(void *data, void *ptr) {
+SNUK_INLINE void snuk_scope_free(void *data, void *ptr) {
     SNUK_UNUSED(data);
     SnukScope *scope = (SnukScope *)ptr;
 
-    loop_and_destroy_envs(scope);
+    snuk_scope_destroy_envs(scope);
 
     snuk_darray_destroy(scope->vars);
 
@@ -70,14 +70,14 @@ SNUK_INLINE void snuk_free_scope(void *data, void *ptr) {
  * @return Refcounted handle to the new scope, with snuk_scope_free as the
  * finalizer.
  */
-SNUK_INLINE SnukRefCounter *snuk_create_scope(SnukRefCounter *parent) {
+SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
     SnukScope *scope =
         (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
     *scope = (SnukScope){
         .vars = snuk_darray_create(SnukEnv *, NULL),
         .parent = snuk_ref_counter_move(&parent),
     };
-    return snuk_ref_counter_create(scope, NULL, snuk_free_scope);
+    return snuk_ref_counter_create(scope, NULL, snuk_scope_free);
 }
 
 /**
@@ -101,7 +101,7 @@ SNUK_INLINE SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
         log_error(
             "multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'",
             SNUK_STRING_VIEW_ARG(env->name));
-        snuk_free_env(env);
+        snuk_env_free(env);
         return NULL;
     }
     snuk_darray_push(&scope->vars, env);

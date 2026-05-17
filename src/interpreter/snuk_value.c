@@ -3,7 +3,7 @@
 #include "io.h"
 #include "snuk_scope.h"
 
-SnukValue snuk_interpreter_copy_value(SnukValue value) {
+SnukValue snuk_value_copy(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_FN:
             value.fn_value.closure =
@@ -28,7 +28,7 @@ SnukValue snuk_interpreter_copy_value(SnukValue value) {
     return value;
 }
 
-void snuk_interpreter_free_value(SnukValue value) {
+void snuk_value_free(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_FN:
             // member function's closure is NULL
@@ -36,7 +36,7 @@ void snuk_interpreter_free_value(SnukValue value) {
                 snuk_ref_counter_release(&value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
-            loop_and_free_fn_closures(GET_SCOPE(value.closure));
+            snuk_scope_free_fn_closures(GET_SCOPE(value.closure));
             /* fallthrough */
         case SNUK_VALUE_TYPE_INST:
             snuk_ref_counter_release(&value.closure);
@@ -54,7 +54,7 @@ void snuk_interpreter_free_value(SnukValue value) {
     }
 }
 
-void snuk_interpreter_log_value(SnukValue value) {
+void snuk_value_log(SnukValue value) {
     uint64_t count;
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
@@ -102,7 +102,7 @@ void snuk_interpreter_log_value(SnukValue value) {
     }
 }
 
-void snuk_interpreter_print_value(SnukValue value) {
+void snuk_value_print(SnukValue value) {
     uint64_t count;
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:

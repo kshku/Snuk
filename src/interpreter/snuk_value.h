@@ -56,7 +56,7 @@ struct SnukValue {
 /**
  * @brief Coerce a runtime value to a boolean for conditions and loops.
  */
-SNUK_INLINE bool is_true_value(SnukValue value) {
+SNUK_INLINE bool snuk_value_is_true(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_NULL:
@@ -87,7 +87,7 @@ SNUK_INLINE bool is_true_value(SnukValue value) {
  *
  * @param value Value to copy.
  */
-SnukValue snuk_interpreter_copy_value(SnukValue value);
+SnukValue snuk_value_copy(SnukValue value);
 
 /**
  * @brief Free the value.
@@ -96,20 +96,19 @@ SnukValue snuk_interpreter_copy_value(SnukValue value);
  *
  * @param value Value to free.
  */
-void snuk_interpreter_free_value(SnukValue value);
-
+void snuk_value_free(SnukValue value);
 
 /**
  * @brief Log a runtime value to the trace logger for debugging.
  *
  * @param value Value to log.
  */
-void snuk_interpreter_log_value(SnukValue value);
+void snuk_value_log(SnukValue value);
 
 /**
  * @brief Print a runtime value to standard output.
  *
  * @param value Value to print.
  */
-void snuk_interpreter_print_value(SnukValue value);
+void snuk_value_print(SnukValue value);
 
