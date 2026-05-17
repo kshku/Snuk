@@ -17,33 +17,6 @@ typedef enum ParseFlag {
 } ParseFlag;
 
 /**
- * @brief Parse the next item.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed item, or NULL on parse failure.
- */
-SnukItem *parse_item(SnukParser *parser, ParseFlag flag);
-
-/**
- * @brief Parse an expression from the lowest precedence.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed expression, or NULL on parse failure.
- */
-SnukExpr *parse_expression(SnukParser *parser, ParseFlag flag);
-
-/**
- * @breif Parse a type annotation.
- *
- * @param parser Parser context to operate on.
- *
- * @return Parsed type, or NULL on parse failure.
- */
-SnukType *parse_type_annot(SnukParser *parser, ParseFlag flag);
-
-/**
  * @brief Advance to the next token.
  *
  * @param parser Parser context to operate on.

@@ -562,6 +562,15 @@ SNUK_INLINE SnukExpr *build_member_access_expr(
 }
 
 /**
+ * @brief Parse an expression from the lowest precedence.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+SnukExpr *parse_expression(SnukParser *parser, ParseFlag flag);
+
+/**
  * @brief Get a string name for an expression type.
  *
  * @param type Expression type to convert.
