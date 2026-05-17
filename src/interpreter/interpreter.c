@@ -1,102 +1,7 @@
 #include "interpreter.h"
 
-#include <string.h>
-
 #include "io.h"
-#include "logger.h"
-#include "memory.h"
-#include "snuk_string.h"
-
-#define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))
-
-/**
- * @brief Allocate a SnukEnv and populate it by evaluating the given expression.
- */
-SNUK_INLINE SnukEnv *snuk_create_env(
-    SnukInterpreter *intpret, SnukStringView name, SnukExpr *val) {
-    SnukEnv *env = (SnukEnv *)snuk_alloc(sizeof(SnukEnv), alignof(SnukEnv));
-
-    SnukValue value = snuk_interpreter_eval_expr(intpret, val);
-
-    *env = (SnukEnv){
-        .name = snuk_string_view_copy(name),
-        .value = snuk_interpreter_copy_value(value),
-    };
-
-    snuk_interpreter_free_value(value);
-
-    return env;
-}
-
-SNUK_INLINE void snuk_free_env(SnukEnv *env) {
-    if (!env) return;
-
-    snuk_free((void *)env->name.str);
-    snuk_interpreter_free_value(env->value);
-
-    snuk_free(env);
-}
-
-SNUK_INLINE void loop_and_destroy_envs(SnukScope *scope) {
-    uint64_t count = snuk_darray_get_length(scope->vars);
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukEnv *env;
-        snuk_darray_pop(&scope->vars, &env);
-        snuk_free_env(env);
-    }
-}
-
-SNUK_INLINE void loop_and_free_fn_closures(SnukScope *scope) {
-    uint64_t count = snuk_darray_get_length(scope->vars);
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukEnv *env = scope->vars[i];
-        if (env->value.type == SNUK_VALUE_FN)
-            snuk_ref_counter_release(&env->value.fn_value.closure);
-    }
-}
-
-/**
- * @brief Refcount finalizer for a SnukScope.
- *
- * Destroys the bindings darray, releases the parent reference, and frees the
- * scope allocation. Used as the destructor callback when wrapping a scope
- * with snuk_ref_counter_create.
- *
- * @param data Unused user data pointer required by the refcount finalizer
- * signature.
- * @param ptr Pointer to the SnukScope being released.
- */
-SNUK_INLINE void snuk_free_scope(void *data, void *ptr) {
-    SNUK_UNUSED(data);
-    SnukScope *scope = (SnukScope *)ptr;
-
-    loop_and_destroy_envs(scope);
-
-    snuk_darray_destroy(scope->vars);
-
-    if (scope->parent) snuk_ref_counter_release(&scope->parent);
-
-    snuk_free(scope);
-}
-
-/**
- * @brief Allocate a new scope and wrap it in a refcounter.
- *
- * @param parent Parent scope reference, consumed by this call. Pass NULL to
- * create a root scope.
- *
- * @return Refcounted handle to the new scope, with snuk_scope_free as the
- * finalizer.
- */
-SNUK_INLINE SnukRefCounter *snuk_create_scope(SnukRefCounter *parent) {
-    SnukScope *scope =
-        (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
-    *scope = (SnukScope){
-        .vars = snuk_darray_create(SnukEnv *, NULL),
-        .parent = snuk_ref_counter_move(&parent),
-    };
-    return snuk_ref_counter_create(scope, NULL, snuk_free_scope);
-}
+#include "snuk_scope.h"
 
 /**
  * @brief Push a new child scope and make it the interpreter's current scope.
@@ -117,78 +22,6 @@ SNUK_INLINE void snuk_scope_pop(SnukInterpreter *intpret) {
 
     snuk_ref_counter_release(&intpret->current);
     intpret->current = snuk_ref_counter_move(&parent);
-}
-
-/**
- * @brief Find a binding by name within a single scope, without walking parents.
- */
-SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
-    uint64_t count = snuk_darray_get_length(scope->vars);
-    for (uint64_t i = 0; i < count; ++i)
-        if (snuk_string_view_equal(scope->vars[i]->name, name))
-            return scope->vars[i];
-
-    return NULL;
-}
-
-/**
- * @brief Append a binding to a scope's variable list.
- * Takes ownership of env regardless of success or failure.
- */
-SNUK_INLINE SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
-    if (snuk_scope_lookup(scope, env->name)) {
-        log_error(
-            "multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'",
-            SNUK_STRING_VIEW_ARG(env->name));
-        snuk_free_env(env);
-        return NULL;
-    }
-    snuk_darray_push(&scope->vars, env);
-    return env;
-}
-
-/**
- * @brief Walk the scope chain from current to global to resolve a name.
- */
-SNUK_INLINE SnukEnv *snuk_env_lookup(
-    SnukInterpreter *intpret, SnukStringView name) {
-    SnukRefCounter *rc = intpret->current;
-    SnukEnv *env;
-    while (rc) {
-        SnukScope *scope = GET_SCOPE(rc);
-        if ((env = snuk_scope_lookup(scope, name))) return env;
-        rc = scope->parent;
-    }
-    return NULL;
-}
-
-/**
- * @brief Coerce a runtime value to a boolean for conditions and loops.
- */
-SNUK_INLINE bool is_true_value(SnukValue value) {
-    switch (value.type) {
-        case SNUK_VALUE_UNKOWN:
-        case SNUK_VALUE_NULL:
-            return false;
-        case SNUK_VALUE_BOOL:
-            return value.bool_value;
-        case SNUK_VALUE_INT:
-            return value.int_value != 0;
-        case SNUK_VALUE_FLOAT:
-            return value.float_value != 0;
-        case SNUK_VALUE_STRING:
-            return value.string_value.len != 0;
-
-        case SNUK_VALUE_FN:
-        case SNUK_VALUE_TYPE:
-            return true;
-
-        case SNUK_VALUE_TYPE_INST:
-            return value.closure != NULL;
-
-        default:
-            return false;
-    }
 }
 
 static SnukValue execute_unary_op(SnukInterpreter *intpret, SnukExpr *expr);
@@ -236,60 +69,18 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret) {
     *intpret = (SnukInterpreter){0};
 }
 
-SnukValue snuk_interpreter_copy_value(SnukValue value) {
-    switch (value.type) {
-        case SNUK_VALUE_FN:
-            value.fn_value.closure =
-                snuk_ref_counter_retain(value.fn_value.closure);
-            break;
-        case SNUK_VALUE_TYPE:
-        case SNUK_VALUE_TYPE_INST:
-            value.closure = snuk_ref_counter_retain(value.closure);
-            break;
-
-        case SNUK_VALUE_UNKOWN:
-        case SNUK_VALUE_INT:
-        case SNUK_VALUE_FLOAT:
-        case SNUK_VALUE_BOOL:
-        case SNUK_VALUE_STRING:
-        case SNUK_VALUE_NULL:
-        case SNUK_VALUE_MAX:
-        default:
-            break;
+SnukEnv *snuk_interpreter_lookup(
+    SnukInterpreter *intpret, SnukStringView name) {
+    SnukRefCounter *rc = intpret->current;
+    SnukEnv *env;
+    while (rc) {
+        SnukScope *scope = GET_SCOPE(rc);
+        if ((env = snuk_scope_lookup(scope, name))) return env;
+        rc = scope->parent;
     }
-
-    return value;
+    return NULL;
 }
 
-void snuk_interpreter_free_value(SnukValue value) {
-    switch (value.type) {
-        case SNUK_VALUE_FN:
-            // member function's closure is NULL
-            if (value.fn_value.closure)
-                snuk_ref_counter_release(&value.fn_value.closure);
-            break;
-        case SNUK_VALUE_TYPE:
-            loop_and_free_fn_closures(GET_SCOPE(value.closure));
-            /* fallthrough */
-        case SNUK_VALUE_TYPE_INST:
-            snuk_ref_counter_release(&value.closure);
-            break;
-
-        case SNUK_VALUE_UNKOWN:
-        case SNUK_VALUE_INT:
-        case SNUK_VALUE_FLOAT:
-        case SNUK_VALUE_BOOL:
-        case SNUK_VALUE_STRING:
-        case SNUK_VALUE_NULL:
-        case SNUK_VALUE_MAX:
-        default:
-            break;
-    }
-}
-
-/**
- * @brief Execute a top-level parsed item.
- */
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
     switch (item->type) {
         case SNUK_ITEM_EXPR:
@@ -298,8 +89,10 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL: {
             // TODO: const
-            SnukEnv *env = snuk_create_env(
-                intpret, item->decl_item.name, item->decl_item.expr);
+            SnukValue value =
+                snuk_interpreter_eval_expr(intpret, item->decl_item.expr);
+            SnukEnv *env = snuk_create_env(item->decl_item.name, value);
+            snuk_interpreter_free_value(value);
 
             SnukEnv *added =
                 snuk_scope_add_env(GET_SCOPE(intpret->current), env);
@@ -343,7 +136,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER: {
-            SnukEnv *env = snuk_env_lookup(intpret, expr->identifier);
+            SnukEnv *env = snuk_interpreter_lookup(intpret, expr->identifier);
             if (!env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
             return snuk_interpreter_copy_value(env->value);
         }
@@ -386,7 +179,8 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         case SNUK_EXPR_ASSIGN: {
             SnukValue value =
                 snuk_interpreter_eval_expr(intpret, expr->assign.value);
-            snuk_env_lookup(intpret, expr->assign.identifier->identifier)
+            snuk_interpreter_lookup(
+                intpret, expr->assign.identifier->identifier)
                 ->value = snuk_interpreter_copy_value(value);
             return value;
         }
@@ -423,9 +217,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 
             // Syntax sugar
             if (expr->fn_expr.name.len) {
-                SnukStringView name = expr->fn_expr.name;
-                expr->fn_expr.name = (SnukStringView){0};
-                SnukEnv *env = snuk_create_env(intpret, name, expr);
+                SnukEnv *env = snuk_create_env(expr->fn_expr.name, value);
                 snuk_scope_add_env(GET_SCOPE(intpret->current), env);
             }
 
@@ -791,104 +583,6 @@ static void execute_print_expr(SnukInterpreter *intpret, SnukExpr **exprs) {
 }
 
 /**
- * @brief Log a runtime value via the trace logger for debugging.
- */
-void snuk_interpreter_log_value(SnukValue value) {
-    uint64_t count;
-    switch (value.type) {
-        case SNUK_VALUE_UNKOWN:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_UNKOWN));
-            break;
-        case SNUK_VALUE_INT:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_INT));
-            log_trace("value: %ld", value.int_value);
-            break;
-        case SNUK_VALUE_FLOAT:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_FLOAT));
-            log_trace("value: %lf", value.float_value);
-            break;
-        case SNUK_VALUE_BOOL:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_BOOL));
-            log_trace("value: %s", value.bool_value ? "true" : "false");
-            break;
-        case SNUK_VALUE_STRING:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_STRING));
-            log_trace(
-                "value: " SNUK_STRING_VIEW_FORMAT,
-                SNUK_STRING_VIEW_ARG(value.string_value));
-            break;
-        case SNUK_VALUE_NULL:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_NULL));
-            break;
-        case SNUK_VALUE_FN:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_FN));
-            count = snuk_darray_get_length(value.fn_value.params);
-            log_trace("params: ", NULL);
-            for (uint64_t j = 0; j < count; ++j)
-                log_trace(
-                    SNUK_STRING_VIEW_FORMAT,
-                    SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
-            break;
-        case SNUK_VALUE_TYPE:
-            log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE));
-            break;
-        case SNUK_VALUE_TYPE_INST:
-            log_trace("type %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE_INST));
-            break;
-        default:
-            SNUK_SHOULD_NOT_REACH_HERE;
-            break;
-    }
-}
-
-/**
- * @brief Print a runtime value to standard output.
- */
-void snuk_interpreter_print_value(SnukValue value) {
-    uint64_t count;
-    switch (value.type) {
-        case SNUK_VALUE_UNKOWN:
-            snuk_println("Something went wrong, value was UNKNOWN!");
-            break;
-        case SNUK_VALUE_INT:
-            snuk_println("%ld", value.int_value);
-            break;
-        case SNUK_VALUE_FLOAT:
-            snuk_println("%lf", value.float_value);
-            break;
-        case SNUK_VALUE_BOOL:
-            snuk_println("%s", value.bool_value ? "true" : "false");
-            break;
-        case SNUK_VALUE_STRING:
-            snuk_println(
-                SNUK_STRING_VIEW_FORMAT,
-                SNUK_STRING_VIEW_ARG(value.string_value));
-            break;
-        case SNUK_VALUE_NULL:
-            snuk_println("null", NULL);
-            break;
-        case SNUK_VALUE_FN:
-            snuk_print("fn:", NULL);
-            count = snuk_darray_get_length(value.fn_value.params);
-            snuk_print("params: ", NULL);
-            for (uint64_t j = 0; j < count; ++j)
-                snuk_print(
-                    SNUK_STRING_VIEW_FORMAT ", ",
-                    SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
-            break;
-        case SNUK_VALUE_TYPE:
-            snuk_println("type:", NULL);
-            break;
-        case SNUK_VALUE_TYPE_INST:
-            snuk_println("type inst:", NULL);
-            break;
-        default:
-            SNUK_SHOULD_NOT_REACH_HERE;
-            break;
-    }
-}
-
-/**
  * @brief Execute a block in a fresh scope, capturing signals in the capture
  * mask and propagating those in the propagate mask.
  */
@@ -1101,7 +795,9 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
             // positional
             SNUK_SHOULD_NOT_REACH_HERE;
         }
-        SnukEnv *env = snuk_create_env(intpret, name, value);
+        SnukValue v = snuk_interpreter_eval_expr(intpret, value);
+        SnukEnv *env = snuk_create_env(name, v);
+        snuk_interpreter_free_value(v);
         snuk_scope_add_env(GET_SCOPE(new_scope), env);
     }
 
@@ -1112,8 +808,10 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         if (!snuk_scope_lookup(GET_SCOPE(new_scope), param->name)) {
             SNUK_ASSERT(
                 param->default_value, "value is not given for parameter");
-            SnukEnv *env =
-                snuk_create_env(intpret, param->name, param->default_value);
+            SnukValue v =
+                snuk_interpreter_eval_expr(intpret, param->default_value);
+            SnukEnv *env = snuk_create_env(param->name, v);
+            snuk_interpreter_free_value(v);
             snuk_scope_add_env(GET_SCOPE(new_scope), env);
         }
     }
@@ -1193,9 +891,7 @@ static SnukValue execute_type_declaration(
 
     // Syntax sugar
     if (expr->type_expr.name.len) {
-        SnukStringView name = expr->type_expr.name;
-        expr->type_expr.name = (SnukStringView){0};
-        SnukEnv *env = snuk_create_env(intpret, name, expr);
+        SnukEnv *env = snuk_create_env(expr->type_expr.name, value);
         snuk_scope_add_env(GET_SCOPE(intpret->current), env);
     }
 
@@ -1223,7 +919,9 @@ static SnukValue execute_inst_creation(
         SNUK_ASSERT(
             snuk_scope_lookup(GET_SCOPE(type.closure), name) != NULL,
             "member doesn't exists");
-        SnukEnv *env = snuk_create_env(intpret, name, assign->assign.value);
+        SnukValue v = snuk_interpreter_eval_expr(intpret, assign->assign.value);
+        SnukEnv *env = snuk_create_env(name, v);
+        snuk_interpreter_free_value(v);
         snuk_scope_add_env(GET_SCOPE(new_scope), env);
     }
 
@@ -1282,7 +980,8 @@ static SnukValue execute_compound_assign(
 
     SnukValue res = perform_binary_op(lhs, rhs, op_type);
 
-    snuk_env_lookup(intpret, expr->compound_assign.identifier->identifier)
+    snuk_interpreter_lookup(
+        intpret, expr->compound_assign.identifier->identifier)
         ->value = snuk_interpreter_copy_value(res);
 
     snuk_interpreter_free_value(lhs);
@@ -1290,3 +989,4 @@ static SnukValue execute_compound_assign(
 
     return res;
 }
+
