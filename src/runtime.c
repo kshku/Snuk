@@ -11,7 +11,7 @@ void snuk_runtime_execute(Runtime *rt, const char *src) {
     while (true) {
         item = snuk_parser_next_item(&parser);
         if (!item) break;
-        // snuk_parser_log_item(item);
+        // snuk_item_log(item);
         // log_trace("", NULL);
         SnukValue value = snuk_interpreter_exec_item(&rt->interpreter, item);
         snuk_value_log(value);

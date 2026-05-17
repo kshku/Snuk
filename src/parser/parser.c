@@ -5,7 +5,7 @@
 
 SnukItem *snuk_parser_next_item(SnukParser *parser) {
     if (parser->current.type == SNUK_TOKEN_EOF) return NULL;
-    SnukItem *item = parse_item(parser, PARSE_FLAG_NORMAL);
+    SnukItem *item = snuk_item_parse(parser, PARSE_FLAG_NORMAL);
     if (parser->panic_mode) parser_sync(parser);
     return item;
 }
