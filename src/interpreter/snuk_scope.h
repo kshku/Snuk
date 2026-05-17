@@ -96,14 +96,14 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
  * @brief Append a binding to a scope's variable list.
  * Takes ownership of env regardless of success or failure.
  */
-SNUK_INLINE SnukEnv *snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
+SNUK_INLINE bool snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
     if (snuk_scope_lookup(scope, env->name)) {
         log_error(
             "multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'",
             SNUK_STRING_VIEW_ARG(env->name));
         snuk_env_free(env);
-        return NULL;
+        return false;
     }
     snuk_darray_push(&scope->vars, env);
-    return env;
+    return true;
 }

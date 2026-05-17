@@ -1,6 +1,8 @@
 #pragma once
 
+#include "darray.h"
 #include "defines.h"
+#include "parser/snuk_type.h"
 #include "snuk_value.h"
 #include "string_view.h"
 
@@ -11,16 +13,19 @@ typedef struct SnukEnv SnukEnv;
  */
 struct SnukEnv {
         SnukStringView name;
+        SnukType *type;
         SnukValue value;
 };
 
 /**
  * @brief Allocate a SnukEnv and populate it by evaluating the given expression.
  */
-SNUK_INLINE SnukEnv *snuk_env_create(SnukStringView name, SnukValue value) {
+SNUK_INLINE SnukEnv *snuk_env_create(
+    SnukStringView name, SnukType *type, SnukValue value) {
     SnukEnv *env = (SnukEnv *)snuk_alloc(sizeof(SnukEnv), alignof(SnukEnv));
     *env = (SnukEnv){
-        .name = snuk_string_view_copy(name),
+        .name = name,
+        .type = type,
         .value = snuk_value_copy(value),
     };
     return env;
@@ -29,7 +34,6 @@ SNUK_INLINE SnukEnv *snuk_env_create(SnukStringView name, SnukValue value) {
 SNUK_INLINE void snuk_env_free(SnukEnv *env) {
     if (!env) return;
 
-    snuk_free((void *)env->name.str);
     snuk_value_free(env->value);
 
     snuk_free(env);

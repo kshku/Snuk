@@ -11,7 +11,8 @@ SnukValue snuk_value_copy(SnukValue value) {
             break;
         case SNUK_VALUE_TYPE:
         case SNUK_VALUE_TYPE_INST:
-            value.closure = snuk_ref_counter_retain(value.closure);
+            value.type_value.closure =
+                snuk_ref_counter_retain(value.type_value.closure);
             break;
 
         case SNUK_VALUE_UNKOWN:
@@ -36,10 +37,10 @@ void snuk_value_free(SnukValue value) {
                 snuk_ref_counter_release(&value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
-            snuk_scope_free_fn_closures(GET_SCOPE(value.closure));
+            snuk_scope_free_fn_closures(GET_SCOPE(value.type_value.closure));
             /* fallthrough */
         case SNUK_VALUE_TYPE_INST:
-            snuk_ref_counter_release(&value.closure);
+            snuk_ref_counter_release(&value.type_value.closure);
             break;
 
         case SNUK_VALUE_UNKOWN:
