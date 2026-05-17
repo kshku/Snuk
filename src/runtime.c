@@ -1,7 +1,7 @@
 #include "runtime.h"
 
 #include "logger.h"
-#include "parser.h"
+#include "parser/parser.h"
 
 void snuk_runtime_execute(Runtime *rt, const char *src) {
     SnukParser parser;
