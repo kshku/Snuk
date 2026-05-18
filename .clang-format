@@ -1,29 +1,138 @@
 ---
-BasedOnStyle: Google
-AccessModifierOffset: -2
+Language: C
+
+AlignAfterOpenBracket: true
 AlignArrayOfStructures: Left
-AlignAfterOpenBracket: AlwaysBreak
-AlignConsecutiveAssignments:
-    PadOperators: false
-AlignOperands: AlignAfterOperator
+AlignConsecutiveAssignments: None
+AlignConsecutiveBitFields: None
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: None
+AlignConsecutiveShortCaseStatements:
+  Enabled: false
+AlignEscapedNewlines: LeftWithLastLine
+
+BreakBeforeBinaryOperators: All
+AlignOperands: Align
+
 AlignTrailingComments:
-    Kind: Never
+  Kind: Never
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Never
-AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
 AlwaysBreakBeforeMultilineStrings: false
+BinPackLongBracedList: true
+BitFieldColonSpacing: Both
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeElse: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+
+BreakAdjacentStringLiterals: true
+BreakAfterReturnType: ExceptShortType
 BreakArrays: false
-BreakBeforeBinaryOperators: NonAssignment
-IndentAccessModifiers: true
-IndentExternBlock: Indent
-IndentPPDirectives: BeforeHash
+BreakBeforeTernaryOperators: true
+BreakFunctionDefinitionParameters: false
+BreakStringLiterals: true
+
+ColumnLimit: 100
+ContinuationIndentWidth: 4
 IndentWidth: 4
-InsertNewlineAtEOF: true
-KeepEmptyLinesAtEOF: true
-SeparateDefinitionBlocks: Always
-SpaceAfterTemplateKeyword: false
-NamespaceIndentation: All
-PointerAlignment: Right
-ReferenceAlignment: Pointer
+TabWidth: 4
+UseTab: Never
+
 DerivePointerAlignment: false
+PointerAlignment: Right
+QualifierAlignment: Left
+
+EnumTrailingComma: Insert
+
+IncludeBlocks: Regroup
+SortIncludes: true
+
+IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentGotoLabels: true
+IndentPPDirectives: BeforeHash
+IndentWrappedFunctionNames: true
+InsertNewlineAtEOF: true
+
+KeepEmptyLines:
+  AtEndOfFile: true
+  AtStartOfFile: false
+  AtStartOfBlock: false
+
+MaxEmptyLinesToKeep: 1
+
+NumericLiteralCase:
+  ExponentLetter: Lower
+  HexDigit: Lower
+  Prefix: Lower
+  Suffix: Lower
+
+PenaltyBreakAssignment: 1
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakBeforeMemberAccess: 1
+PenaltyBreakComment: 1
+PenaltyBreakFirstLessLess: 1
+PenaltyBreakOpenParenthesis: 1
+PenaltyBreakScopeResolution: 1
+PenaltyBreakString: 1
+PenaltyBreakTemplateDeclaration: 1
+PenaltyExcessCharacter: 1
+PenaltyIndentedWhitespace: 1
+PenaltyReturnTypeOnItsOwnLine: 1
+
+ReflowComments: Always
+
+RemoveEmptyLinesInUnwrappedLines: true
+RemoveSemicolon: true
+
+SeparateDefinitionBlocks: Always
+SkipMacroDefinitionBody: false
+
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterForeachMacros: false
+  AfterFunctionDeclarationName: false
+  AfterFunctionDefinitionName: false
+  AfterIfMacros: false
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBraces: Never
+SpacesBeforeTrailingComments: 2
+SpacesInContainerLiterals: false
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: -1
+
+SpacesInParens: Custom
+SpacesInParensOptions:
+  InConditionalStatements: false
+  InCStyleCasts: false
+  InEmptyParentheses: false
+  Other: false
+
+SpacesInSquareBrackets: false
+
+# WhitespaceSensitiveMacros
 ...
