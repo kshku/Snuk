@@ -932,7 +932,7 @@ static SnukValue execute_type_declaration(
 static SnukValue execute_inst_creation(
     SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue type =
-        snuk_interpreter_eval_expr(intpret, expr->type_inst_expr.type);
+        snuk_interpreter_get_env(intpret, expr->type_inst_expr.type->name);
     SNUK_ASSERT(
         type.type == SNUK_VALUE_TYPE,
         "type instance creation expression on non type");
@@ -962,12 +962,24 @@ static SnukValue execute_inst_creation(
     SnukValue value = {
         .type = SNUK_VALUE_TYPE_INST,
         .type_value = {
-                       .type = type.type_value.type,
+                       .type = expr->type_inst_expr.type,
                        .closure = snuk_ref_counter_move(&new_scope),
                        }
     };
 
     snuk_value_free(type);
+
+    // Syntax sugar
+    if (expr->type_inst_expr.name.len) {
+        SNUK_ASSERT(
+            snuk_interpreter_value_is_of_type(
+                intpret, value, value.type_value.type),
+            "value type didn't match");
+        SnukEnv *env = snuk_env_create(
+            expr->type_inst_expr.name, value.type_value.type, value);
+        snuk_scope_add_env(GET_SCOPE(intpret->current), env);
+    }
+
     return value;
 }
 
@@ -1062,8 +1074,10 @@ bool snuk_interpreter_value_is_of_type(
     if (type->type == TYPE_NAMED) {
         if (value.type == get_predef_type(type->name)) return true;
 
-        if (value.type != SNUK_VALUE_TYPE && value.type != SNUK_VALUE_TYPE_INST)
-            return false;
+        if (value.type == SNUK_VALUE_TYPE_INST)
+            return snuk_type_equal(value.type_value.type, type);
+
+        if (value.type != SNUK_VALUE_TYPE) return false;
 
         SnukEnv *env = interpreter_lookup(intpret, type->name);
         if (!env) return false;
