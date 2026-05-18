@@ -14,6 +14,11 @@
 //  - return → exits a function early, carries optional value
 //  - continue → skips to next loop iteration
 //  - All signals propagate outward to the nearest handler
+//
+//  Separator rules:
+//  - () uses ,  — function params, call args, fn type annotations
+//  - {} uses ;  — blocks, type declarations, type instantiation
+//  - Newlines work as separators inside {} — semicolons are optional
 // ─────────────────────────────────────────────────────────────
 
 
@@ -43,13 +48,19 @@ var also_greeting = 'hello, world'
 var poem = "roses are red
 violets are blue"
 
-var poem2 = 'roses are red
-violets are blue'
-
 // type annotations — optional, enforced at runtime when present
 // no implicit conversions — casting syntax TBD
+// annotate with built-in type names or "type TypeName"
 var speed: float = 2.5
 var label: string = "hi"
+
+// type keyword is optional in annotations
+// both forms are identical
+var x: int = 10
+var x: type int = 10
+
+var p: Point = type Point { x: 0; y: 0 }
+var p: type Point = type Point { x: 0; y: 0 }
 
 // assignment — var only on first declaration
 // assignment returns the assigned value
@@ -71,6 +82,10 @@ const APP = "snuk"
 // fn        fn(a, b) { }
 // type      type { }
 // list      [1, 2, 3]
+
+// Note: in a future version, all built-in types (int, float, etc.)
+// will be predefined Snuk types. Literals like 10, "hello", true
+// will be sugar for type int { 10 }, type string { "hello" }, etc.
 
 
 // ── 4. OPERATORS ─────────────────────────────────────────────
@@ -145,14 +160,6 @@ var early = {
 }
 // early is 20
 
-// if no items execute or last item is a declaration — block returns null
-var nothing2 = {
-    var temp = 10
-    temp = temp + 1
-    // last item is an assignment — returns the assigned value (11)
-}
-// nothing2 is 11
-
 
 // ── 6. CONTROL FLOW ──────────────────────────────────────────
 
@@ -168,7 +175,7 @@ if count > 10 {
 
 // if as expression — value is last item of taken branch
 var label2 = if count > 10 {
-    "big"                  // last item — string value
+    "big"
 } else if count > 5 {
     "medium"
 } else {
@@ -176,7 +183,6 @@ var label2 = if count > 10 {
 }
 
 // while — expression, value is last value produced before condition fails
-// use break to exit early with a specific value
 while count < 100 {
     count = count + 1
 }
@@ -188,13 +194,11 @@ var found = while count < 100 {
 // found is 42
 
 // do/while — always runs at least once
-// value is last item of last executed iteration
 do {
     count = count - 1
 } while count > 0
 
 // for — C-style, variable must be declared
-// value is last item of last executed iteration
 for var i = 0; i < 10; i = i + 1 {
     print i
 }
@@ -215,7 +219,7 @@ for {
 // for as expression — value comes from break
 var result = for {
     count = count + 1
-    if count >= 100 { break count }   // loop's value is count
+    if count >= 100 { break count }
 }
 // result is 100
 
@@ -249,8 +253,7 @@ fn add(a, b) {
     a + b    // last item is the return value — no return keyword needed
 }
 
-// return exits the function early with a value
-// useful for early returns, not required at the end
+// return exits the function early
 fn withdraw(balance, amount) {
     if amount > balance {
         print "insufficient funds"
@@ -269,6 +272,10 @@ fn move(x, y, speed = 1.0) {
     x + y * speed
 }
 
+// function type annotation — () uses comma separator
+var on_click: fn(int, string) -> bool
+var transform: fn(float) -> float
+
 // calling
 greet()
 var res = add(3, 4)
@@ -279,15 +286,13 @@ move(10, 20, 2.5)     // speed is 2.5
 var do_thing = greet
 do_thing()
 
-// pass as argument
 fn apply(value, func) {
-    func(value)    // last item — returned
+    func(value)
 }
 var doubled = apply(5, fn(x) { x * 2 })
 
-// return a function from a function
 fn make_adder(n) {
-    fn(x) { x + n }    // last item — the fn value is returned
+    fn(x) { x + n }    // last item — fn value returned
 }
 var add5 = make_adder(5)
 print add5(3)    // 8
@@ -302,6 +307,9 @@ print fn(x) { x }   // fn(x)
 // type is an expression — produces a type value
 // types are structs with methods, no inheritance
 // duck typing — behavior defined by what methods exist
+// {} uses semicolon (or newline) as separator
+
+// ── 8a. TYPE DEFINITION ──────────────────────────────────────
 
 // statement form — sugar for var declaration
 type Point {
@@ -311,24 +319,34 @@ type Point {
     fn distance_to(other) {
         var dx = self.x - other.x
         var dy = self.y - other.y
-        dx * dx + dy * dy    // last item — returned
+        dx * dx + dy * dy
     }
 
     fn to_string() {
-        "(" + self.x + ", " + self.y + ")"    // last item — returned
+        "(" + self.x + ", " + self.y + ")"
     }
 }
 
-// expression form
+// expression form — type is a value
 var Point2 = type {
     var x = 0.0
     var y = 0.0
 }
 
-// type factory — types created at runtime
+// anonymous type expression
+var t = type { var z = 0 }
+
+// type annotation — use "type TypeName" for user-defined types
+var p: type Point
+var s: type Square
+
+// type annotation for anonymous structure
+var t2: type { float; float }    // {} uses semicolon separator
+
+// type factory — types capture enclosing scope (closures)
 fn make_type(default_color) {
-    type {                    // last item — type value returned
-        var color = default_color
+    type {
+        var color = default_color    // captures default_color
         var x = 0.0
 
         fn to_string() {
@@ -340,20 +358,62 @@ fn make_type(default_color) {
 var RedThing = make_type("red")
 var BlueThing = make_type("blue")
 
-// instantiation — named fields, any order
-// fields with defaults can be omitted
-var origin = Point {}                  // x=0.0, y=0.0
-var p = Point { x: 3.0; y: 4.0 }
+// ── 8b. TYPE INSTANTIATION ───────────────────────────────────
 
-// field access and method calls
+// type annotation — "type" keyword optional
+var p: Point = type Point { x: 3.0; y: 4.0 }     // shorthand annotation
+var p: type Point = type Point { x: 3.0; y: 4.0 } // explicit annotation
+
+// four equivalent forms — all produce the same result
+
+// form 1 — full explicit, type annotation + type keyword (verbose)
+var s1: type Square = type Square { width: 10; height: 10 }
+
+// form 2 — inferred, type keyword only (most common)
+var s2 = type Square { width: 10; height: 10 }
+
+// form 3 — type-first sugar with =
+type Square s3 = { width: 10; height: 10 }
+
+// form 4 — type-first sugar without = (most compact)
+type Square s4 { width: 10; height: 10 }
+
+// newlines work as separators inside {} — semicolons optional
+var s5 = type Square {
+    width: 10
+    height: 10
+}
+
+// fields with defaults can be omitted
+var origin = type Point {}           // x=0.0, y=0.0 from defaults
+var p = type Point { x: 3.0; y: 4.0 }
+
+// nested type instantiation
+type Square {
+    var top_left: type Point = type Point { x: 0; y: 0 }
+    var width: int = 0
+    var height: int = 0
+
+    fn area() { self.width * self.height }
+}
+
+var sq = type Square {
+    top_left: type Point { x: 10; y: 20 }
+    width: 100
+    height: 50
+}
+
+// ── 8c. FIELD ACCESS AND MUTATION ────────────────────────────
+
 print p.x
 print p.to_string()
 var d = p.distance_to(origin)
-
-// mutation
 p.x = 10.0
 
-// functions stored as type fields — event handler pattern
+print sq.top_left.x    // 10
+
+// ── 8d. FUNCTIONS AS FIELDS — event handler pattern ──────────
+
 type Button {
     var label = ""
     var on_click = fn() {}    // default no-op
@@ -363,12 +423,13 @@ type Button {
     }
 }
 
-var btn = Button { label: "Submit" }
+type Button btn { label: "Submit" }
 btn.on_click = fn() { print "clicked!" }
 btn.click()    // clicked!
 
-// print displays type shape
-print Point     // type { x, y }
+// ── 8e. PRINT ────────────────────────────────────────────────
+
+print Point             // type { x, y }
 print type { var z = 0 }   // type { z }
 
 
@@ -393,49 +454,37 @@ for item in numbers {
     print item
 }
 
-// list as expression
-var squares = [1, 4, 9, 16, 25]
-
 
 // ── 10. DUCK TYPING ──────────────────────────────────────────
 
 // Snuk uses duck typing — types are defined by what they can do
 // not by what they are declared to be
+// unannotated parameters accept any type — duck typed
+// annotated parameters enforce the type at runtime
 
 type Rectangle {
     var width = 0.0
     var height = 0.0
 
-    fn area() {
-        self.width * self.height
-    }
-
-    fn to_string() {
-        "Rectangle(" + self.width + "x" + self.height + ")"
-    }
+    fn area() { self.width * self.height }
+    fn to_string() { "Rectangle(" + self.width + "x" + self.height + ")" }
 }
 
 type Circle {
     var radius = 0.0
 
-    fn area() {
-        3.14159 * self.radius * self.radius
-    }
-
-    fn to_string() {
-        "Circle(r=" + self.radius + ")"
-    }
+    fn area() { 3.14159 * self.radius * self.radius }
+    fn to_string() { "Circle(r=" + self.radius + ")" }
 }
 
-// works on anything with area() and to_string()
-// no shared base type, no interface declaration needed
+// works on anything with area() and to_string() — no declaration needed
 fn print_shape(shape) {
     print shape.to_string()
     print "area: " + shape.area()
 }
 
-print_shape(Rectangle { width: 10.0; height: 5.0 })
-print_shape(Circle { radius: 7.0 })
+print_shape(type Rectangle { width: 10.0; height: 5.0 })
+print_shape(type Circle { radius: 7.0 })
 
 
 // ── 11. PRINT ────────────────────────────────────────────────
@@ -451,14 +500,13 @@ print Point             // type { x, y }
 
 // ── 12. COMPLETE EXAMPLES ────────────────────────────────────
 
-// fibonacci — no return keyword needed at the end
+// fibonacci
 fn fib(n) {
     if n <= 1 {
-        n                           // last item of if branch
+        n
     } else {
-        fib(n - 1) + fib(n - 2)   // last item of else branch
+        fib(n - 1) + fib(n - 2)
     }
-    // last item of function is the if/else expression
 }
 
 for var i = 0; i < 10; i = i + 1 {
@@ -467,23 +515,22 @@ for var i = 0; i < 10; i = i + 1 {
 
 // ─────────────────────────────────────────────────────────────
 
-// bank account — mix of early return and last-item return
+// bank account
 type Account {
     var owner = ""
     var balance = 0.0
 
     fn deposit(amount) {
         self.balance = self.balance + amount
-        // last item is assignment — returns new balance
     }
 
     fn withdraw(amount) {
         if amount > self.balance {
             print "insufficient funds"
-            return false          // early exit via return
+            return false
         }
         self.balance = self.balance - amount
-        true                      // last item — success
+        true
     }
 
     fn to_string() {
@@ -491,14 +538,14 @@ type Account {
     }
 }
 
-var acc = Account { owner: "alice"; balance: 100.0 }
+type Account acc { owner: "alice"; balance: 100.0 }
 acc.deposit(50.0)
 acc.withdraw(30.0)
 print acc.to_string()    // alice: 120.0
 
 // ─────────────────────────────────────────────────────────────
 
-// find first value over 5 — break exits loop with value
+// find first value over 5
 var data = [3, 7, 1, 9, 4, 6, 2]
 var idx = 0
 
@@ -512,15 +559,12 @@ print first_over_5    // 7
 
 // ─────────────────────────────────────────────────────────────
 
-// signal propagation example
-// break from inner block propagates out to the for loop
+// signal propagation — break from inner block exits for loop
 var found2 = for {
     var val = {
         if count > 50 { break count }   // break propagates to for loop
         count = count + 1
         count
     }
-    // if break fired above, we never reach here
     print val
 }
-// found2 is the value carried by break
