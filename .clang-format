@@ -1,6 +1,4 @@
 ---
-Language: C
-
 AlignAfterOpenBracket: true
 AlignArrayOfStructures: Left
 AlignConsecutiveAssignments: None
@@ -25,7 +23,6 @@ AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakBeforeMultilineStrings: false
-BinPackLongBracedList: true
 BitFieldColonSpacing: Both
 
 BreakBeforeBraces: Custom
@@ -59,8 +56,6 @@ DerivePointerAlignment: false
 PointerAlignment: Right
 QualifierAlignment: Left
 
-EnumTrailingComma: Insert
-
 IncludeBlocks: Regroup
 SortIncludes: true
 
@@ -78,15 +73,8 @@ KeepEmptyLines:
 
 MaxEmptyLinesToKeep: 1
 
-NumericLiteralCase:
-  ExponentLetter: Lower
-  HexDigit: Lower
-  Prefix: Lower
-  Suffix: Lower
-
 PenaltyBreakAssignment: 1
 PenaltyBreakBeforeFirstCallParameter: 1
-PenaltyBreakBeforeMemberAccess: 1
 PenaltyBreakComment: 1
 PenaltyBreakFirstLessLess: 1
 PenaltyBreakOpenParenthesis: 1
@@ -97,10 +85,7 @@ PenaltyExcessCharacter: 1
 PenaltyIndentedWhitespace: 1
 PenaltyReturnTypeOnItsOwnLine: 1
 
-ReflowComments: Always
-
-RemoveEmptyLinesInUnwrappedLines: true
-RemoveSemicolon: true
+ReflowComments: true
 
 SeparateDefinitionBlocks: Always
 SkipMacroDefinitionBody: false
@@ -118,7 +103,6 @@ SpaceBeforeParensOptions:
   AfterFunctionDefinitionName: false
   AfterIfMacros: false
 SpaceBeforeSquareBrackets: false
-SpaceInEmptyBraces: Never
 SpacesBeforeTrailingComments: 2
 SpacesInContainerLiterals: false
 SpacesInLineCommentPrefix:

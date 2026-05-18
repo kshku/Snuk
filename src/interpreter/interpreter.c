@@ -779,8 +779,9 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         if (!snuk_scope_lookup(GET_SCOPE(new_scope), param->name)) {
             SNUK_ASSERT(param->default_value, "value is not given for parameter");
             SnukValue v = snuk_interpreter_eval_expr(intpret, param->default_value);
-            SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, param->type), "value type "
-                                                                                    "didn't match");
+            SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, param->type),
+                        "value type "
+                        "didn't match");
             SnukEnv *env = snuk_env_create(param->name, param->type, v);
             snuk_value_free(v);
             snuk_scope_add_env(GET_SCOPE(new_scope), env);
@@ -883,8 +884,9 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr)
         SnukEnv *env = snuk_scope_lookup(GET_SCOPE(type.type_value.closure), name);
         SNUK_ASSERT(env, "member doesn't exists");
         SnukValue v = snuk_interpreter_eval_expr(intpret, assign->assign.value);
-        SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, env->type), "value type didn't "
-                                                                              "match");
+        SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, env->type),
+                    "value type didn't "
+                    "match");
         env = snuk_env_create(name, env->type, v);
         snuk_value_free(v);
         snuk_scope_add_env(GET_SCOPE(new_scope), env);
