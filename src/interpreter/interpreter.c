@@ -618,10 +618,14 @@ static SnukValue execute_if_expr(SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue cond = snuk_interpreter_eval_expr(intpret, expr->if_else.condition);
     SnukValue res = {.type = SNUK_VALUE_NULL};
 
-    if (snuk_value_is_true(cond))
+    if (snuk_value_is_true(cond)) {
         res = execute_block_expr(intpret, expr->if_else.then_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
-    else if (expr->if_else.else_block)
-        res = execute_block_expr(intpret, expr->if_else.else_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
+    } else if (expr->if_else.else_block) {
+        if (expr->if_else.else_block->type == SNUK_EXPR_IF)
+            res = execute_if_expr(intpret, expr->if_else.else_block);
+        else
+            res = execute_block_expr(intpret, expr->if_else.else_block, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL);
+    }
 
     snuk_value_free(cond);
     return res;

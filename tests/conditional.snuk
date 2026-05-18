@@ -5,3 +5,11 @@ if true {
 var x = 10
 var res = if x % 2 { "Odd" } else { "Even" }
 print res
+
+if x > 10 {
+    print "big"
+} else if x > 5 {
+    print "medium"
+} else {
+    print "small"
+}
