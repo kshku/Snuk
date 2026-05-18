@@ -412,7 +412,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     if (!multi_line) {
         while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n') lexer_advance(lexer);
         SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_LINE_COMMENT);
-        lexer_advance(lexer);  // consume new line
+        // Do not consume new line
         return token;
     }
 
@@ -598,6 +598,7 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
     while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
 
     if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+        // previous token type gets either overridden or set correctly
         lexer_advance(lexer);
         leading_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
         uint64_t count = 0;
@@ -605,8 +606,7 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
             if (lexer->cur[i] == '\n') ++count;
 
         // standalone comment
-        // line comment consumes new line
-        if (count > 0) return leading_comment;
+        if (count > 1) return leading_comment;
     }
 
     while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
@@ -616,8 +616,12 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
     while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES)) lexer_advance(lexer);
 
     if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+        // Save the previous token type
+        SnukTokenType previous_token_type = lexer->previous_token_type;
         lexer_advance(lexer);
         trailing_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
+        // Restore previous token type
+        lexer->previous_token_type = previous_token_type;
     }
 
     token.leading_comment = leading_comment.string_literal;
