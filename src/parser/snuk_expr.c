@@ -198,6 +198,8 @@ static SnukExpr *parse_comment(SnukParser *parser);
  * @brief Parse the type token.
  *
  * @param parser Parser context to operate on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
  */
 static SnukExpr *parse_type_token(SnukParser *parser);
 
@@ -206,8 +208,19 @@ static SnukExpr *parse_type_token(SnukParser *parser);
  *
  * @param parser Parser context to operate on.
  * @param left type to access field from.
+ *
+ * @return Parsed expression, or NULL on parse failure.
  */
 static SnukExpr *parse_member(SnukParser *parser, SnukExpr *left);
+
+/**
+ * @brief Parse self.
+ *
+ * @param parser Parser context to work on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_self(SnukParser *parser);
 
 // clang-format off
 
@@ -285,6 +298,7 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_BLOCK_COMMENT]  = {parse_comment,    NULL,                      PRECEDENCE_NONE       },
 
     [SNUK_TOKEN_DOT]            = {NULL,             parse_member,              PRECEDENCE_PRIMARY    },
+    [SNUK_TOKEN_SELF]           = {parse_self,       NULL,                      PRECEDENCE_NONE       },
 };
 
 // clang-format on
@@ -575,8 +589,12 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
 }
 
 static SnukExpr *parse_member(SnukParser *parser, SnukExpr *left) {
-    SnukExpr *field = snuk_expr_parse(parser);
-    return build_member_access_expr(parser, left, field);
+    SnukExpr *expr = snuk_expr_parse(parser);
+    return build_member_access_expr(parser, left, expr);
+}
+
+static SnukExpr *parse_self(SnukParser *parser) {
+    return build_self_expr(parser);
 }
 
 static SnukExpr *parse_comment(SnukParser *parser) {
