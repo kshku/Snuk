@@ -9,13 +9,6 @@ typedef struct SnukExpr SnukExpr;
 typedef struct SnukType SnukType;
 typedef struct SnukParam SnukParam;
 
-typedef enum ParseFlag {
-    PARSE_FLAG_NORMAL,
-    PARSE_FLAG_STOP_LBRACE,
-
-    PARSE_FLAG_MAX
-} ParseFlag;
-
 /**
  * @brief Advance to the next token.
  *
@@ -23,7 +16,8 @@ typedef enum ParseFlag {
  */
 SNUK_INLINE void parser_advance(SnukParser *parser) {
     parser->previous = parser->current;
-    parser->current = snuk_lexer_next_token(&parser->lexer);
+    parser->current = parser->next;
+    parser->next = snuk_lexer_next_token(&parser->lexer);
 }
 
 /**
@@ -37,6 +31,18 @@ SNUK_INLINE void parser_advance(SnukParser *parser) {
 SNUK_INLINE bool parser_check(SnukParser *parser, SnukTokenType expected) {
     // Does not consume
     return parser->current.type == expected;
+}
+
+/**
+ * @brief Check whether the next token has the expected type.
+ *
+ * @param parser Parser context to operate on.
+ * @param expected Expected token type.
+ *
+ * @return True when the next token matches expected.
+ */
+SNUK_INLINE bool parser_check_next(SnukParser *parser, SnukTokenType expected) {
+    return parser->next.type == expected;
 }
 
 /**

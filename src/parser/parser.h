@@ -25,8 +25,9 @@ typedef struct SnukItem SnukItem;
  */
 typedef struct SnukParser {
         SnukLexer lexer; /**< Lexer used to produce tokens. */
-        SnukToken current,
-            previous; /**< Current and previously consumed tokens. */
+        SnukToken previous; /**< previously consumed tokens. */
+        SnukToken current; /**< Current token. */
+        SnukToken next; /**< Next token. */
 
         SnukAllocator *allocator;
 
@@ -58,6 +59,7 @@ SNUK_INLINE void snuk_parser_init(
 
     parser->previous = (SnukToken){0};
     parser->current = snuk_lexer_next_token(&parser->lexer);
+    parser->next = snuk_lexer_next_token(&parser->lexer);
 }
 
 /**

@@ -170,7 +170,7 @@ SNUK_INLINE SnukItem *build_print_item(
  *
  * @return Parsed item, or NULL on parse failure.
  */
-SnukItem *snuk_item_parse(SnukParser *parser, ParseFlag flag);
+SnukItem *snuk_item_parse(SnukParser *parser);
 
 /**
  * @brief Get a string name for a item type.
