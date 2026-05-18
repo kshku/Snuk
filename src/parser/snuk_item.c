@@ -10,7 +10,7 @@
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_expr_item(SnukParser *parser, ParseFlag flag);
+static SnukItem *parse_expr_item(SnukParser *parser);
 
 /**
  * @brief Parse a variable or constant declaration item.
@@ -20,8 +20,7 @@ static SnukItem *parse_expr_item(SnukParser *parser, ParseFlag flag);
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_decl_item(
-    SnukParser *parser, bool is_const, ParseFlag flag);
+static SnukItem *parse_decl_item(SnukParser *parser, bool is_const);
 
 /**
  * @brief Parse return, break, or continue items.
@@ -30,7 +29,7 @@ static SnukItem *parse_decl_item(
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag);
+static SnukItem *parse_flow_item(SnukParser *parser);
 
 /**
  * @brief Parse a print item.
@@ -39,44 +38,40 @@ static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag);
  *
  * @return Parsed item, or NULL on parse failure.
  */
-static SnukItem *parse_print_item(SnukParser *parser, ParseFlag flag);
+static SnukItem *parse_print_item(SnukParser *parser);
 
-SnukItem *snuk_item_parse(SnukParser *parser, ParseFlag flag) {
+SnukItem *snuk_item_parse(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_VAR)
         || parser_match(parser, SNUK_TOKEN_CONST))
         return parse_decl_item(
-            parser, parser->previous.type == SNUK_TOKEN_CONST, flag);
+            parser, parser->previous.type == SNUK_TOKEN_CONST);
 
     if (parser_match(parser, SNUK_TOKEN_RETURN)
         || parser_match(parser, SNUK_TOKEN_CONTINUE)
         || parser_match(parser, SNUK_TOKEN_BREAK))
-        return parse_flow_item(parser, flag);
+        return parse_flow_item(parser);
 
-    if (parser_match(parser, SNUK_TOKEN_PRINT))
-        return parse_print_item(parser, flag);
+    if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
 
-    return parse_expr_item(parser, flag);
+    return parse_expr_item(parser);
 }
 
-static SnukItem *parse_expr_item(SnukParser *parser, ParseFlag flag) {
-    SnukExpr *expr = snuk_expr_parse(parser, flag);
+static SnukItem *parse_expr_item(SnukParser *parser) {
+    SnukExpr *expr = snuk_expr_parse(parser);
     parser_expect_item_end(parser);
     return build_expr_item(parser, expr);
 }
 
-static SnukItem *parse_decl_item(
-    SnukParser *parser, bool is_const, ParseFlag flag) {
+static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
     SnukStringView identifier = parser->previous.string_literal;
 
     SnukType *type = NULL;
-    if (parser_match(parser, SNUK_TOKEN_COLON))
-        type = snuk_type_parse(parser, flag);
+    if (parser_match(parser, SNUK_TOKEN_COLON)) type = snuk_type_parse(parser);
     else type = build_any_type(parser);
 
     SnukExpr *init = NULL;
-    if (parser_match(parser, SNUK_TOKEN_ASSIGN))
-        init = snuk_expr_parse(parser, flag);
+    if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = snuk_expr_parse(parser);
     else init = build_null_expr(parser);
 
     parser_expect_item_end(parser);
@@ -86,26 +81,26 @@ static SnukItem *parse_decl_item(
         is_const ? SNUK_ITEM_CONST_DECL : SNUK_ITEM_VAR_DECL);
 }
 
-static SnukItem *parse_flow_item(SnukParser *parser, ParseFlag flag) {
+static SnukItem *parse_flow_item(SnukParser *parser) {
     SnukTokenType type = parser->previous.type;
     SnukExpr *value = NULL;
     if (parser->previous.type == SNUK_TOKEN_RETURN
         || parser->previous.type == SNUK_TOKEN_BREAK)
         // TODO: look for delimiter, value is optional
         // TODO: break and return items should be at the end of block only?
-        value = snuk_expr_parse(parser, flag);
+        value = snuk_expr_parse(parser);
 
     parser_expect_item_end(parser);
 
     return build_flow_item(parser, type, value);
 }
 
-static SnukItem *parse_print_item(SnukParser *parser, ParseFlag flag) {
+static SnukItem *parse_print_item(SnukParser *parser) {
     SnukItem *print_item =
-        build_print_item(parser, NULL, snuk_expr_parse(parser, flag));
+        build_print_item(parser, NULL, snuk_expr_parse(parser));
     while (parser_match(parser, SNUK_TOKEN_COMMA))
         print_item =
-            build_print_item(parser, print_item, snuk_expr_parse(parser, flag));
+            build_print_item(parser, print_item, snuk_expr_parse(parser));
 
     parser_expect_item_end(parser);
 

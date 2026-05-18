@@ -1,12 +1,17 @@
 #include "snuk_type.h"
 
-SnukType *snuk_type_parse(SnukParser *parser, ParseFlag flag) {
+SnukType *snuk_type_parse(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_TYPE)) {
+        // type <type>
+        if (parser_match(parser, SNUK_TOKEN_IDENTIFIER))
+            return build_named_type(parser, parser->previous.string_literal);
+
+        // type {<type>; <type>}
         SnukType *type = build_type_type(parser, NULL, NULL);
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
         while (!parser_match(parser, SNUK_TOKEN_RBRACE)
                && parser->current.type != SNUK_TOKEN_EOF) {
-            SnukType *member_type = snuk_type_parse(parser, flag);
+            SnukType *member_type = snuk_type_parse(parser);
             type = build_type_type(parser, type, member_type);
             if (!parser_check(parser, SNUK_TOKEN_RBRACE))
                 parser_expect_item_end(parser);
@@ -25,7 +30,7 @@ SnukType *snuk_type_parse(SnukParser *parser, ParseFlag flag) {
         parser_expect(parser, SNUK_TOKEN_LPAREN, "exptected '('");
         while (!parser_match(parser, SNUK_TOKEN_RPAREN)
                && parser->current.type != SNUK_TOKEN_EOF) {
-            SnukType *param = snuk_type_parse(parser, flag);
+            SnukType *param = snuk_type_parse(parser);
             type = build_fn_type(parser, type, param, NULL);
             if (!parser_check(parser, SNUK_TOKEN_RPAREN))
                 parser_expect(parser, SNUK_TOKEN_COMMA, "expected ','");
@@ -38,7 +43,7 @@ SnukType *snuk_type_parse(SnukParser *parser, ParseFlag flag) {
 
         SnukType *ret_type = NULL;
         if (parser_match(parser, SNUK_TOKEN_ARROW))
-            ret_type = snuk_type_parse(parser, flag);
+            ret_type = snuk_type_parse(parser);
         else ret_type = build_any_type(parser);
 
         type = build_fn_type(parser, type, NULL, ret_type);

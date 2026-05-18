@@ -1,9 +1,9 @@
-type Point {
+var Point = type { // type definition
     var x: int
     var y: int
 }
 
-type Square {
+type Square { // type definition syntax sugar
     var top_left: Point
     var width: int
     var height: int
@@ -13,15 +13,21 @@ type Square {
     }
 }
 
-var square: Square = Square {top_left: Point {x: 10; y: 20;}; width: 20; height: 20}
+// type instance
+var square: Square = type Square {top_left: type Point {x: 10; y: 20;}; width: 20; height: 20}
 
-var square2: Square = Square {
-    top_left: Point {
+// type annotation can have type of the form "type <type>" like "type Square"
+var square2: type Square = type Square {
+    top_left: type Point {
         x: 10
         y: 20
     }
     width: 20
     height: 20
 }
+
+// Type instance with syntax sugar (s2 and s3 are variables)
+type Square s2{width: 10; height: 10}
+type Square s3 = {width: 10; height: 10}
 
 print square.top_left.x

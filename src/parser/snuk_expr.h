@@ -128,7 +128,9 @@ struct SnukExpr {
                 } type_expr;
 
                 struct {
-                        SnukExpr *type; /**< Name of the type */
+                        SnukType *type; /**< Name of the type */
+                        SnukStringView
+                            name; /**< Name in case of syntax sugar. */
                         SnukExpr **init; /**< initial values of members */
                 } type_inst_expr;
 
@@ -499,15 +501,19 @@ SNUK_INLINE SnukExpr *build_type_expr(
  * @param parser Parser context to operate on.
  * @param type The type of instance.
  * @param init Initialization values.
+ * @param name Name in case of syntax sugar.
  *
  * @return Newly allocated type expression node.
  */
 SNUK_INLINE SnukExpr *build_type_inst_expr(
-    SnukParser *parser, SnukExpr *type, SnukExpr **init) {
+    SnukParser *parser, SnukType *type, SnukExpr **init, SnukStringView name) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE_INST,
-        .type_inst_expr = {.type = type, .init = init},
+        .type_inst_expr =
+            {.type = type,
+                             .init = init,
+                             .name = parser_copy_string_view(parser, name)},
     };
     return expr;
 }
@@ -577,7 +583,7 @@ SNUK_INLINE SnukExpr *build_member_access_expr(
  *
  * @return Parsed expression, or NULL on parse failure.
  */
-SnukExpr *snuk_expr_parse(SnukParser *parser, ParseFlag flag);
+SnukExpr *snuk_expr_parse(SnukParser *parser);
 
 /**
  * @brief Get a string name for an expression type.
