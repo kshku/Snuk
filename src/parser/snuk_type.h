@@ -9,27 +9,25 @@
  * @brief Parsed type.
  */
 struct SnukType {
-        enum {
-            TYPE_ANY, /**< No type annotation */
-            TYPE_NAMED, /**< Named type */
-            TYPE_FN, /**< Function type */
-            TYPE_TYPE, /**< Type type */
+    enum {
+        TYPE_ANY, /**< No type annotation */
+        TYPE_NAMED, /**< Named type */
+        TYPE_FN, /**< Function type */
+        TYPE_TYPE, /**< Type type */
 
-            TYPE_MAX /**< Sentinel value for type kinds. */
-        } type;
+        TYPE_MAX, /**< Sentinel value for type kinds. */
+    } type;
 
-        union {
-                SnukStringView name; /**< Type name (for named parameters) */
+    union {
+        SnukStringView name; /**< Type name (for named parameters) */
 
-                struct {
-                        SnukType
-                            *return_type; /**< The return type of function */
-                        SnukType *
-                            *param_types; /**< Darray of parameter types */
-                } fn;
+        struct {
+            SnukType *return_type; /**< The return type of function */
+            SnukType **param_types; /**< Darray of parameter types */
+        } fn;
 
-                SnukType **member_types; /**< Darray of type of the members */
-        };
+        SnukType **member_types; /**< Darray of type of the members */
+    };
 };
 
 SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
@@ -45,16 +43,14 @@ SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
             return snuk_string_view_equal(type1->name, type2->name);
 
         case TYPE_FN:
-            if (!snuk_type_equal(type1->fn.return_type, type2->fn.return_type))
-                return false;
+            if (!snuk_type_equal(type1->fn.return_type, type2->fn.return_type)) return false;
 
             count1 = snuk_darray_get_length(type1->fn.param_types);
             count2 = snuk_darray_get_length(type2->fn.param_types);
             if (count1 != count2) return false;
 
             for (uint64_t i = 0; i < count1; ++i)
-                if (!snuk_type_equal(
-                        type1->fn.param_types[i], type2->fn.param_types[i]))
+                if (!snuk_type_equal(type1->fn.param_types[i], type2->fn.param_types[i]))
                     return false;
             return true;
 
@@ -63,9 +59,7 @@ SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
             count2 = snuk_darray_get_length(type2->member_types);
             if (count1 != count2) return false;
             for (uint64_t i = 0; i < count1; ++i)
-                if (!snuk_type_equal(
-                        type1->member_types[i], type2->member_types[i]))
-                    return false;
+                if (!snuk_type_equal(type1->member_types[i], type2->member_types[i])) return false;
 
             return true;
 
@@ -84,8 +78,7 @@ SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukType *parser_create_type(SnukParser *parser) {
-    return (SnukType *)parser->allocator->alloc(
-        parser->allocator->data, sizeof(SnukType), alignof(SnukType));
+    return (SnukType *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukType), alignof(SnukType));
 }
 
 /**
@@ -111,8 +104,7 @@ SNUK_INLINE SnukType *build_any_type(SnukParser *parser) {
  *
  * @return Newly allocated type node.
  */
-SNUK_INLINE SnukType *build_named_type(
-    SnukParser *parser, SnukStringView name) {
+SNUK_INLINE SnukType *build_named_type(SnukParser *parser, SnukStringView name) {
     SnukType *type = parser_create_type(parser);
     *type = (SnukType){
         .type = TYPE_NAMED,
@@ -133,15 +125,12 @@ SNUK_INLINE SnukType *build_named_type(
  *
  * @note param and ret will be only used if they are not NULL.
  */
-SNUK_INLINE SnukType *build_fn_type(
-    SnukParser *parser, SnukType *type, SnukType *param, SnukType *ret) {
+SNUK_INLINE SnukType *build_fn_type(SnukParser *parser, SnukType *type, SnukType *param, SnukType *ret) {
     if (!type) {
         type = parser_create_type(parser);
         *type = (SnukType){
             .type = TYPE_FN,
-            .fn =
-                {.param_types =
-                     snuk_darray_create(SnukType *, parser->allocator)},
+            .fn = {.param_types = snuk_darray_create(SnukType *, parser->allocator)},
         };
     }
     if (param) snuk_darray_push(&type->fn.param_types, param);
@@ -158,8 +147,7 @@ SNUK_INLINE SnukType *build_fn_type(
  *
  * @return Newly allocated type node.
  */
-SNUK_INLINE SnukType *build_type_type(
-    SnukParser *parser, SnukType *type, SnukType *member_type) {
+SNUK_INLINE SnukType *build_type_type(SnukParser *parser, SnukType *type, SnukType *member_type) {
     if (!type) {
         type = parser_create_type(parser);
         *type = (SnukType){

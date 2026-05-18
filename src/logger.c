@@ -15,12 +15,11 @@ static bool enableVTProcessing(DWORD handle_type);
 #define LOGGER_BUFFER_SIZE 1024
 
 typedef struct stdout_stderr_sink {
-        // 0 -> stdout, 1 -> stderr
-        bool colored_enabled[2];
+    // 0 -> stdout, 1 -> stderr
+    bool colored_enabled[2];
 } stdout_stderr_sink;
 
-static void stdout_stderr_sink_write(
-    const char *msg, size_t len, snLogLevel level, void *data);
+static void stdout_stderr_sink_write(const char *msg, size_t len, snLogLevel level, void *data);
 static void stdout_stderr_sink_open(void *data);
 static void stdout_stderr_sink_flush(void *data);
 
@@ -28,15 +27,11 @@ static snStaticLogger sl;
 static char log_buffer[LOGGER_BUFFER_SIZE];
 static stdout_stderr_sink sink_data;
 static snSink sinks[] = {
-    {.open = stdout_stderr_sink_open,
-     .flush = stdout_stderr_sink_flush,
-     .write = stdout_stderr_sink_write,
-     .data = &sink_data}
+    {.open = stdout_stderr_sink_open, .flush = stdout_stderr_sink_flush, .write = stdout_stderr_sink_write, .data = &sink_data}
 };
 
 void snuk_logger_init(void) {
-    sn_static_logger_init(
-        &sl, log_buffer, LOGGER_BUFFER_SIZE, sinks, ARRAY_LEN(sinks));
+    sn_static_logger_init(&sl, log_buffer, LOGGER_BUFFER_SIZE, sinks, ARRAY_LEN(sinks));
 }
 
 void snuk_logger_deinit(void) {
@@ -44,13 +39,11 @@ void snuk_logger_deinit(void) {
 }
 
 void snuk_log_msg(
-    snLogLevel level, const char *file, const char *function, long line,
-    const char *format_string, ...) {
+    snLogLevel level, const char *file, const char *function, long line, const char *format_string, ...) {
     if (level < sl.level) return;
 
     const char *level_string = NULL;
-    const char *level_strings[] = {"TRACE", "DEBUG", "INFO",
-                                   "WARN",  "ERROR", "FATAL"};
+    const char *level_strings[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
     level_string = level_strings[level];
 
     char buffer[1024] = {0};
@@ -58,20 +51,17 @@ void snuk_log_msg(
     int len = 0;
 
     if (level < SN_LOG_LEVEL_WARN)
-        len = snprintf(
-            buffer, buffer_size, "[%s]: %s\n", level_string, format_string);
+        len = snprintf(buffer, buffer_size, "[%s]: %s\n", level_string, format_string);
     else
-        len = snprintf(
-            buffer, buffer_size, "[%s]: %s:%lu in function %s: %s\n",
-            level_string, file, line, function, format_string);
+        len = snprintf(buffer, buffer_size, "[%s]: %s:%lu in function %s: %s\n", level_string, file,
+                       line, function, format_string);
 
     if (len < 0) abort();
 
     if (len >= buffer_size) {
-        snuk_log_msg(
-            SN_LOG_LEVEL_ERROR, file, function, line,
-            "Too long message, try increasing the buffer size or decreasing "
-            "message length!");
+        snuk_log_msg(SN_LOG_LEVEL_ERROR, file, function, line,
+                     "Too long message, try increasing the buffer size or decreasing "
+                     "message length!");
         return;
     }
 
@@ -83,8 +73,7 @@ void snuk_log_msg(
     va_end(args);
 }
 
-static void stdout_stderr_sink_write(
-    const char *msg, size_t len, snLogLevel level, void *data) {
+static void stdout_stderr_sink_write(const char *msg, size_t len, snLogLevel level, void *data) {
     stdout_stderr_sink *sink = (stdout_stderr_sink *)data;
 
     bool error = level > SN_LOG_LEVEL_WARN;
@@ -145,8 +134,7 @@ static bool enableVTProcessing(DWORD handle_type) {
     DWORD modes = 0;
     if (!GetConsoleMode(handle, &modes)) return false;
 
-    modes |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING
-           | DISABLE_NEWLINE_AUTO_RETURN;
+    modes |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
     if (!SetConsoleMode(handle, modes)) return false;
 
     return true;

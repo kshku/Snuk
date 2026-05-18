@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string.h>
-
 #include "defines.h"
 #include "memory.h"
+
+#include <string.h>
 
 SNUK_INLINE bool snuk_char_in_string(char c, const char *s) {
     if (!s) return false;
@@ -92,8 +92,7 @@ SNUK_INLINE bool snuk_string_n_equal(const char *a, const char *b, uint64_t n) {
     return i == n;
 }
 
-SNUK_INLINE bool snuk_string_n_equal_ignore_case(
-    const char *a, const char *b, uint64_t n) {
+SNUK_INLINE bool snuk_string_n_equal_ignore_case(const char *a, const char *b, uint64_t n) {
     if (!a || !b) return false;
 
     uint64_t i = 0;
@@ -104,8 +103,7 @@ SNUK_INLINE bool snuk_string_n_equal_ignore_case(
 }
 
 // if len == 0 (of any string), snuk_string_length will be called.
-SNUK_INLINE char *snuk_string_concat(
-    const char *a, uint64_t alen, const char *b, uint64_t blen) {
+SNUK_INLINE char *snuk_string_concat(const char *a, uint64_t alen, const char *b, uint64_t blen) {
     if (!alen) alen = snuk_string_length(a);
     if (!blen) blen = snuk_string_length(b);
 

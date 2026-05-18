@@ -1,20 +1,20 @@
 #include "lexer.h"
 
-#include <errno.h>
-#include <stdlib.h>
-
 #include "logger.h"
 #include "snuk_string.h"
 
+#include <errno.h>
+#include <stdlib.h>
+
 typedef struct KeyWord {
-        const char *keyword;
-        SnukTokenType type;
+    const char *keyword;
+    SnukTokenType type;
 } KeyWord;
 
 typedef struct Value {
-        const char *value;
-        SnukTokenType type;
-        bool ignore_case;
+    const char *value;
+    SnukTokenType type;
+    bool ignore_case;
 } Value;
 
 KeyWord keywords[] = {
@@ -158,8 +158,7 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
     uint64_t len = lexer->cur - lexer->token_start;
     return (SnukToken){
         .type = type,
-        .string_literal =
-            snuk_string_view_create_with_len(lexer->token_start, len),
+        .string_literal = snuk_string_view_create_with_len(lexer->token_start, len),
         .line = lexer->token_start_line,
         .col = lexer->token_start_col,
         .err_msg = NULL,
@@ -177,8 +176,7 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
  *
  * @return Error token containing the current line text and location.
  */
-SNUK_INLINE SnukToken
-lexer_build_error_token(SnukLexer *lexer, const char *err_msg) {
+SNUK_INLINE SnukToken lexer_build_error_token(SnukLexer *lexer, const char *err_msg) {
     lexer->previous_token_type = SNUK_TOKEN_ERROR;
 
     const char *line_start = lexer->cur - lexer->col;
@@ -221,8 +219,7 @@ static SnukToken lexer_scan_word(SnukLexer *lexer) {
         lexer_advance(lexer);
     }
 
-    SnukStringView word = snuk_string_view_create_with_len(
-        lexer->token_start, lexer->cur - lexer->token_start);
+    SnukStringView word = snuk_string_view_create_with_len(lexer->token_start, lexer->cur - lexer->token_start);
 
     SnukTokenType type;
     type = check_keyword(word);
@@ -263,10 +260,8 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
                 if (!snuk_is_hex_digit(lexer_peek(lexer)))
-                    return lexer_build_error_token(
-                        lexer, "invalid hex literal");
-                while (snuk_is_hex_digit(lexer_peek(lexer)))
-                    lexer_advance(lexer);
+                    return lexer_build_error_token(lexer, "invalid hex literal");
+                while (snuk_is_hex_digit(lexer_peek(lexer))) lexer_advance(lexer);
                 break;
             case 'b':
                 base = 2;
@@ -274,18 +269,15 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
                 lexer_advance(lexer);
 
                 if (!snuk_is_binary_digit(lexer_peek(lexer)))
-                    return lexer_build_error_token(
-                        lexer, "invalid binary literal");
-                while (snuk_is_binary_digit(lexer_peek(lexer)))
-                    lexer_advance(lexer);
+                    return lexer_build_error_token(lexer, "invalid binary literal");
+                while (snuk_is_binary_digit(lexer_peek(lexer))) lexer_advance(lexer);
                 break;
             default:
                 if (snuk_is_octal_digit(lexer_peek(lexer))) {
                     base = 8;
                     lexer_advance(lexer);
 
-                    while (snuk_is_octal_digit(lexer_peek(lexer)))
-                        lexer_advance(lexer);
+                    while (snuk_is_octal_digit(lexer_peek(lexer))) lexer_advance(lexer);
                     break;
                 }
                 // single 0
@@ -323,8 +315,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
 
         token.float_literal = strtod(lexer->token_start, &endptr);
 
-        if (errno == ERANGE)
-            return lexer_build_error_token(lexer, "float literal out of range");
+        if (errno == ERANGE) return lexer_build_error_token(lexer, "float literal out of range");
         token.type = SNUK_TOKEN_FLOAT;
     } else {
         if (base == 2) {
@@ -332,8 +323,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
             const char *p = lexer->token_start + 2;
             while (snuk_char_in_string(*p, "01")) {
                 if (token.int_literal > (INT64_MAX >> 1))
-                    return lexer_build_error_token(
-                        lexer, "integer literal out of range");
+                    return lexer_build_error_token(lexer, "integer literal out of range");
                 token.int_literal = (token.int_literal << 1) | (*p - '0');
                 ++p;
             }
@@ -341,8 +331,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
             char *endptr;
             token.int_literal = strtoll(lexer->token_start, &endptr, base);
             if (errno == ERANGE)
-                return lexer_build_error_token(
-                    lexer, "integer literal out of range");
+                return lexer_build_error_token(lexer, "integer literal out of range");
         }
 
         token.type = SNUK_TOKEN_INTEGER;
@@ -366,11 +355,9 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
 static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
     // starting quote is consumed
 
-    while (lexer_peek(lexer) != quote && !lexer_is_eof(lexer))
-        lexer_advance(lexer);
+    while (lexer_peek(lexer) != quote && !lexer_is_eof(lexer)) lexer_advance(lexer);
 
-    if (lexer_is_eof(lexer))
-        return lexer_build_error_token(lexer, "unterminated string");
+    if (lexer_is_eof(lexer)) return lexer_build_error_token(lexer, "unterminated string");
 
     lexer_advance(lexer);  // consume closing quote
 
@@ -386,8 +373,7 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
  */
 static SnukTokenType check_keyword(SnukStringView word) {
     for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i)
-        if (snuk_string_view_equal_cstr(word, keywords[i].keyword))
-            return keywords[i].type;
+        if (snuk_string_view_equal_cstr(word, keywords[i].keyword)) return keywords[i].type;
     return SNUK_TOKEN_EOF;
 }
 
@@ -400,11 +386,9 @@ static SnukTokenType check_keyword(SnukStringView word) {
  */
 static SnukTokenType check_values(SnukStringView word) {
     for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
-        if (values[i].ignore_case
-            && snuk_string_view_equal_cstr_ignore_case(word, values[i].value))
+        if (values[i].ignore_case && snuk_string_view_equal_cstr_ignore_case(word, values[i].value))
             return values[i].type;
-        else if (snuk_string_view_equal_cstr(word, values[i].value))
-            return values[i].type;
+        else if (snuk_string_view_equal_cstr(word, values[i].value)) return values[i].type;
     }
 
     return SNUK_TOKEN_EOF;
@@ -426,20 +410,17 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     lexer->token_start_col = lexer->col;
 
     if (!multi_line) {
-        while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n')
-            lexer_advance(lexer);
+        while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n') lexer_advance(lexer);
         SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_LINE_COMMENT);
         lexer_advance(lexer);  // consume new line
         return token;
     }
 
-    while (!lexer_is_eof(lexer)
-           && (lexer_peek(lexer) != '*' || lexer_peek_next(lexer) != '/'))
+    while (!lexer_is_eof(lexer) && (lexer_peek(lexer) != '*' || lexer_peek_next(lexer) != '/'))
         lexer_advance(lexer);
 
     if (lexer_is_eof(lexer))
-        return lexer_build_error_token(
-            lexer, "unterminated multi-line comment");
+        return lexer_build_error_token(lexer, "unterminated multi-line comment");
 
     SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_BLOCK_COMMENT);
     lexer_advance(lexer);  // consume *
@@ -492,8 +473,7 @@ static SnukToken lexer_next_token(SnukLexer *lexer) {
     char c = lexer_peek(lexer);
 
     if (snuk_is_digit(c)) return lexer_scan_number(lexer);
-    if (c == '.' && snuk_is_digit(lexer_peek_next(lexer)))
-        return lexer_scan_number(lexer);
+    if (c == '.' && snuk_is_digit(lexer_peek_next(lexer))) return lexer_scan_number(lexer);
 
     if (snuk_is_alpha_numeric(c) || c == '_') return lexer_scan_word(lexer);
 
@@ -519,31 +499,24 @@ static SnukToken lexer_next_token(SnukLexer *lexer) {
         case ';':
             return lexer_build_token(lexer, SNUK_TOKEN_SEMICOLON);
         case '+':
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_PLUS_ASSIGN);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_PLUS_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_PLUS);
         case '-':
-            if (lexer_match(lexer, '>'))
-                return lexer_build_token(lexer, SNUK_TOKEN_ARROW);
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_MINUS_ASSIGN);
+            if (lexer_match(lexer, '>')) return lexer_build_token(lexer, SNUK_TOKEN_ARROW);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_MINUS_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_MINUS);
         case '*':
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_STAR_ASSIGN);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_STAR_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_STAR);
         case '/':
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_SLASH_ASSIGN);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_SLASH_ASSIGN);
             // comments are triggered only when we have line comments in
             // continuous multiple lines
-            if (lexer_match(lexer, '/'))
-                return lexer_scan_comment(lexer, false);
+            if (lexer_match(lexer, '/')) return lexer_scan_comment(lexer, false);
             if (lexer_match(lexer, '*')) return lexer_scan_comment(lexer, true);
             return lexer_build_token(lexer, SNUK_TOKEN_SLASH);
         case '%':
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_PERCENT_ASSIGN);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_PERCENT_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_PERCENT);
         case '<':
             if (lexer_match(lexer, '<')) {
@@ -551,8 +524,7 @@ static SnukToken lexer_next_token(SnukLexer *lexer) {
                     return lexer_build_token(lexer, SNUK_TOKEN_LSHIFT_ASSIGN);
                 return lexer_build_token(lexer, SNUK_TOKEN_LSHIFT);
             }
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_LESS_EQUAL);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_LESS_EQUAL);
             return lexer_build_token(lexer, SNUK_TOKEN_LESS);
         case '>':
             if (lexer_match(lexer, '>')) {
@@ -560,34 +532,26 @@ static SnukToken lexer_next_token(SnukLexer *lexer) {
                     return lexer_build_token(lexer, SNUK_TOKEN_RSHIFT_ASSIGN);
                 return lexer_build_token(lexer, SNUK_TOKEN_RSHIFT);
             }
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_GREATER_EQUAL);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_GREATER_EQUAL);
             return lexer_build_token(lexer, SNUK_TOKEN_GREATER);
         case '=':
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_EQUAL);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_EQUAL);
             return lexer_build_token(lexer, SNUK_TOKEN_ASSIGN);
         case '!':
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_BANG_EQUAL);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_BANG_EQUAL);
             return lexer_build_token(lexer, SNUK_TOKEN_BANG);
         case '&':
-            if (lexer_match(lexer, '&'))
-                return lexer_build_token(lexer, SNUK_TOKEN_AMP_AMP);
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_AMP_ASSIGN);
+            if (lexer_match(lexer, '&')) return lexer_build_token(lexer, SNUK_TOKEN_AMP_AMP);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_AMP_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_AMP);
         case '|':
-            if (lexer_match(lexer, '|'))
-                return lexer_build_token(lexer, SNUK_TOKEN_PIPE_PIPE);
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_PIPE_ASSIGN);
+            if (lexer_match(lexer, '|')) return lexer_build_token(lexer, SNUK_TOKEN_PIPE_PIPE);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_PIPE_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_PIPE);
         case '~':
             return lexer_build_token(lexer, SNUK_TOKEN_TILDE);
         case '^':
-            if (lexer_match(lexer, '='))
-                return lexer_build_token(lexer, SNUK_TOKEN_CARET_ASSIGN);
+            if (lexer_match(lexer, '=')) return lexer_build_token(lexer, SNUK_TOKEN_CARET_ASSIGN);
             return lexer_build_token(lexer, SNUK_TOKEN_CARET);
         case ',':
             return lexer_build_token(lexer, SNUK_TOKEN_COMMA);
@@ -622,24 +586,20 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
 #define AUTO_SEMICOLON_CANDIDATES "}\n"
 #define IGNORED_WHITE_SPACES " \t\r"
 
-    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES))
-        lexer_advance(lexer);
+    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES)) lexer_advance(lexer);
 
     lexer->token_start = lexer->cur;
     lexer->token_start_line = lexer->line;
     lexer->token_start_col = lexer->col;
 
-    if (snuk_char_in_string(lexer_peek(lexer), AUTO_SEMICOLON_CANDIDATES)
-        && lexer_should_insert_vsemicolon(lexer))
+    if (snuk_char_in_string(lexer_peek(lexer), AUTO_SEMICOLON_CANDIDATES) && lexer_should_insert_vsemicolon(lexer))
         return lexer_build_token(lexer, SNUK_TOKEN_VSEMICOLON);
 
     while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
 
-    if (lexer_peek(lexer) == '/'
-        && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+    if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
         lexer_advance(lexer);
-        leading_comment =
-            lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
+        leading_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
         uint64_t count = 0;
         for (uint64_t i = 0; snuk_is_white_space(lexer->cur[i]); ++i)
             if (lexer->cur[i] == '\n') ++count;
@@ -653,14 +613,11 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
 
     SnukToken token = lexer_next_token(lexer);
 
-    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES))
-        lexer_advance(lexer);
+    while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES)) lexer_advance(lexer);
 
-    if (lexer_peek(lexer) == '/'
-        && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+    if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
         lexer_advance(lexer);
-        trailing_comment =
-            lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
+        trailing_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
     }
 
     token.leading_comment = leading_comment.string_literal;
@@ -671,18 +628,13 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
 
 void snuk_lexer_log_token(SnukToken token) {
     log_trace("Token type: %s", snuk_lexer_token_type_to_string(token.type));
-    if (token.type == SNUK_TOKEN_INTEGER)
-        log_trace("\tInteger value: %ld", token.int_literal);
-    else if (token.type == SNUK_TOKEN_FLOAT)
-        log_trace("\tFloat value: %lf", token.float_literal);
+    if (token.type == SNUK_TOKEN_INTEGER) log_trace("\tInteger value: %ld", token.int_literal);
+    else if (token.type == SNUK_TOKEN_FLOAT) log_trace("\tFloat value: %lf", token.float_literal);
     else if (token.type == SNUK_TOKEN_ERROR)
-        log_trace(
-            "\tError line: " SNUK_STRING_VIEW_FORMAT " and err_msg: %s",
-            SNUK_STRING_VIEW_ARG(token.string_literal), token.err_msg);
+        log_trace("\tError line: " SNUK_STRING_VIEW_FORMAT " and err_msg: %s",
+                  SNUK_STRING_VIEW_ARG(token.string_literal), token.err_msg);
     else
-        log_trace(
-            "\tString value: " SNUK_STRING_VIEW_FORMAT,
-            SNUK_STRING_VIEW_ARG(token.string_literal));
+        log_trace("\tString value: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(token.string_literal));
     log_trace("\tLine: %d, Column: %d", token.line, token.col);
 }
 

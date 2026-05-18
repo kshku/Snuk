@@ -67,8 +67,7 @@ SNUK_INLINE bool parser_match(SnukParser *parser, SnukTokenType expected) {
  * @param expected Expected token type.
  * @param err_msg Error message to report if the token does not match.
  */
-SNUK_INLINE void parser_expect(
-    SnukParser *parser, SnukTokenType expected, const char *err_msg) {
+SNUK_INLINE void parser_expect(SnukParser *parser, SnukTokenType expected, const char *err_msg) {
     if (!parser_match(parser, expected)) parser_error(parser, err_msg);
 }
 
@@ -80,9 +79,8 @@ SNUK_INLINE void parser_expect(
  * @return True when token is consumed.
  */
 SNUK_INLINE bool parser_match_item_end(SnukParser *parser) {
-    return parser_match(parser, SNUK_TOKEN_SEMICOLON)
-        || parser_match(parser, SNUK_TOKEN_VSEMICOLON)
-        || parser_match(parser, SNUK_TOKEN_EOF);
+    return parser_match(parser, SNUK_TOKEN_SEMICOLON) || parser_match(parser, SNUK_TOKEN_VSEMICOLON)
+           || parser_match(parser, SNUK_TOKEN_EOF);
 }
 
 /**
@@ -91,14 +89,11 @@ SNUK_INLINE bool parser_match_item_end(SnukParser *parser) {
  * @param parser Parser context to operate on.
  */
 SNUK_INLINE void parser_expect_item_end(SnukParser *parser) {
-    if (!parser_match_item_end(parser))
-        parser_error(parser, "expected a new line or a semicolon");
+    if (!parser_match_item_end(parser)) parser_error(parser, "expected a new line or a semicolon");
 }
 
-SNUK_INLINE SnukStringView
-parser_copy_string_view(SnukParser *parser, SnukStringView sv) {
-    char *str = parser->allocator->alloc(
-        parser->allocator->data, sizeof(char) * sv.len, alignof(char));
+SNUK_INLINE SnukStringView parser_copy_string_view(SnukParser *parser, SnukStringView sv) {
+    char *str = parser->allocator->alloc(parser->allocator->data, sizeof(char) * sv.len, alignof(char));
     memcpy(str, sv.str, sv.len);
     return snuk_string_view_create_with_len(str, sv.len);
 }

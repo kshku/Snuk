@@ -15,8 +15,8 @@ typedef struct SnukScope SnukScope;
  * to the enclosing scope, or NULL for the global scope.
  */
 struct SnukScope {
-        SnukEnv **vars;  // darray
-        SnukRefCounter *parent;
+    SnukEnv **vars;  // darray
+    SnukRefCounter *parent;
 };
 
 SNUK_INLINE void snuk_scope_destroy_envs(SnukScope *scope) {
@@ -71,8 +71,7 @@ SNUK_INLINE void snuk_scope_free(void *data, void *ptr) {
  * finalizer.
  */
 SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
-    SnukScope *scope =
-        (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
+    SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
     *scope = (SnukScope){
         .vars = snuk_darray_create(SnukEnv *, NULL),
         .parent = snuk_ref_counter_move(&parent),
@@ -86,8 +85,7 @@ SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
 SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i)
-        if (snuk_string_view_equal(scope->vars[i]->name, name))
-            return scope->vars[i];
+        if (snuk_string_view_equal(scope->vars[i]->name, name)) return scope->vars[i];
 
     return NULL;
 }
@@ -98,9 +96,7 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
  */
 SNUK_INLINE bool snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
     if (snuk_scope_lookup(scope, env->name)) {
-        log_error(
-            "multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'",
-            SNUK_STRING_VIEW_ARG(env->name));
+        log_error("multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'", SNUK_STRING_VIEW_ARG(env->name));
         snuk_env_free(env);
         return false;
     }

@@ -19,7 +19,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          clang-format --dry-run --Werror $(git ls-files '*.c' '*.h')
+          clang-format-18 --dry-run --Werror $(git ls-files '*.c' '*.h')
 
   build-check:
     name: Build check (warnings as errors)

@@ -1,12 +1,12 @@
 #include "io.h"
 
-#include <snfile/snfile.h>
-#include <stdarg.h>
-#include <stdio.h>
-
 #include "logger.h"
 #include "memory.h"
 #include "snuk_string.h"
+
+#include <snfile/snfile.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 // reads one line from stdin, caller should free
 char *snuk_read_line(char *buffer, uint64_t size) {

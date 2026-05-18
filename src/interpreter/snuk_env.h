@@ -12,16 +12,15 @@ typedef struct SnukEnv SnukEnv;
  * @brief Single name-to-value binding inside a scope.
  */
 struct SnukEnv {
-        SnukStringView name;
-        SnukType *type;
-        SnukValue value;
+    SnukStringView name;
+    SnukType *type;
+    SnukValue value;
 };
 
 /**
  * @brief Allocate a SnukEnv and populate it by evaluating the given expression.
  */
-SNUK_INLINE SnukEnv *snuk_env_create(
-    SnukStringView name, SnukType *type, SnukValue value) {
+SNUK_INLINE SnukEnv *snuk_env_create(SnukStringView name, SnukType *type, SnukValue value) {
     SnukEnv *env = (SnukEnv *)snuk_alloc(sizeof(SnukEnv), alignof(SnukEnv));
     *env = (SnukEnv){
         .name = name,

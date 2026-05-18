@@ -9,12 +9,10 @@ SnukType *snuk_type_parse(SnukParser *parser) {
         // type {<type>; <type>}
         SnukType *type = build_type_type(parser, NULL, NULL);
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-        while (!parser_match(parser, SNUK_TOKEN_RBRACE)
-               && parser->current.type != SNUK_TOKEN_EOF) {
+        while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
             SnukType *member_type = snuk_type_parse(parser);
             type = build_type_type(parser, type, member_type);
-            if (!parser_check(parser, SNUK_TOKEN_RBRACE))
-                parser_expect_item_end(parser);
+            if (!parser_check(parser, SNUK_TOKEN_RBRACE)) parser_expect_item_end(parser);
         }
 
         if (parser->previous.type != SNUK_TOKEN_RBRACE) {
@@ -28,8 +26,7 @@ SnukType *snuk_type_parse(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_FN)) {
         SnukType *type = build_fn_type(parser, NULL, NULL, NULL);
         parser_expect(parser, SNUK_TOKEN_LPAREN, "exptected '('");
-        while (!parser_match(parser, SNUK_TOKEN_RPAREN)
-               && parser->current.type != SNUK_TOKEN_EOF) {
+        while (!parser_match(parser, SNUK_TOKEN_RPAREN) && parser->current.type != SNUK_TOKEN_EOF) {
             SnukType *param = snuk_type_parse(parser);
             type = build_fn_type(parser, type, param, NULL);
             if (!parser_check(parser, SNUK_TOKEN_RPAREN))
@@ -42,8 +39,7 @@ SnukType *snuk_type_parse(SnukParser *parser) {
         }
 
         SnukType *ret_type = NULL;
-        if (parser_match(parser, SNUK_TOKEN_ARROW))
-            ret_type = snuk_type_parse(parser);
+        if (parser_match(parser, SNUK_TOKEN_ARROW)) ret_type = snuk_type_parse(parser);
         else ret_type = build_any_type(parser);
 
         type = build_fn_type(parser, type, NULL, ret_type);
@@ -70,16 +66,13 @@ void snuk_type_log(SnukType *type) {
             break;
         case TYPE_NAMED:
             log_trace("type type: %s", SNUK_STRINGIFY(TYPE_NAMED));
-            log_trace(
-                "type name: " SNUK_STRING_VIEW_FORMAT,
-                SNUK_STRING_VIEW_ARG(type->name));
+            log_trace("type name: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(type->name));
             break;
         case TYPE_FN:
             log_trace("type type: %s", SNUK_STRINGIFY(TYPE_FN));
             log_trace("param types:", NULL);
             count = snuk_darray_get_length(type->fn.param_types);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_type_log(type->fn.param_types[i]);
+            for (uint64_t i = 0; i < count; ++i) snuk_type_log(type->fn.param_types[i]);
             log_trace("return type:", NULL);
             snuk_type_log(type->fn.return_type);
             break;

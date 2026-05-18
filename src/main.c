@@ -11,7 +11,7 @@ typedef enum OpMode {
     OP_MODE_FILE,
     OP_MODE_REPL,
     OP_MODE_COMMAND,
-    OP_MODE_QUIT
+    OP_MODE_QUIT,
 } OpMode;
 
 static OpMode parse_args(int argc, char *argv[], char **data);
@@ -63,10 +63,8 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-static inline bool is_option(
-    const char *opt, const char *short_opt, const char *long_opt) {
-    return snuk_string_equal(opt, short_opt)
-        || snuk_string_equal(opt, long_opt);
+static inline bool is_option(const char *opt, const char *short_opt, const char *long_opt) {
+    return snuk_string_equal(opt, short_opt) || snuk_string_equal(opt, long_opt);
 }
 
 OpMode parse_args(int argc, char *argv[], char **data) {
@@ -151,7 +149,5 @@ static void print_help(void) {
 }
 
 static void print_version(void) {
-    snuk_println(
-        "Snuk version: %d.%d.%d", SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR,
-        SNUK_VERSION_PATCH);
+    snuk_println("Snuk version: %d.%d.%d", SNUK_VERSION_MAJOR, SNUK_VERSION_MINOR, SNUK_VERSION_PATCH);
 }
