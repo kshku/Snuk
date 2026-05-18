@@ -15,7 +15,7 @@ type Square {
 
 var square: Square = Square {top_left: Point {x: 10; y: 20;}; width: 20; height: 20}
 
-var square2: Square = Square {
+var square2: type Square = Square {
     top_left: Point {
         x: 10
         y: 20
