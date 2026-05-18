@@ -20,7 +20,7 @@ typedef enum SnukValueType {
     SNUK_VALUE_TYPE,
     SNUK_VALUE_TYPE_INST,
 
-    SNUK_VALUE_MAX
+    SNUK_VALUE_MAX,
 } SnukValueType;
 
 /**
@@ -36,26 +36,26 @@ typedef enum SnukValueType {
  * is reachable.
  */
 struct SnukValue {
-        SnukValueType type;
+    SnukValueType type;
 
-        union {
-                int64_t int_value;
-                double float_value;
-                bool bool_value;
-                SnukStringView string_value;
+    union {
+        int64_t int_value;
+        double float_value;
+        bool bool_value;
+        SnukStringView string_value;
 
-                struct {
-                        SnukRefCounter *closure;
-                        SnukExpr *body;
-                        SnukParam **params;
-                        SnukType *type;
-                } fn_value;
+        struct {
+            SnukRefCounter *closure;
+            SnukExpr *body;
+            SnukParam **params;
+            SnukType *type;
+        } fn_value;
 
-                struct {
-                        SnukRefCounter *closure;
-                        SnukType *type;
-                } type_value;
-        };
+        struct {
+            SnukRefCounter *closure;
+            SnukType *type;
+        } type_value;
+    };
 };
 
 /**

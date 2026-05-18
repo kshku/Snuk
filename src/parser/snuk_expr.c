@@ -23,7 +23,7 @@ typedef enum Precedence {
     PRECEDENCE_TERM, /**< Additive precedence for '+' and '-'. */
     PRECEDENCE_FACTOR, /**< Multiplicative precedence for '*', '/', and '%'. */
     PRECEDENCE_UNARY, /**< Unary operator precedence. */
-    PRECEDENCE_PRIMARY /**< Primary expression precedence. */
+    PRECEDENCE_PRIMARY, /**< Primary expression precedence. */
 } Precedence;
 
 /**
@@ -49,10 +49,9 @@ typedef SnukExpr *(*infix_fn)(SnukParser *parser, SnukExpr *expr);
  * @brief Pratt parser rule for a token type.
  */
 typedef struct ParseRule {
-        prefix_fn pfn; /**< Prefix parse function, or NULL if unsupported. */
-        infix_fn ifn; /**< Infix parse function, or NULL if unsupported. */
-        Precedence
-            precedence; /**< Binding precedence for the infix function. */
+    prefix_fn pfn; /**< Prefix parse function, or NULL if unsupported. */
+    infix_fn ifn; /**< Infix parse function, or NULL if unsupported. */
+    Precedence precedence; /**< Binding precedence for the infix function. */
 } ParseRule;
 
 /**
@@ -210,91 +209,85 @@ static SnukExpr *parse_type_token(SnukParser *parser);
  */
 static SnukExpr *parse_member(SnukParser *parser, SnukExpr *left);
 
+// clang-format off
+
 static ParseRule rules[] = {
-    [SNUK_TOKEN_IDENTIFIER] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_INTEGER] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_FLOAT] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_STRING] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_TRUE] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_FALSE] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_NULL] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_NAN] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_INF] = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_IDENTIFIER]     = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_INTEGER]        = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_FLOAT]          = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_STRING]         = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_TRUE]           = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_FALSE]          = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_NULL]           = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_NAN]            = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_INF]            = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_LPAREN] = {parse_grouping,   parse_call,                PRECEDENCE_PRIMARY    },
+    [SNUK_TOKEN_LPAREN]         = {parse_grouping,   parse_call,                PRECEDENCE_PRIMARY    },
 
-    [SNUK_TOKEN_PLUS] = {parse_unary,      parse_binary,              PRECEDENCE_TERM       },
-    [SNUK_TOKEN_MINUS] = {parse_unary,      parse_binary,              PRECEDENCE_TERM       },
+    [SNUK_TOKEN_PLUS]           = {parse_unary,      parse_binary,              PRECEDENCE_TERM       },
+    [SNUK_TOKEN_MINUS]          = {parse_unary,      parse_binary,              PRECEDENCE_TERM       },
 
-    [SNUK_TOKEN_STAR] = {NULL,             parse_binary,              PRECEDENCE_FACTOR     },
-    [SNUK_TOKEN_SLASH] = {NULL,             parse_binary,              PRECEDENCE_FACTOR     },
-    [SNUK_TOKEN_PERCENT] = {NULL,             parse_binary,              PRECEDENCE_FACTOR     },
+    [SNUK_TOKEN_STAR]           = {NULL,             parse_binary,              PRECEDENCE_FACTOR     },
+    [SNUK_TOKEN_SLASH]          = {NULL,             parse_binary,              PRECEDENCE_FACTOR     },
+    [SNUK_TOKEN_PERCENT]        = {NULL,             parse_binary,              PRECEDENCE_FACTOR     },
 
-    [SNUK_TOKEN_BANG] = {parse_unary,      NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_KW_NOT] = {parse_unary,      NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_TILDE] = {parse_unary,      NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_BANG]           = {parse_unary,      NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_KW_NOT]         = {parse_unary,      NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_TILDE]          = {parse_unary,      NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_ASSIGN] = {NULL,             parse_assignment,          PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_ASSIGN]         = {NULL,             parse_assignment,          PRECEDENCE_ASSIGNMENT },
 
-    [SNUK_TOKEN_PLUS_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_MINUS_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_STAR_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_SLASH_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_PERCENT_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_LSHIFT_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_RSHIFT_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_PIPE_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_AMP_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
-    [SNUK_TOKEN_CARET_ASSIGN] =
-        {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_PLUS_ASSIGN]    = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_MINUS_ASSIGN]   = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_STAR_ASSIGN]    = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_SLASH_ASSIGN]   = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_PERCENT_ASSIGN] = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_LSHIFT_ASSIGN]  = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_RSHIFT_ASSIGN]  = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_PIPE_ASSIGN]    = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_AMP_ASSIGN]     = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
+    [SNUK_TOKEN_CARET_ASSIGN]   = {NULL,             parse_compound_assignment, PRECEDENCE_ASSIGNMENT },
 
-    [SNUK_TOKEN_EQUAL] = {NULL,             parse_binary,              PRECEDENCE_EQUALITY   },
-    [SNUK_TOKEN_BANG_EQUAL] = {NULL,             parse_binary,              PRECEDENCE_EQUALITY   },
+    [SNUK_TOKEN_EQUAL]          = {NULL,             parse_binary,              PRECEDENCE_EQUALITY   },
+    [SNUK_TOKEN_BANG_EQUAL]     = {NULL,             parse_binary,              PRECEDENCE_EQUALITY   },
 
-    [SNUK_TOKEN_LESS] = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
-    [SNUK_TOKEN_LESS_EQUAL] = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
-    [SNUK_TOKEN_GREATER] = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
-    [SNUK_TOKEN_GREATER_EQUAL] = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_LESS]           = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_LESS_EQUAL]     = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_GREATER]        = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
+    [SNUK_TOKEN_GREATER_EQUAL]  = {NULL,             parse_binary,              PRECEDENCE_COMPARISION},
 
-    [SNUK_TOKEN_PIPE] = {NULL,             parse_binary,              PRECEDENCE_OR         },
-    [SNUK_TOKEN_CARET] = {NULL,             parse_binary,              PRECEDENCE_XOR        },
-    [SNUK_TOKEN_AMP] = {NULL,             parse_binary,              PRECEDENCE_AND        },
+    [SNUK_TOKEN_PIPE]           = {NULL,             parse_binary,              PRECEDENCE_OR         },
+    [SNUK_TOKEN_CARET]          = {NULL,             parse_binary,              PRECEDENCE_XOR        },
+    [SNUK_TOKEN_AMP]            = {NULL,             parse_binary,              PRECEDENCE_AND        },
 
-    [SNUK_TOKEN_PIPE_PIPE] = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_OR },
-    [SNUK_TOKEN_KW_OR] = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_OR },
-    [SNUK_TOKEN_AMP_AMP] = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_AND},
-    [SNUK_TOKEN_KW_AND] = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_AND},
+    [SNUK_TOKEN_PIPE_PIPE]      = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_OR },
+    [SNUK_TOKEN_KW_OR]          = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_OR },
+    [SNUK_TOKEN_AMP_AMP]        = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_AND},
+    [SNUK_TOKEN_KW_AND]         = {NULL,             parse_binary,              PRECEDENCE_LOGICAL_AND},
 
-    [SNUK_TOKEN_LSHIFT] = {NULL,             parse_binary,              PRECEDENCE_SHIFT      },
-    [SNUK_TOKEN_RSHIFT] = {NULL,             parse_binary,              PRECEDENCE_SHIFT      },
+    [SNUK_TOKEN_LSHIFT]         = {NULL,             parse_binary,              PRECEDENCE_SHIFT      },
+    [SNUK_TOKEN_RSHIFT]         = {NULL,             parse_binary,              PRECEDENCE_SHIFT      },
 
-    [SNUK_TOKEN_IF] = {parse_if,         NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_MATCH] = {parse_match,      NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_IF]             = {parse_if,         NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_MATCH]          = {parse_match,      NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_WHILE] = {parse_while,      NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_DO] = {parse_while,      NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_WHILE]          = {parse_while,      NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_DO]             = {parse_while,      NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_FOR] = {parse_for,        NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_FOR]            = {parse_for,        NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_FN] = {parse_fn,         NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_TYPE] = {parse_type_token, NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_FN]             = {parse_fn,         NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_TYPE]           = {parse_type_token, NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_LBRACE] = {parse_block,      NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_LBRACE]         = {parse_block,      NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_LINE_COMMENT] = {parse_comment,    NULL,                      PRECEDENCE_NONE       },
-    [SNUK_TOKEN_BLOCK_COMMENT] = {parse_comment,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_LINE_COMMENT]   = {parse_comment,    NULL,                      PRECEDENCE_NONE       },
+    [SNUK_TOKEN_BLOCK_COMMENT]  = {parse_comment,    NULL,                      PRECEDENCE_NONE       },
 
-    [SNUK_TOKEN_DOT] = {NULL,             parse_member,              PRECEDENCE_PRIMARY    },
+    [SNUK_TOKEN_DOT]            = {NULL,             parse_member,              PRECEDENCE_PRIMARY    },
 };
+
+// clang-format on
 
 /**
  * @brief Get the parse rule for a token type.
@@ -464,13 +457,10 @@ static SnukExpr *parse_for(SnukParser *parser) {
     if (parser_check(parser, SNUK_TOKEN_VAR)) {
         init = snuk_item_parse(parser);
 
-        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON))
-            condition = snuk_expr_parse(parser);
-        parser_expect(
-            parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
+        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = snuk_expr_parse(parser);
+        parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
 
-        if (!parser_check(parser, SNUK_TOKEN_LBRACE))
-            update = snuk_expr_parse(parser);
+        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = snuk_expr_parse(parser);
 
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
         body = parse_block(parser);
@@ -481,14 +471,11 @@ static SnukExpr *parse_for(SnukParser *parser) {
     // Case 3: for ; ... → C-style with no init
     if (parser_match(parser, SNUK_TOKEN_SEMICOLON)) {
         // condition (optional)
-        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON))
-            condition = snuk_expr_parse(parser);
-        parser_expect(
-            parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
+        if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = snuk_expr_parse(parser);
+        parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
 
         // update (optional)
-        if (!parser_check(parser, SNUK_TOKEN_LBRACE))
-            update = snuk_expr_parse(parser);
+        if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = snuk_expr_parse(parser);
 
         parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
         body = parse_block(parser);
@@ -512,18 +499,14 @@ static SnukExpr *parse_for(SnukParser *parser) {
     }
 
     // Case 5: must be C-style → first is init
-    parser_expect(
-        parser, SNUK_TOKEN_SEMICOLON,
-        "expected ';' or '{' after for expression");
+    parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' or '{' after for expression");
 
     init = build_expr_item(parser, first);
 
-    if (!parser_check(parser, SNUK_TOKEN_SEMICOLON))
-        condition = snuk_expr_parse(parser);
+    if (!parser_check(parser, SNUK_TOKEN_SEMICOLON)) condition = snuk_expr_parse(parser);
     parser_expect(parser, SNUK_TOKEN_SEMICOLON, "expected ';' after condition");
 
-    if (!parser_check(parser, SNUK_TOKEN_LBRACE))
-        update = snuk_expr_parse(parser);
+    if (!parser_check(parser, SNUK_TOKEN_LBRACE)) update = snuk_expr_parse(parser);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected body of for loop");
     body = parse_block(parser);
@@ -533,31 +516,26 @@ static SnukExpr *parse_for(SnukParser *parser) {
 
 static SnukExpr *parse_fn(SnukParser *parser) {
     SnukStringView name = {0};
-    if (parser_match(parser, SNUK_TOKEN_IDENTIFIER))
-        name = parser->previous.string_literal;
+    if (parser_match(parser, SNUK_TOKEN_IDENTIFIER)) name = parser->previous.string_literal;
 
     SnukParam **params = snuk_darray_create(SnukParam *, parser->allocator);
     SnukType *fn_type = build_fn_type(parser, NULL, NULL, NULL);
 
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
-    while (!parser_match(parser, SNUK_TOKEN_RPAREN)
-           && parser->current.type != SNUK_TOKEN_EOF) {
+    while (!parser_match(parser, SNUK_TOKEN_RPAREN) && parser->current.type != SNUK_TOKEN_EOF) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
 
         SnukStringView name = parser->previous.string_literal;
         SnukExpr *default_value = NULL;
         SnukType *type = NULL;
 
-        if (parser_match(parser, SNUK_TOKEN_COLON))
-            type = snuk_type_parse(parser);
+        if (parser_match(parser, SNUK_TOKEN_COLON)) type = snuk_type_parse(parser);
         else type = build_any_type(parser);
 
-        if (parser_match(parser, SNUK_TOKEN_ASSIGN))
-            default_value = snuk_expr_parse(parser);
+        if (parser_match(parser, SNUK_TOKEN_ASSIGN)) default_value = snuk_expr_parse(parser);
 
         fn_type = build_fn_type(parser, fn_type, type, NULL);
-        snuk_darray_push(
-            &params, build_param(parser, name, type, default_value));
+        snuk_darray_push(&params, build_param(parser, name, type, default_value));
 
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
@@ -569,8 +547,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
     }
 
     SnukType *ret_type = NULL;
-    if (parser_match(parser, SNUK_TOKEN_ARROW))
-        ret_type = snuk_type_parse(parser);
+    if (parser_match(parser, SNUK_TOKEN_ARROW)) ret_type = snuk_type_parse(parser);
     else ret_type = build_any_type(parser);
 
     fn_type = build_fn_type(parser, fn_type, NULL, ret_type);
@@ -583,8 +560,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
 
 static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
     SnukExpr **params = snuk_darray_create(SnukExpr *, parser->allocator);
-    while (!parser_match(parser, SNUK_TOKEN_RPAREN)
-           && parser->current.type != SNUK_TOKEN_EOF) {
+    while (!parser_match(parser, SNUK_TOKEN_RPAREN) && parser->current.type != SNUK_TOKEN_EOF) {
         SnukExpr *expr = snuk_expr_parse(parser);
         snuk_darray_push(&params, expr);
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
@@ -614,12 +590,9 @@ static SnukExpr *parse_type(SnukParser *parser, SnukStringView name) {
     SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
     SnukType *type_type = build_type_type(parser, NULL, NULL);
 
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
-           && parser->current.type != SNUK_TOKEN_EOF) {
-        if (parser_check(parser, SNUK_TOKEN_VAR)
-            || parser_check(parser, SNUK_TOKEN_CONST)
-            || parser_check(parser, SNUK_TOKEN_FN)
-            || parser_check(parser, SNUK_TOKEN_TYPE)) {
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
+        if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)
+            || parser_check(parser, SNUK_TOKEN_FN) || parser_check(parser, SNUK_TOKEN_TYPE)) {
             SnukItem *item = snuk_item_parse(parser);
             switch (item->type) {
                 case SNUK_ITEM_VAR_DECL:
@@ -629,12 +602,10 @@ static SnukExpr *parse_type(SnukParser *parser, SnukStringView name) {
                 case SNUK_ITEM_EXPR:
                     switch (item->expr->type) {
                         case SNUK_EXPR_FN:
-                            build_type_type(
-                                parser, type_type, item->expr->fn_expr.type);
+                            build_type_type(parser, type_type, item->expr->fn_expr.type);
                             break;
                         case SNUK_EXPR_TYPE:
-                            build_type_type(
-                                parser, type_type, item->expr->type_expr.type);
+                            build_type_type(parser, type_type, item->expr->type_expr.type);
                             break;
                         default:
                             SNUK_SHOULD_NOT_REACH_HERE;
@@ -668,8 +639,7 @@ static SnukExpr *parse_type_inst(SnukParser *parser, SnukType *type) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
     SnukExpr **init = snuk_darray_create(SnukExpr *, parser->allocator);
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
-           && parser->current.type != SNUK_TOKEN_EOF) {
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an member name");
         SnukExpr *identifier = parse_primary(parser);
         parser_expect(parser, SNUK_TOKEN_COLON, "expected ':'");
@@ -690,15 +660,12 @@ static SnukExpr *parse_type_inst(SnukParser *parser, SnukType *type) {
 static SnukExpr *parse_type_token(SnukParser *parser) {
     SnukStringView name = {0};
 
-    if (!parser_match(parser, SNUK_TOKEN_IDENTIFIER))
-        return parse_type(parser, name);
+    if (!parser_match(parser, SNUK_TOKEN_IDENTIFIER)) return parse_type(parser, name);
 
     name = parser->previous.string_literal;
 
-    if (parser_check_next(parser, SNUK_TOKEN_VAR)
-        || parser_check_next(parser, SNUK_TOKEN_CONST)
-        || parser_check_next(parser, SNUK_TOKEN_FN)
-        || parser_check_next(parser, SNUK_TOKEN_TYPE))
+    if (parser_check_next(parser, SNUK_TOKEN_VAR) || parser_check_next(parser, SNUK_TOKEN_CONST)
+        || parser_check_next(parser, SNUK_TOKEN_FN) || parser_check_next(parser, SNUK_TOKEN_TYPE))
         return parse_type(parser, name);
 
     SnukType *type = build_named_type(parser, name);
@@ -708,10 +675,8 @@ static SnukExpr *parse_type_token(SnukParser *parser) {
 static SnukExpr *parse_block(SnukParser *parser) {
     SnukExpr *block_expr = build_block_expr(parser, NULL, NULL);
 
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE)
-           && parser->current.type != SNUK_TOKEN_EOF)
-        block_expr =
-            build_block_expr(parser, block_expr, snuk_item_parse(parser));
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF)
+        block_expr = build_block_expr(parser, block_expr, snuk_item_parse(parser));
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
         parser_error(parser, "block was not closed");
@@ -783,9 +748,7 @@ void snuk_expr_log(SnukExpr *expr) {
     uint64_t count;
     switch (expr->type) {
         case SNUK_EXPR_IDENTIFIER:
-            log_trace(
-                "Identifier: " SNUK_STRING_VIEW_FORMAT,
-                SNUK_STRING_VIEW_ARG(expr->identifier));
+            log_trace("Identifier: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->identifier));
             break;
         case SNUK_EXPR_INT:
             log_trace("Integer: %ld", expr->int_literal);
@@ -794,9 +757,7 @@ void snuk_expr_log(SnukExpr *expr) {
             log_trace("Float: %lf", expr->float_literal);
             break;
         case SNUK_EXPR_STRING:
-            log_trace(
-                "String: " SNUK_STRING_VIEW_FORMAT,
-                SNUK_STRING_VIEW_ARG(expr->string_literal));
+            log_trace("String: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->string_literal));
             break;
         case SNUK_EXPR_BOOL:
             log_trace("Bool: %s", expr->bool_literal ? "true" : "false");
@@ -821,9 +782,7 @@ void snuk_expr_log(SnukExpr *expr) {
             break;
         case SNUK_EXPR_COMPOUND_ASSIGN:
             snuk_expr_log(expr->compound_assign.identifier);
-            log_trace(
-                "%s",
-                snuk_lexer_token_type_to_string(expr->compound_assign.op));
+            log_trace("%s", snuk_lexer_token_type_to_string(expr->compound_assign.op));
             snuk_expr_log(expr->compound_assign.value);
             break;
         case SNUK_EXPR_IF:
@@ -861,12 +820,9 @@ void snuk_expr_log(SnukExpr *expr) {
         case SNUK_EXPR_FN:
             log_trace("fn expression:", NULL);
             if (expr->fn_expr.name.len)
-                log_trace(
-                    "Name: " SNUK_STRING_VIEW_FORMAT,
-                    SNUK_STRING_VIEW_ARG(expr->fn_expr.name));
+                log_trace("Name: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->fn_expr.name));
             count = snuk_darray_get_length(expr->fn_expr.params);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_param_log(expr->fn_expr.params[i]);
+            for (uint64_t i = 0; i < count; ++i) snuk_param_log(expr->fn_expr.params[i]);
             log_trace("body:", NULL);
             snuk_expr_log(expr->fn_expr.body);
             snuk_type_log(expr->fn_expr.type);
@@ -874,25 +830,20 @@ void snuk_expr_log(SnukExpr *expr) {
         case SNUK_EXPR_TYPE:
             log_trace("type expression:", NULL);
             if (expr->type_expr.name.len)
-                log_trace(
-                    "Name: " SNUK_STRING_VIEW_FORMAT,
-                    SNUK_STRING_VIEW_ARG(expr->type_expr.name));
+                log_trace("Name: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->type_expr.name));
             count = snuk_darray_get_length(expr->type_expr.members);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_item_log(expr->type_expr.members[i]);
+            for (uint64_t i = 0; i < count; ++i) snuk_item_log(expr->type_expr.members[i]);
             break;
         case SNUK_EXPR_BLOCK:
             log_trace("block expression:", NULL);
             count = snuk_darray_get_length(expr->block_items);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_item_log(expr->block_items[i]);
+            for (uint64_t i = 0; i < count; ++i) snuk_item_log(expr->block_items[i]);
             break;
         case SNUK_EXPR_CALL:
             // TODO:
             snuk_expr_log(expr->call.fn);
             count = snuk_darray_get_length(expr->call.params);
-            for (uint64_t i = 0; i < count; ++i)
-                snuk_expr_log(expr->call.params[i]);
+            for (uint64_t i = 0; i < count; ++i) snuk_expr_log(expr->call.params[i]);
             break;
         case SNUK_EXPR_MEMBER:
             // TODO:
@@ -903,14 +854,10 @@ void snuk_expr_log(SnukExpr *expr) {
             log_trace("Index:", NULL);
             break;
         case SNUK_EXPR_LINE_COMMENT:
-            log_trace(
-                "single line comment: " SNUK_STRING_VIEW_FORMAT,
-                SNUK_STRING_VIEW_ARG(expr->comment));
+            log_trace("single line comment: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->comment));
             break;
         case SNUK_EXPR_BLOCK_COMMENT:
-            log_trace(
-                "multi-line comment: " SNUK_STRING_VIEW_FORMAT,
-                SNUK_STRING_VIEW_ARG(expr->comment));
+            log_trace("multi-line comment: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->comment));
             break;
         default:
             break;

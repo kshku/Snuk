@@ -9,17 +9,15 @@
 typedef void (*SnukRefCounterFreeFn)(void *data, void *ptr);
 
 typedef struct SnukRefCounter {
-        void *mem;
-        uint64_t ref_count;
+    void *mem;
+    uint64_t ref_count;
 
-        void *data;
-        SnukRefCounterFreeFn free_fn;
+    void *data;
+    SnukRefCounterFreeFn free_fn;
 } SnukRefCounter;
 
-SNUK_INLINE SnukRefCounter *snuk_ref_counter_create(
-    void *mem, void *data, SnukRefCounterFreeFn free_fn) {
-    SnukRefCounter *rc = (SnukRefCounter *)snuk_alloc(
-        sizeof(SnukRefCounter), alignof(SnukRefCounter));
+SNUK_INLINE SnukRefCounter *snuk_ref_counter_create(void *mem, void *data, SnukRefCounterFreeFn free_fn) {
+    SnukRefCounter *rc = (SnukRefCounter *)snuk_alloc(sizeof(SnukRefCounter), alignof(SnukRefCounter));
     *rc = (SnukRefCounter){
         .mem = mem,
         .ref_count = 1,

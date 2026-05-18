@@ -42,113 +42,106 @@ typedef enum SnukExprType {
     SNUK_EXPR_LINE_COMMENT, /**< Single line comment */
     SNUK_EXPR_BLOCK_COMMENT, /**< Multi line comment */
 
-    SNUK_EXPR_MAX /**< Sentinel value for expression kinds. */
+    SNUK_EXPR_MAX, /**< Sentinel value for expression kinds. */
 } SnukExprType;
 
 /**
  * @brief Parsed expression node.
  */
 struct SnukExpr {
-        SnukExprType
-            type; /**< Discriminant selecting the active expression payload. */
+    SnukExprType type; /**< Discriminant selecting the active expression payload. */
 
-        union {
-                SnukStringView identifier;
-                int64_t int_literal;
-                double float_literal;
-                SnukStringView string_literal;
-                bool bool_literal;
-                SnukStringView comment; /**< Comment */
+    union {
+        SnukStringView identifier;
+        int64_t int_literal;
+        double float_literal;
+        SnukStringView string_literal;
+        bool bool_literal;
+        SnukStringView comment; /**< Comment */
 
-                struct {
-                        SnukTokenType op; /**< Unary operator token. */
-                        SnukExpr *operand; /**< Unary operand expression. */
-                } unary;
+        struct {
+            SnukTokenType op; /**< Unary operator token. */
+            SnukExpr *operand; /**< Unary operand expression. */
+        } unary;
 
-                struct {
-                        SnukTokenType op; /**< Binary operator token. */
-                        SnukExpr *left; /**< Left-hand operand expression. */
-                        SnukExpr *right; /**< Right-hand operand expression. */
-                } binary;
+        struct {
+            SnukTokenType op; /**< Binary operator token. */
+            SnukExpr *left; /**< Left-hand operand expression. */
+            SnukExpr *right; /**< Right-hand operand expression. */
+        } binary;
 
-                struct {
-                        SnukExpr *identifier; /**< Assignment target identifier
-                                                 expression. */
-                        SnukExpr *value; /**< Assigned value expression. */
-                } assign;
+        struct {
+            SnukExpr *identifier; /**< Assignment target identifier
+                                     expression. */
+            SnukExpr *value; /**< Assigned value expression. */
+        } assign;
 
-                struct {
-                        SnukTokenType op; /**< Compound assignment token */
-                        SnukExpr *identifier; /**< Assignment target identifier
-                                                 expression. */
-                        SnukExpr *value; /**< Assigned value expression. */
-                } compound_assign;
+        struct {
+            SnukTokenType op; /**< Compound assignment token */
+            SnukExpr *identifier; /**< Assignment target identifier
+                                     expression. */
+            SnukExpr *value; /**< Assigned value expression. */
+        } compound_assign;
 
-                struct {
-                        SnukExpr *condition; /**< Condition expression. */
-                        SnukExpr *then_block; /**< Block expression to execute
-                                                 on true condition */
-                        SnukExpr *else_block; /**< Block expression to execute
-                                                 on false condition */
-                } if_else;
+        struct {
+            SnukExpr *condition; /**< Condition expression. */
+            SnukExpr *then_block; /**< Block expression to execute
+                                     on true condition */
+            SnukExpr *else_block; /**< Block expression to execute
+                                     on false condition */
+        } if_else;
 
-                struct {
-                        SnukExpr *value; /**< Value expression being matched. */
-                        // TODO:
-                } match;
+        struct {
+            SnukExpr *value; /**< Value expression being matched. */
+            // TODO:
+        } match;
 
-                struct {
-                        SnukExpr *condition; /**< Loop condition expression. */
-                        SnukExpr *body; /**< Loop body block. */
-                } while_loop;  // while, do while
+        struct {
+            SnukExpr *condition; /**< Loop condition expression. */
+            SnukExpr *body; /**< Loop body block. */
+        } while_loop;  // while, do while
 
-                struct {
-                        SnukItem *init; /**< Optional initializer. */
-                        SnukExpr *condition; /**< Optional loop condition
-                                                expression. */
-                        SnukExpr
-                            *update; /**< Optional loop update expression. */
-                        SnukExpr *body; /**< Loop body block. */
-                } for_loop;
+        struct {
+            SnukItem *init; /**< Optional initializer. */
+            SnukExpr *condition; /**< Optional loop condition
+                                    expression. */
+            SnukExpr *update; /**< Optional loop update expression. */
+            SnukExpr *body; /**< Loop body block. */
+        } for_loop;
 
-                struct {
-                        SnukParam **params; /**< Darray of parameters. */
-                        SnukExpr *body; /**< Body of function */
-                        SnukStringView
-                            name; /**< Name in case of syntax sugar */
-                        SnukType *type; /**< Type of the function */
-                } fn_expr;
+        struct {
+            SnukParam **params; /**< Darray of parameters. */
+            SnukExpr *body; /**< Body of function */
+            SnukStringView name; /**< Name in case of syntax sugar */
+            SnukType *type; /**< Type of the function */
+        } fn_expr;
 
-                struct {
-                        SnukItem **members; /**< Dynamic array of members items
-                                               in the type */
-                        SnukStringView
-                            name; /**< Name in case of syntax sugar */
-                        SnukType *type; /**< Type of the type */
-                } type_expr;
+        struct {
+            SnukItem **members; /**< Dynamic array of members items
+                                   in the type */
+            SnukStringView name; /**< Name in case of syntax sugar */
+            SnukType *type; /**< Type of the type */
+        } type_expr;
 
-                struct {
-                        SnukType *type; /**< Name of the type */
-                        SnukStringView
-                            name; /**< Name in case of syntax sugar. */
-                        SnukExpr **init; /**< initial values of members */
-                } type_inst_expr;
+        struct {
+            SnukType *type; /**< Name of the type */
+            SnukStringView name; /**< Name in case of syntax sugar. */
+            SnukExpr **init; /**< initial values of members */
+        } type_inst_expr;
 
-                SnukItem *
-                    *block_items; /**< Dynamic array of items in the block. */
+        SnukItem **block_items; /**< Dynamic array of items in the block. */
 
-                struct {
-                        SnukExpr *fn; /**< Expression to call */
-                        SnukExpr **
-                            params; /**< Darray of call argument expressions. */
-                } call;
+        struct {
+            SnukExpr *fn; /**< Expression to call */
+            SnukExpr **params; /**< Darray of call argument expressions. */
+        } call;
 
-                struct {
-                        SnukExpr *type; /**< Type from which to access the
-                                           field/member */
-                        SnukExpr *field; /**< The field/member */
-                } member_access;
-        };
+        struct {
+            SnukExpr *type; /**< Type from which to access the
+                               field/member */
+            SnukExpr *field; /**< The field/member */
+        } member_access;
+    };
 };
 
 /**
@@ -159,8 +152,7 @@ struct SnukExpr {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
-    return (SnukExpr *)parser->allocator->alloc(
-        parser->allocator->data, sizeof(SnukExpr), alignof(SnukExpr));
+    return (SnukExpr *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukExpr), alignof(SnukExpr));
 }
 
 /**
@@ -170,15 +162,11 @@ SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
  *
  * @return Newly allocated comment expressoin.
  */
-SNUK_INLINE SnukExpr *build_comment_expr(
-    SnukParser *parser, SnukToken comment_token) {
+SNUK_INLINE SnukExpr *build_comment_expr(SnukParser *parser, SnukToken comment_token) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
-        .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT
-                  ? SNUK_EXPR_BLOCK_COMMENT
-                  : SNUK_EXPR_LINE_COMMENT,
-        .comment =
-            parser_copy_string_view(parser, comment_token.string_literal),
+        .type = comment_token.type == SNUK_TOKEN_BLOCK_COMMENT ? SNUK_EXPR_BLOCK_COMMENT : SNUK_EXPR_LINE_COMMENT,
+        .comment = parser_copy_string_view(parser, comment_token.string_literal),
     };
     return expr;
 }
@@ -225,8 +213,7 @@ SNUK_INLINE SnukExpr *build_string_literal_expr(SnukParser *parser) {
     SnukExpr *string_expr = parser_create_expr(parser);
     *string_expr = (SnukExpr){
         .type = SNUK_EXPR_STRING,
-        .string_literal =
-            parser_copy_string_view(parser, parser->previous.string_literal),
+        .string_literal = parser_copy_string_view(parser, parser->previous.string_literal),
     };
     return string_expr;
 }
@@ -242,8 +229,7 @@ SNUK_INLINE SnukExpr *build_identifier_expr(SnukParser *parser) {
     SnukExpr *identifier = parser_create_expr(parser);
     *identifier = (SnukExpr){
         .type = SNUK_EXPR_IDENTIFIER,
-        .identifier =
-            parser_copy_string_view(parser, parser->previous.string_literal),
+        .identifier = parser_copy_string_view(parser, parser->previous.string_literal),
     };
     return identifier;
 }
@@ -289,8 +275,7 @@ SNUK_INLINE SnukExpr *build_float_literal_expr(SnukParser *parser) {
  *
  * @return Newly allocated unary expression node.
  */
-SNUK_INLINE SnukExpr *build_unary_expr(
-    SnukParser *parser, SnukTokenType op, SnukExpr *operand) {
+SNUK_INLINE SnukExpr *build_unary_expr(SnukParser *parser, SnukTokenType op, SnukExpr *operand) {
     SnukExpr *unary_expr = parser_create_expr(parser);
     *unary_expr = (SnukExpr){
         .type = SNUK_EXPR_UNARY,
@@ -309,8 +294,7 @@ SNUK_INLINE SnukExpr *build_unary_expr(
  *
  * @return Newly allocated binary expression node.
  */
-SNUK_INLINE SnukExpr *build_binary_expr(
-    SnukParser *parser, SnukTokenType op, SnukExpr *left, SnukExpr *right) {
+SNUK_INLINE SnukExpr *build_binary_expr(SnukParser *parser, SnukTokenType op, SnukExpr *left, SnukExpr *right) {
     SnukExpr *binary_expr = parser_create_expr(parser);
     *binary_expr = (SnukExpr){
         .type = SNUK_EXPR_BINARY,
@@ -328,8 +312,7 @@ SNUK_INLINE SnukExpr *build_binary_expr(
  *
  * @return Newly allocated assignment expression node.
  */
-SNUK_INLINE SnukExpr *build_assign_expr(
-    SnukParser *parser, SnukExpr *identifier, SnukExpr *value) {
+SNUK_INLINE SnukExpr *build_assign_expr(SnukParser *parser, SnukExpr *identifier, SnukExpr *value) {
     SnukExpr *assign_expr = parser_create_expr(parser);
     *assign_expr = (SnukExpr){
         .type = SNUK_EXPR_ASSIGN,
@@ -349,8 +332,7 @@ SNUK_INLINE SnukExpr *build_assign_expr(
  * @return Newly allocated assignment expression node.
  */
 SNUK_INLINE SnukExpr *build_compound_assign_expr(
-    SnukParser *parser, SnukTokenType op, SnukExpr *identifier,
-    SnukExpr *value) {
+    SnukParser *parser, SnukTokenType op, SnukExpr *identifier, SnukExpr *value) {
     SnukExpr *compound = parser_create_expr(parser);
     *compound = (SnukExpr){
         .type = SNUK_EXPR_COMPOUND_ASSIGN,
@@ -369,16 +351,12 @@ SNUK_INLINE SnukExpr *build_compound_assign_expr(
  *
  * @return Newly allocated if expression node.
  */
-SNUK_INLINE SnukExpr *build_if_expr(
-    SnukParser *parser, SnukExpr *condition, SnukExpr *then_block,
-    SnukExpr *else_block) {
+SNUK_INLINE SnukExpr *
+    build_if_expr(SnukParser *parser, SnukExpr *condition, SnukExpr *then_block, SnukExpr *else_block) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_IF,
-        .if_else =
-            {.condition = condition,
-                      .then_block = then_block,
-                      .else_block = else_block},
+        .if_else = {.condition = condition, .then_block = then_block, .else_block = else_block},
     };
     return expr;
 }
@@ -409,8 +387,7 @@ SNUK_INLINE SnukExpr *build_match_expr(SnukParser *parser, SnukExpr *value) {
  *
  * @return Newly allocated while or do while expression node.
  */
-SNUK_INLINE SnukExpr *build_while_expr(
-    SnukParser *parser, SnukExpr *condition, SnukExpr *body, bool is_do_while) {
+SNUK_INLINE SnukExpr *build_while_expr(SnukParser *parser, SnukExpr *condition, SnukExpr *body, bool is_do_while) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = is_do_while ? SNUK_EXPR_DO_WHILE : SNUK_EXPR_WHILE,
@@ -431,16 +408,11 @@ SNUK_INLINE SnukExpr *build_while_expr(
  * @return Newly allocated for expression node.
  */
 SNUK_INLINE SnukExpr *build_for_expr(
-    SnukParser *parser, SnukItem *init, SnukExpr *condition, SnukExpr *update,
-    SnukExpr *body) {
+    SnukParser *parser, SnukItem *init, SnukExpr *condition, SnukExpr *update, SnukExpr *body) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FOR,
-        .for_loop =
-            {.init = init,
-                       .condition = condition,
-                       .update = update,
-                       .body = body},
+        .for_loop = {.init = init, .condition = condition, .update = update, .body = body},
     };
     return expr;
 }
@@ -457,16 +429,11 @@ SNUK_INLINE SnukExpr *build_for_expr(
  * @return Newly allocated fn expression node.
  */
 SNUK_INLINE SnukExpr *build_fn_expr(
-    SnukParser *parser, SnukParam **params, SnukExpr *body, SnukStringView name,
-    SnukType *type) {
+    SnukParser *parser, SnukParam **params, SnukExpr *body, SnukStringView name, SnukType *type) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FN,
-        .fn_expr =
-            {.params = params,
-                      .body = body,
-                      .name = parser_copy_string_view(parser, name),
-                      .type = type},
+        .fn_expr = {.params = params, .body = body, .name = parser_copy_string_view(parser, name), .type = type},
     };
     return expr;
 }
@@ -481,16 +448,12 @@ SNUK_INLINE SnukExpr *build_fn_expr(
  *
  * @return Newly allocated type expression node.
  */
-SNUK_INLINE SnukExpr *build_type_expr(
-    SnukParser *parser, SnukItem **members, SnukStringView name,
-    SnukType *type) {
+SNUK_INLINE SnukExpr *
+    build_type_expr(SnukParser *parser, SnukItem **members, SnukStringView name, SnukType *type) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE,
-        .type_expr =
-            {.members = members,
-                        .name = parser_copy_string_view(parser, name),
-                        .type = type},
+        .type_expr = {.members = members, .name = parser_copy_string_view(parser, name), .type = type},
     };
     return expr;
 }
@@ -505,15 +468,12 @@ SNUK_INLINE SnukExpr *build_type_expr(
  *
  * @return Newly allocated type expression node.
  */
-SNUK_INLINE SnukExpr *build_type_inst_expr(
-    SnukParser *parser, SnukType *type, SnukExpr **init, SnukStringView name) {
+SNUK_INLINE SnukExpr *
+    build_type_inst_expr(SnukParser *parser, SnukType *type, SnukExpr **init, SnukStringView name) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_TYPE_INST,
-        .type_inst_expr =
-            {.type = type,
-                             .init = init,
-                             .name = parser_copy_string_view(parser, name)},
+        .type_inst_expr = {.type = type, .init = init, .name = parser_copy_string_view(parser, name)},
     };
     return expr;
 }
@@ -527,8 +487,7 @@ SNUK_INLINE SnukExpr *build_type_inst_expr(
  *
  * @return Newly allocated block expression node.
  */
-SNUK_INLINE SnukExpr *build_block_expr(
-    SnukParser *parser, SnukExpr *expr, SnukItem *item) {
+SNUK_INLINE SnukExpr *build_block_expr(SnukParser *parser, SnukExpr *expr, SnukItem *item) {
     if (!expr) {
         expr = parser_create_expr(parser);
         *expr = (SnukExpr){
@@ -549,8 +508,7 @@ SNUK_INLINE SnukExpr *build_block_expr(
  *
  * @return Newly allocated call expression node.
  */
-SNUK_INLINE SnukExpr *build_call_expr(
-    SnukParser *parser, SnukExpr *fn, SnukExpr **params) {
+SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukExpr *fn, SnukExpr **params) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_CALL,
@@ -566,8 +524,7 @@ SNUK_INLINE SnukExpr *build_call_expr(
  * @param type The type to access member from.
  * @param field The member to access.
  */
-SNUK_INLINE SnukExpr *build_member_access_expr(
-    SnukParser *parser, SnukExpr *type, SnukExpr *field) {
+SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *type, SnukExpr *field) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_MEMBER,

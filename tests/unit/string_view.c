@@ -1,8 +1,8 @@
+#include "test_framework.h"
+
 #include <memory.h>
 #include <snuk_string.h>
 #include <string_view.h>
-
-#include "test_framework.h"
 
 ADD_TEST(test_string_view_create_with_len) {
     SnukStringView view = snuk_string_view_create_with_len("hello world", 5);

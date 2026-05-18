@@ -8,9 +8,9 @@
  * @brief Parsed function parameter.
  */
 struct SnukParam {
-        SnukStringView name; /**< Parameter name expression. */
-        SnukType *type; /**< Type information of the parameter */
-        SnukExpr *default_value; /**< Optional default value expression. */
+    SnukStringView name; /**< Parameter name expression. */
+    SnukType *type; /**< Type information of the parameter */
+    SnukExpr *default_value; /**< Optional default value expression. */
 };
 
 /**
@@ -21,8 +21,7 @@ struct SnukParam {
  * @return Newly allocated parameter storage.
  */
 SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
-    return (SnukParam *)parser->allocator->alloc(
-        parser->allocator->data, sizeof(SnukParam), alignof(SnukParam));
+    return (SnukParam *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukParam), alignof(SnukParam));
 }
 
 /**
@@ -35,9 +34,8 @@ SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
  *
  * @return Newly allocated parameter node.
  */
-SNUK_INLINE SnukParam *build_param(
-    SnukParser *parser, SnukStringView name, SnukType *type,
-    SnukExpr *default_value) {
+SNUK_INLINE SnukParam *
+    build_param(SnukParser *parser, SnukStringView name, SnukType *type, SnukExpr *default_value) {
     SnukParam *param = parser_create_param(parser);
     *param = (SnukParam){
         .name = parser_copy_string_view(parser, name),

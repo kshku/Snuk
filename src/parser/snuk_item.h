@@ -25,29 +25,27 @@ typedef enum SnukItemType {
                         them. */
     SNUK_ITEM_CONTINUE, /**< Transfer control to next iteration. */
 
-    SNUK_ITEM_MAX /**< Sentinel value for item kinds. */
+    SNUK_ITEM_MAX, /**< Sentinel value for item kinds. */
 } SnukItemType;
 
 /**
  * @brief Parsed item.
  */
 struct SnukItem {
-        SnukItemType
-            type; /**< Discriminant selecting the active item payload. */
+    SnukItemType type; /**< Discriminant selecting the active item payload. */
 
-        union {
-                SnukExpr *expr; /**< expression item payload (also used for
-                                   return and break). */
+    union {
+        SnukExpr *expr; /**< expression item payload (also used for
+                           return and break). */
 
-                struct {
-                        SnukStringView name; /**< Name. */
-                        SnukType *type; /**< Type information. */
-                        SnukExpr *expr; /**< Expression. */
-                } decl_item;
+        struct {
+            SnukStringView name; /**< Name. */
+            SnukType *type; /**< Type information. */
+            SnukExpr *expr; /**< Expression. */
+        } decl_item;
 
-                SnukExpr *
-                    *print_exprs; /**< Dynamic array of expressions to print. */
-        };
+        SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
+    };
 };
 
 /**
@@ -58,8 +56,7 @@ struct SnukItem {
  * @return Newly allocated item storage.
  */
 SNUK_INLINE SnukItem *parser_create_item(SnukParser *parser) {
-    return (SnukItem *)parser->allocator->alloc(
-        parser->allocator->data, sizeof(SnukItem), alignof(SnukItem));
+    return (SnukItem *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukItem), alignof(SnukItem));
 }
 
 /**
@@ -91,15 +88,11 @@ SNUK_INLINE SnukItem *build_expr_item(SnukParser *parser, SnukExpr *expr) {
  * @return Newly allocated declaration item.
  */
 SNUK_INLINE SnukItem *build_decl_item(
-    SnukParser *parser, SnukStringView name, SnukType *type, SnukExpr *expr,
-    SnukItemType item_type) {
+    SnukParser *parser, SnukStringView name, SnukType *type, SnukExpr *expr, SnukItemType item_type) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = item_type,
-        .decl_item =
-            {.name = parser_copy_string_view(parser, name),
-                        .type = type,
-                        .expr = expr},
+        .decl_item = {.name = parser_copy_string_view(parser, name), .type = type, .expr = expr},
     };
     return item;
 }
@@ -113,8 +106,7 @@ SNUK_INLINE SnukItem *build_decl_item(
  *
  * @return Newly allocated control-flow item.
  */
-SNUK_INLINE SnukItem *build_flow_item(
-    SnukParser *parser, SnukTokenType type, SnukExpr *value) {
+SNUK_INLINE SnukItem *build_flow_item(SnukParser *parser, SnukTokenType type, SnukExpr *value) {
     SnukItem *item = parser_create_item(parser);
     switch (type) {
         case SNUK_TOKEN_RETURN:
@@ -150,8 +142,7 @@ SNUK_INLINE SnukItem *build_flow_item(
  *
  * @return Print item.
  */
-SNUK_INLINE SnukItem *build_print_item(
-    SnukParser *parser, SnukItem *item, SnukExpr *expr) {
+SNUK_INLINE SnukItem *build_print_item(SnukParser *parser, SnukItem *item, SnukExpr *expr) {
     if (!item) {
         item = parser_create_item(parser);
         *item = (SnukItem){

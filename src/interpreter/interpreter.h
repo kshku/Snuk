@@ -18,9 +18,9 @@
  * the most recent control-flow signal raised during evaluation.
  */
 typedef struct SnukInterpreter {
-        SnukRefCounter *current;
-        SnukRefCounter *global;
-        SnukSignal signal;
+    SnukRefCounter *current;
+    SnukRefCounter *global;
+    SnukSignal signal;
 } SnukInterpreter;
 
 /**
@@ -73,12 +73,9 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item);
  */
 SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr);
 
-SnukValue snuk_interpreter_get_env(
-    SnukInterpreter *intpret, SnukStringView name);
+SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name);
 
-bool snuk_interpreter_set_env(
-    SnukInterpreter *intpret, SnukStringView name, SnukValue value);
+bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value);
 
-bool snuk_interpreter_value_is_of_type(
-    SnukInterpreter *intpret, SnukValue value, SnukType *type);
+bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value, SnukType *type);
 

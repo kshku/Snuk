@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install clang-format-19
+        run: |
+          sudo apt update
+          sudo apt install -y clang-format-19
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -19,7 +24,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          clang-format --dry-run --Werror $(git ls-files '*.c' '*.h')
+          clang-format-19 --dry-run --Werror $(git ls-files '*.c' '*.h')
 
   build-check:
     name: Build check (warnings as errors)

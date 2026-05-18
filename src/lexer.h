@@ -3,8 +3,7 @@
 #include "defines.h"
 #include "string_view.h"
 
-SNUK_STATIC_ASSERT(
-    sizeof(double) == 8, "Expected sizeof(double) to be 8 bytes.");
+SNUK_STATIC_ASSERT(sizeof(double) == 8, "Expected sizeof(double) to be 8 bytes.");
 
 /**
  * @brief Token categories emitted by the Snuk lexer.
@@ -113,7 +112,7 @@ typedef enum SnukTokenType {
     SNUK_TOKEN_LINE_COMMENT,  // //
     SNUK_TOKEN_BLOCK_COMMENT,  // /* */
 
-    SNUK_TOKEN_MAX
+    SNUK_TOKEN_MAX,
 } SnukTokenType;
 
 /**
@@ -127,20 +126,20 @@ typedef enum SnukTokenType {
  * @note String views point into the source buffer owned by the caller.
  */
 typedef struct SnukToken {
-        SnukTokenType type;
+    SnukTokenType type;
 
-        union {
-                SnukStringView string_literal;
-                int64_t int_literal;
-                double float_literal;
-        };
+    union {
+        SnukStringView string_literal;
+        int64_t int_literal;
+        double float_literal;
+    };
 
-        const char *err_msg;
+    const char *err_msg;
 
-        SnukStringView leading_comment;
-        SnukStringView trailing_comment;
+    SnukStringView leading_comment;
+    SnukStringView trailing_comment;
 
-        uint64_t line, col;
+    uint64_t line, col;
 } SnukToken;
 
 /**
@@ -152,19 +151,19 @@ typedef struct SnukToken {
  * @note The source buffer must remain valid for the lifetime of the lexer.
  */
 typedef struct SnukLexer {
-        const char *src;
+    const char *src;
 
-        const char *cur;
-        const char *token_start;
-        uint64_t token_start_line;
-        uint64_t token_start_col;
+    const char *cur;
+    const char *token_start;
+    uint64_t token_start_line;
+    uint64_t token_start_col;
 
-        uint64_t line;
-        uint64_t col;
+    uint64_t line;
+    uint64_t col;
 
-        SnukTokenType previous_token_type;
-        uint32_t paren_depth;
-        uint32_t bracket_depth;
+    SnukTokenType previous_token_type;
+    uint32_t paren_depth;
+    uint32_t bracket_depth;
 } SnukLexer;
 
 /**

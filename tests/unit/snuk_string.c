@@ -1,6 +1,6 @@
-#include <snuk_string.h>
-
 #include "test_framework.h"
+
+#include <snuk_string.h>
 
 ADD_TEST(test_is_alpha) {
     // lowercase and uppercase letters

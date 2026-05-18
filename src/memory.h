@@ -1,19 +1,18 @@
 #pragma once
 
-#include <snmemory/snmemory.h>
-
 #include "defines.h"
+
+#include <snmemory/snmemory.h>
 
 #define KIB(x) ((x) * 1024)
 #define MIB(x) (KIB((x) * 1024))
 #define GIB(x) (MIB((x) * 1024))
 
 typedef struct SnukAllocator {
-        void *data;
-        void *(*alloc)(void *data, uint64_t size, uint64_t align);
-        void *(*realloc)(
-            void *data, void *ptr, uint64_t new_size, uint64_t align);
-        void (*free)(void *data, void *ptr);
+    void *data;
+    void *(*alloc)(void *data, uint64_t size, uint64_t align);
+    void *(*realloc)(void *data, void *ptr, uint64_t new_size, uint64_t align);
+    void (*free)(void *data, void *ptr);
 } SnukAllocator;
 
 /**

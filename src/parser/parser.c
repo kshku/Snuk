@@ -19,10 +19,7 @@ void parser_error(SnukParser *parser, const char *err_msg) {
     SnukToken t = parser->current;
     snuk_eprint("%lu:%lu error", t.line, t.col);
     if (t.type == SNUK_TOKEN_EOF) snuk_eprint(" at end");
-    else
-        snuk_eprint(
-            " at '" SNUK_STRING_VIEW_FORMAT "'",
-            SNUK_STRING_VIEW_ARG(t.string_literal));
+    else snuk_eprint(" at '" SNUK_STRING_VIEW_FORMAT "'", SNUK_STRING_VIEW_ARG(t.string_literal));
     snuk_eprintln(" message: '%s'", err_msg);
 }
 

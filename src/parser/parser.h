@@ -24,14 +24,14 @@ typedef struct SnukItem SnukItem;
  * @brief Parser state for a single source buffer.
  */
 typedef struct SnukParser {
-        SnukLexer lexer; /**< Lexer used to produce tokens. */
-        SnukToken previous; /**< previously consumed tokens. */
-        SnukToken current; /**< Current token. */
-        SnukToken next; /**< Next token. */
+    SnukLexer lexer; /**< Lexer used to produce tokens. */
+    SnukToken previous; /**< previously consumed tokens. */
+    SnukToken current; /**< Current token. */
+    SnukToken next; /**< Next token. */
 
-        SnukAllocator *allocator;
+    SnukAllocator *allocator;
 
-        bool had_error, panic_mode; /**< Error and recovery state flags. */
+    bool had_error, panic_mode; /**< Error and recovery state flags. */
 } SnukParser;
 
 /**
@@ -48,8 +48,7 @@ typedef struct SnukParser {
  * @note The source text must remain valid for the lifetime of parsed nodes that
  * reference token text.
  */
-SNUK_INLINE void snuk_parser_init(
-    SnukParser *parser, const char *src, SnukAllocator *allocator) {
+SNUK_INLINE void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator) {
     *parser = (SnukParser){
         .allocator = allocator,
         .had_error = false,
