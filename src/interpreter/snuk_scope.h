@@ -28,15 +28,6 @@ SNUK_INLINE void snuk_scope_destroy_envs(SnukScope *scope) {
     }
 }
 
-SNUK_INLINE void snuk_scope_free_fn_closures(SnukScope *scope) {
-    uint64_t count = snuk_darray_get_length(scope->vars);
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukEnv *env = scope->vars[i];
-        if (env->value.type == SNUK_VALUE_FN && env->value.fn_value.closure)
-            snuk_ref_counter_release(&env->value.fn_value.closure);
-    }
-}
-
 /**
  * @brief Refcount finalizer for a SnukScope.
  *
@@ -48,7 +39,7 @@ SNUK_INLINE void snuk_scope_free_fn_closures(SnukScope *scope) {
  * signature.
  * @param ptr Pointer to the SnukScope being released.
  */
-SNUK_INLINE void snuk_scope_free(void *data, void *ptr) {
+SNUK_INLINE void snuk_scope_destroy(void *data, void *ptr) {
     SNUK_UNUSED(data);
     SnukScope *scope = (SnukScope *)ptr;
 
@@ -76,7 +67,7 @@ SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
         .vars = snuk_darray_create(SnukEnv *, NULL),
         .parent = snuk_ref_counter_move(&parent),
     };
-    return snuk_ref_counter_create(scope, NULL, snuk_scope_free);
+    return snuk_ref_counter_create(scope, NULL, snuk_scope_destroy);
 }
 
 /**
@@ -102,4 +93,25 @@ SNUK_INLINE bool snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
     }
     snuk_darray_push(&scope->vars, env);
     return true;
+}
+
+SNUK_INLINE void snuk_scope_remove_env(SnukScope *scope, SnukStringView name) {
+    uint64_t count = snuk_darray_get_length(scope->vars);
+    for (uint64_t i = 0; i < count; ++i) {
+        if (snuk_string_view_equal(scope->vars[i]->name, name)) {
+            SnukEnv *env = NULL;
+            snuk_darray_pop_at(&scope->vars, i, &env);
+            snuk_env_free(env);
+            return;
+        }
+    }
+}
+
+SNUK_INLINE void snuk_scope_free_fn_closures(SnukScope *scope) {
+    uint64_t count = snuk_darray_get_length(scope->vars);
+    for (uint64_t i = 0; i < count; ++i) {
+        SnukEnv *env = scope->vars[i];
+        if (env->value.type == SNUK_VALUE_FN && env->value.fn_value.closure)
+            snuk_ref_counter_release(&env->value.fn_value.closure);
+    }
 }

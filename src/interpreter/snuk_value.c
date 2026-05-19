@@ -6,7 +6,8 @@
 SnukValue snuk_value_copy(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_FN:
-            value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
+            if (value.fn_value.closure)
+                value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
         case SNUK_VALUE_TYPE_INST:

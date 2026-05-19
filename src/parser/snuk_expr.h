@@ -37,6 +37,7 @@ typedef enum SnukExprType {
 
     SNUK_EXPR_CALL, /**< Function call expression. */
     SNUK_EXPR_MEMBER, /**< Member access expression. */
+    SNUK_EXPR_SELF, /**< Self expression. */
     SNUK_EXPR_INDEX, /**< Index access expression. */
 
     SNUK_EXPR_LINE_COMMENT, /**< Single line comment */
@@ -139,7 +140,7 @@ struct SnukExpr {
         struct {
             SnukExpr *type; /**< Type from which to access the
                                field/member */
-            SnukExpr *field; /**< The field/member */
+            SnukExpr *expr; /**< The expression field/member */
         } member_access;
     };
 };
@@ -522,14 +523,29 @@ SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukExpr *fn, SnukExpr
  *
  * @param parser Parser context to operate on.
  * @param type The type to access member from.
- * @param field The member to access.
+ * @param expr The expression on member.
+ *
+ * @return Newly allocated member access expression node.
  */
-SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *type, SnukExpr *field) {
-    SnukExpr *expr = parser_create_expr(parser);
-    *expr = (SnukExpr){
+SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *type, SnukExpr *expr) {
+    SnukExpr *e = parser_create_expr(parser);
+    *e = (SnukExpr){
         .type = SNUK_EXPR_MEMBER,
-        .member_access = {.type = type, .field = field},
+        .member_access = {.type = type, .expr = expr},
     };
+    return e;
+}
+
+/**
+ * @brief Build self expression node.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated self expression node.
+ */
+SNUK_INLINE SnukExpr *build_self_expr(SnukParser *parser) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){.type = SNUK_EXPR_SELF};
     return expr;
 }
 

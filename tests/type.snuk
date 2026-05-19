@@ -9,7 +9,7 @@ type Square { // type definition syntax sugar
     var height: int
     
     fn area() {
-        // self.width * self.height
+        self.width * self.height
     }
 }
 
@@ -31,3 +31,16 @@ type Square s2{width: 10; height: 10}
 type Square s3 = {width: 10; height: 10}
 
 print square.top_left.x
+square.top_left.x = 20
+print square.top_left.x
+
+print square.area()
+
+if Square.width == null {
+    print "Hurray!"
+} else {
+    print "Noooo!"
+}
+
+// calling method with self on the type (not instance) will cause error
+// Square.area()
