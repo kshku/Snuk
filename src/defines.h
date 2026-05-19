@@ -1,5 +1,7 @@
 #pragma once
 
+#include "logger.h"
+
 #include <assert.h>
 #include <stdalign.h>
 #include <stdbool.h>
@@ -18,22 +20,24 @@
 
 #define SNUK_UNUSED(x) ((void)(x))
 
-#define ARRAY_LEN(x) (sizeof(x) / sizeof((x)[0]))
+#define SNUK_ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 
 #if defined(SNUK_DEBUG)
     #if defined(SNUK_COMPILER_GCC) || defined(SNUK_COMPILER_CLANG)
-        #define SNUK_ASSERT(cond, msg) \
-            do {                       \
-                if (!(cond)) {         \
-                    __builtin_trap();  \
-                }                      \
+        #define SNUK_ASSERT(cond, msg)    \
+            do {                          \
+                if (!(cond)) {            \
+                    log_fatal("%s", msg); \
+                    __builtin_trap();     \
+                }                         \
             } while (0)
     #else
-        #define SNUK_ASSERT(cond, msg) \
-            do {                       \
-                if (!(cond)) {         \
-                    __debugbreak();    \
-                }                      \
+        #define SNUK_ASSERT(cond, msg)    \
+            do {                          \
+                if (!(cond)) {            \
+                    log_fatal("%s", msg); \
+                    __debugbreak();       \
+                }                         \
             } while (0)
     #endif
 #else
