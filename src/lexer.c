@@ -1,10 +1,53 @@
 #include "lexer.h"
 
+#include "darray.h"
 #include "logger.h"
 #include "snuk_string.h"
 
 #include <errno.h>
 #include <stdlib.h>
+
+struct ScopeDepth {
+    uint64_t paren;
+    uint64_t bracket;
+};
+
+SNUK_INLINE bool scope_depth_zero(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    return sd[last].paren == sd[last].bracket && sd[last].paren == 0;
+}
+
+SNUK_INLINE void scope_depth_push(ScopeDepth **sd) {
+    snuk_darray_push(sd, (ScopeDepth){0});
+}
+
+SNUK_INLINE void scope_depth_pop(ScopeDepth **sd) {
+    ScopeDepth depth;
+    SNUK_ASSERT(scope_depth_zero(*sd), "scope mismatch");
+    snuk_darray_pop(sd, &depth);
+}
+
+SNUK_INLINE void scope_depth_add_paren(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    sd[last].paren++;
+}
+
+SNUK_INLINE void scope_depth_remove_paren(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    SNUK_ASSERT(sd[last].paren > 0, "scope mismatch");
+    sd[last].paren--;
+}
+
+SNUK_INLINE void scope_depth_add_bracket(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    sd[last].bracket++;
+}
+
+SNUK_INLINE void scope_depth_remove_bracket(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    SNUK_ASSERT(sd[last].paren > 0, "scope mismatch");
+    sd[last].bracket--;
+}
 
 typedef struct KeyWord {
     const char *keyword;
@@ -140,16 +183,22 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
     lexer->previous_token_type = type;
     switch (type) {
         case SNUK_TOKEN_LBRACKET:
-            lexer->bracket_depth++;
+            scope_depth_add_bracket(lexer->sd);
             break;
         case SNUK_TOKEN_RBRACKET:
-            lexer->bracket_depth--;
+            scope_depth_remove_bracket(lexer->sd);
             break;
         case SNUK_TOKEN_LPAREN:
-            lexer->paren_depth++;
+            scope_depth_add_paren(lexer->sd);
             break;
         case SNUK_TOKEN_RPAREN:
-            lexer->paren_depth--;
+            scope_depth_remove_paren(lexer->sd);
+            break;
+        case SNUK_TOKEN_LBRACE:
+            scope_depth_push(&lexer->sd);
+            break;
+        case SNUK_TOKEN_RBRACE:
+            scope_depth_pop(&lexer->sd);
             break;
         default:
             break;
@@ -253,8 +302,8 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
     };
 
     // detect base
-    if (lexer_peek(lexer) == '0') {
-        switch (lexer_peek_next(lexer) | (1 << 5)) {
+    if (lexer_peek(lexer) == '0' && lexer_peek_next(lexer) != '.') {
+        switch (snuk_lower_case(lexer_peek_next(lexer))) {
             case 'x':
                 base = 16;
                 lexer_advance(lexer);
@@ -296,7 +345,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
         while (snuk_is_digit(lexer_peek(lexer))) lexer_advance(lexer);
     }
 
-    if (base == 10 && (lexer_peek(lexer) | (1 << 5)) == 'e') {
+    if (base == 10 && snuk_lower_case(lexer_peek(lexer)) == 'e') {
         is_float = true;
         lexer_advance(lexer);
 
@@ -372,7 +421,7 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
  * @return Keyword token type, or SNUK_TOKEN_EOF when the word is not a keyword.
  */
 static SnukTokenType check_keyword(SnukStringView word) {
-    for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i)
+    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(keywords); ++i)
         if (snuk_string_view_equal_cstr(word, keywords[i].keyword)) return keywords[i].type;
     return SNUK_TOKEN_EOF;
 }
@@ -385,7 +434,7 @@ static SnukTokenType check_keyword(SnukStringView word) {
  * @return Value token type, or SNUK_TOKEN_EOF when the word is not a value.
  */
 static SnukTokenType check_values(SnukStringView word) {
-    for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
+    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(values); ++i) {
         if (values[i].ignore_case && snuk_string_view_equal_cstr_ignore_case(word, values[i].value))
             return values[i].type;
         else if (snuk_string_view_equal_cstr(word, values[i].value)) return values[i].type;
@@ -412,7 +461,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
     if (!multi_line) {
         while (!lexer_is_eof(lexer) && lexer_peek(lexer) != '\n') lexer_advance(lexer);
         SnukToken token = lexer_build_token(lexer, SNUK_TOKEN_LINE_COMMENT);
-        lexer_advance(lexer);  // consume new line
+        // Do not consume new line
         return token;
     }
 
@@ -436,7 +485,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
  * @return True if should insert SNUK_TOKEN_VSEMICOLON.
  */
 static bool lexer_should_insert_vsemicolon(SnukLexer *lexer) {
-    if (lexer->paren_depth || lexer->bracket_depth) return false;
+    if (!scope_depth_zero(lexer->sd)) return false;
 
     switch (lexer->previous_token_type) {
         case SNUK_TOKEN_IDENTIFIER:
@@ -567,6 +616,27 @@ static SnukToken lexer_next_token(SnukLexer *lexer) {
     return lexer_build_error_token(lexer, "unexpected character");
 }
 
+void snuk_lexer_init(SnukLexer *lexer, const char *src) {
+    *lexer = (SnukLexer){
+        .src = src,
+        .cur = src,
+        .token_start = src,
+        .token_start_line = 0,
+        .token_start_col = 0,
+        .line = 0,
+        .col = 0,
+        .previous_token_type = SNUK_TOKEN_MAX,
+        .sd = snuk_darray_create(ScopeDepth, NULL),
+    };
+    scope_depth_push(&lexer->sd);
+}
+
+void snuk_lexer_deinit(SnukLexer *lexer) {
+    if (!lexer) return;
+    snuk_darray_destroy(lexer->sd);
+    *lexer = (SnukLexer){0};
+}
+
 /*
  * Comment position                                             Result
  * Before token, one newline between                            Leading of next
@@ -598,6 +668,7 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
     while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
 
     if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+        // previous token type gets either overridden or set correctly
         lexer_advance(lexer);
         leading_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
         uint64_t count = 0;
@@ -605,8 +676,7 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
             if (lexer->cur[i] == '\n') ++count;
 
         // standalone comment
-        // line comment consumes new line
-        if (count > 0) return leading_comment;
+        if (count > 1) return leading_comment;
     }
 
     while (snuk_is_white_space(lexer_peek(lexer))) lexer_advance(lexer);
@@ -616,8 +686,12 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer) {
     while (snuk_char_in_string(lexer_peek(lexer), IGNORED_WHITE_SPACES)) lexer_advance(lexer);
 
     if (lexer_peek(lexer) == '/' && snuk_char_in_string(lexer_peek_next(lexer), "/*")) {
+        // Save the previous token type
+        SnukTokenType previous_token_type = lexer->previous_token_type;
         lexer_advance(lexer);
         trailing_comment = lexer_scan_comment(lexer, lexer_advance(lexer) == '*');
+        // Restore previous token type
+        lexer->previous_token_type = previous_token_type;
     }
 
     token.leading_comment = leading_comment.string_literal;

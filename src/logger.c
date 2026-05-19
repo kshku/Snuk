@@ -1,5 +1,7 @@
 #include "logger.h"
 
+#include "defines.h"
+
 #include <snlogger/snlogger.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +33,7 @@ static snSink sinks[] = {
 };
 
 void snuk_logger_init(void) {
-    sn_static_logger_init(&sl, log_buffer, LOGGER_BUFFER_SIZE, sinks, ARRAY_LEN(sinks));
+    sn_static_logger_init(&sl, log_buffer, LOGGER_BUFFER_SIZE, sinks, SNUK_ARRAY_LENGTH(sinks));
 }
 
 void snuk_logger_deinit(void) {
@@ -47,7 +49,7 @@ void snuk_log_msg(
     level_string = level_strings[level];
 
     char buffer[1024] = {0};
-    int buffer_size = ARRAY_LEN(buffer);
+    int buffer_size = SNUK_ARRAY_LENGTH(buffer);
     int len = 0;
 
     if (level < SN_LOG_LEVEL_WARN)

@@ -5,6 +5,7 @@
 #include "snuk_env.h"
 
 #define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))
+#define GET_SCOPE_PARENT(rc) ((SnukRefCounter *)GET_SCOPE(rc)->parent)
 
 typedef struct SnukScope SnukScope;
 
@@ -73,7 +74,8 @@ SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
 /**
  * @brief Find a binding by name within a single scope, without walking parents.
  */
-SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
+SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView name) {
+    SnukScope *scope = GET_SCOPE(scope_rc);
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i)
         if (snuk_string_view_equal(scope->vars[i]->name, name)) return scope->vars[i];
@@ -85,8 +87,9 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukScope *scope, SnukStringView name) {
  * @brief Append a binding to a scope's variable list.
  * Takes ownership of env regardless of success or failure.
  */
-SNUK_INLINE bool snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
-    if (snuk_scope_lookup(scope, env->name)) {
+SNUK_INLINE bool snuk_scope_add_env(SnukRefCounter *scope_rc, SnukEnv *env) {
+    SnukScope *scope = GET_SCOPE(scope_rc);
+    if (snuk_scope_lookup(scope_rc, env->name)) {
         log_error("multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'", SNUK_STRING_VIEW_ARG(env->name));
         snuk_env_free(env);
         return false;
@@ -95,7 +98,8 @@ SNUK_INLINE bool snuk_scope_add_env(SnukScope *scope, SnukEnv *env) {
     return true;
 }
 
-SNUK_INLINE void snuk_scope_remove_env(SnukScope *scope, SnukStringView name) {
+SNUK_INLINE void snuk_scope_remove_env(SnukRefCounter *scope_rc, SnukStringView name) {
+    SnukScope *scope = GET_SCOPE(scope_rc);
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i) {
         if (snuk_string_view_equal(scope->vars[i]->name, name)) {
@@ -107,7 +111,8 @@ SNUK_INLINE void snuk_scope_remove_env(SnukScope *scope, SnukStringView name) {
     }
 }
 
-SNUK_INLINE void snuk_scope_free_fn_closures(SnukScope *scope) {
+SNUK_INLINE void snuk_scope_free_fn_closures(SnukRefCounter *scope_rc) {
+    SnukScope *scope = GET_SCOPE(scope_rc);
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i) {
         SnukEnv *env = scope->vars[i];

@@ -78,7 +78,10 @@ SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukType *parser_create_type(SnukParser *parser) {
-    return (SnukType *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukType), alignof(SnukType));
+    SnukType *type = (SnukType *)parser->allocator->alloc(
+        parser->allocator->data, sizeof(SnukType), alignof(SnukType));
+    SNUK_ASSERT(type, "allocator is full, increase memory size!");
+    return type;
 }
 
 /**

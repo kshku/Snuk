@@ -427,9 +427,12 @@ static SnukExpr *parse_if(SnukParser *parser) {
     SnukExpr *then_block = parse_block(parser);
     SnukExpr *else_block = NULL;
     if (parser_match(parser, SNUK_TOKEN_ELSE)) {
-        if (parser_match(parser, SNUK_TOKEN_IF)) else_block = parse_if(parser);
-        parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-        else_block = parse_block(parser);
+        if (parser_match(parser, SNUK_TOKEN_IF)) {
+            else_block = parse_if(parser);
+        } else {
+            parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+            else_block = parse_block(parser);
+        }
     }
     return build_if_expr(parser, condition, then_block, else_block);
 }

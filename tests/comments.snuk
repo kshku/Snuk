@@ -16,3 +16,8 @@ var x = "Hello, World!" // and this one is attached as trailing comment to "Hell
 add(x) /*
 to ')' */
 print x
+
+var Point = type { // can we do this?
+    var x: int // and this?
+    var y: int
+}

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "defines.h"
-
 #include <snlogger/log_level.h>
 
 void snuk_logger_init(void);

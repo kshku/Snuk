@@ -153,7 +153,10 @@ struct SnukExpr {
  * @return Newly allocated expression storage.
  */
 SNUK_INLINE SnukExpr *parser_create_expr(SnukParser *parser) {
-    return (SnukExpr *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukExpr), alignof(SnukExpr));
+    SnukExpr *expr = (SnukExpr *)parser->allocator->alloc(
+        parser->allocator->data, sizeof(SnukExpr), alignof(SnukExpr));
+    SNUK_ASSERT(expr, "allocator is full, increase memory size!");
+    return expr;
 }
 
 /**
