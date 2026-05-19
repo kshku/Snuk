@@ -142,6 +142,8 @@ typedef struct SnukToken {
     uint64_t line, col;
 } SnukToken;
 
+typedef struct ScopeDepth ScopeDepth;
+
 /**
  * @brief Mutable scanner state for a null-terminated Snuk source string.
  *
@@ -162,8 +164,7 @@ typedef struct SnukLexer {
     uint64_t col;
 
     SnukTokenType previous_token_type;
-    uint32_t paren_depth;
-    uint32_t bracket_depth;
+    ScopeDepth *sd;  // darray
 } SnukLexer;
 
 /**
@@ -175,29 +176,14 @@ typedef struct SnukLexer {
  * @note The source buffer is borrowed and must outlive all tokens produced by
  * the lexer.
  */
-SNUK_INLINE void snuk_lexer_init(SnukLexer *lexer, const char *src) {
-    *lexer = (SnukLexer){
-        .src = src,
-        .cur = src,
-        .token_start = src,
-        .token_start_line = 0,
-        .token_start_col = 0,
-        .line = 0,
-        .col = 0,
-        .previous_token_type = SNUK_TOKEN_MAX,
-        .paren_depth = 0,
-        .bracket_depth = 0,
-    };
-}
+void snuk_lexer_init(SnukLexer *lexer, const char *src);
 
 /**
  * @brief Reset a lexer to an empty state.
  *
  * @param lexer Lexer state to clear, or NULL.
  */
-SNUK_INLINE void snuk_lexer_deinit(SnukLexer *lexer) {
-    if (lexer) *lexer = (SnukLexer){0};
-}
+void snuk_lexer_deinit(SnukLexer *lexer);
 
 /**
  * @brief Scan and return the next token from the lexer.

@@ -1,10 +1,53 @@
 #include "lexer.h"
 
+#include "darray.h"
 #include "logger.h"
 #include "snuk_string.h"
 
 #include <errno.h>
 #include <stdlib.h>
+
+struct ScopeDepth {
+    uint64_t paren;
+    uint64_t bracket;
+};
+
+SNUK_INLINE bool scope_depth_zero(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    return sd[last].paren == sd[last].bracket && sd[last].paren == 0;
+}
+
+SNUK_INLINE void scope_depth_push(ScopeDepth **sd) {
+    snuk_darray_push(sd, (ScopeDepth){0});
+}
+
+SNUK_INLINE void scope_depth_pop(ScopeDepth **sd) {
+    ScopeDepth depth;
+    SNUK_ASSERT(scope_depth_zero(*sd), "scope mismatch");
+    snuk_darray_pop(sd, &depth);
+}
+
+SNUK_INLINE void scope_depth_add_paren(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    sd[last].paren++;
+}
+
+SNUK_INLINE void scope_depth_remove_paren(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    SNUK_ASSERT(sd[last].paren > 0, "scope mismatch");
+    sd[last].paren--;
+}
+
+SNUK_INLINE void scope_depth_add_bracket(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    sd[last].bracket++;
+}
+
+SNUK_INLINE void scope_depth_remove_bracket(ScopeDepth *sd) {
+    uint64_t last = snuk_darray_get_length(sd) - 1;
+    SNUK_ASSERT(sd[last].paren > 0, "scope mismatch");
+    sd[last].bracket--;
+}
 
 typedef struct KeyWord {
     const char *keyword;
@@ -140,16 +183,22 @@ SNUK_INLINE SnukToken lexer_build_token(SnukLexer *lexer, SnukTokenType type) {
     lexer->previous_token_type = type;
     switch (type) {
         case SNUK_TOKEN_LBRACKET:
-            lexer->bracket_depth++;
+            scope_depth_add_bracket(lexer->sd);
             break;
         case SNUK_TOKEN_RBRACKET:
-            lexer->bracket_depth--;
+            scope_depth_remove_bracket(lexer->sd);
             break;
         case SNUK_TOKEN_LPAREN:
-            lexer->paren_depth++;
+            scope_depth_add_paren(lexer->sd);
             break;
         case SNUK_TOKEN_RPAREN:
-            lexer->paren_depth--;
+            scope_depth_remove_paren(lexer->sd);
+            break;
+        case SNUK_TOKEN_LBRACE:
+            scope_depth_push(&lexer->sd);
+            break;
+        case SNUK_TOKEN_RBRACE:
+            scope_depth_pop(&lexer->sd);
             break;
         default:
             break;
@@ -436,7 +485,7 @@ static SnukToken lexer_scan_comment(SnukLexer *lexer, bool multi_line) {
  * @return True if should insert SNUK_TOKEN_VSEMICOLON.
  */
 static bool lexer_should_insert_vsemicolon(SnukLexer *lexer) {
-    if (lexer->paren_depth || lexer->bracket_depth) return false;
+    if (!scope_depth_zero(lexer->sd)) return false;
 
     switch (lexer->previous_token_type) {
         case SNUK_TOKEN_IDENTIFIER:
@@ -565,6 +614,27 @@ static SnukToken lexer_next_token(SnukLexer *lexer) {
     }
 
     return lexer_build_error_token(lexer, "unexpected character");
+}
+
+void snuk_lexer_init(SnukLexer *lexer, const char *src) {
+    *lexer = (SnukLexer){
+        .src = src,
+        .cur = src,
+        .token_start = src,
+        .token_start_line = 0,
+        .token_start_col = 0,
+        .line = 0,
+        .col = 0,
+        .previous_token_type = SNUK_TOKEN_MAX,
+        .sd = snuk_darray_create(ScopeDepth, NULL),
+    };
+    scope_depth_push(&lexer->sd);
+}
+
+void snuk_lexer_deinit(SnukLexer *lexer) {
+    if (!lexer) return;
+    snuk_darray_destroy(lexer->sd);
+    *lexer = (SnukLexer){0};
 }
 
 /*
