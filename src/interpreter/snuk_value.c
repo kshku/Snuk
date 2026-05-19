@@ -35,8 +35,6 @@ void snuk_value_free(SnukValue value) {
             if (value.fn_value.closure) snuk_ref_counter_release(&value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
-            snuk_scope_free_fn_closures(GET_SCOPE(value.type_value.closure));
-            /* fallthrough */
         case SNUK_VALUE_TYPE_INST:
             snuk_ref_counter_release(&value.type_value.closure);
             break;

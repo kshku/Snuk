@@ -10,9 +10,8 @@ SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView
     SnukRefCounter *rc = intpret->current;
     SnukEnv *env;
     while (rc) {
-        SnukScope *scope = GET_SCOPE(rc);
-        if ((env = snuk_scope_lookup(scope, name))) return env;
-        rc = scope->parent;
+        if ((env = snuk_scope_lookup(rc, name))) return env;
+        rc = GET_SCOPE_PARENT(rc);
     }
     return NULL;
 }
@@ -110,7 +109,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
             SnukType *type = item->decl_item.type;
             if (!snuk_interpreter_value_is_of_type(intpret, value, type)) break;
             SnukEnv *env = snuk_env_create(item->decl_item.name, type, value);
-            if (!snuk_scope_add_env(GET_SCOPE(intpret->current), env)) break;
+            if (!snuk_scope_add_env(intpret->current, env)) break;
 
             return value;
         }
@@ -226,7 +225,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
                             "value type didn't "
                             "match");
                 SnukEnv *env = snuk_env_create(expr->fn_expr.name, value.fn_value.type, value);
-                SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(intpret->current), env), "duplicate vars");
+                SNUK_ASSERT(snuk_scope_add_env(intpret->current, env), "duplicate vars");
             }
 
             return value;
@@ -837,14 +836,14 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, type), "value type didn't match");
         SnukEnv *env = snuk_env_create(name, type, v);
         snuk_value_free(v);
-        SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(new_scope), env), "duplicate vars");
+        SNUK_ASSERT(snuk_scope_add_env(new_scope, env), "duplicate vars");
     }
 
     // check all parameters are filled, and if not fill with default value or
     // throw error
     for (uint64_t j = 0; j < fn_param_count; ++j) {
         SnukParam *param = fn.fn_value.params[j];
-        if (!snuk_scope_lookup(GET_SCOPE(new_scope), param->name)) {
+        if (!snuk_scope_lookup(new_scope, param->name)) {
             SNUK_ASSERT(param->default_value, "value is not given for parameter");
             SnukValue v = snuk_interpreter_eval_expr(intpret, param->default_value);
             SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, param->type),
@@ -852,7 +851,7 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
                         "didn't match");
             SnukEnv *env = snuk_env_create(param->name, param->type, v);
             snuk_value_free(v);
-            SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(new_scope), env), "duplicate vars");
+            SNUK_ASSERT(snuk_scope_add_env(new_scope, env), "duplicate vars");
         }
     }
 
@@ -918,6 +917,8 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
         snuk_value_free(val);
     }
 
+    snuk_scope_free_fn_closures(intpret->current);
+
     SnukValue value = {
         .type = SNUK_VALUE_TYPE,
         .type_value = {.type = expr->type_expr.type, .closure = snuk_ref_counter_retain(intpret->current)}
@@ -931,7 +932,7 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
                     "value type didn't "
                     "match");
         SnukEnv *env = snuk_env_create(expr->type_expr.name, value.type_value.type, value);
-        SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(intpret->current), env), "duplicate vars");
+        SNUK_ASSERT(snuk_scope_add_env(intpret->current, env), "duplicate vars");
     }
 
     return value;
@@ -949,7 +950,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr)
         SnukExpr *assign = expr->type_inst_expr.init[i];
         SNUK_ASSERT(assign->type == SNUK_EXPR_ASSIGN, "Expected assign expressions");
         SnukStringView name = assign->assign.identifier->identifier;
-        SnukEnv *env = snuk_scope_lookup(GET_SCOPE(type.type_value.closure), name);
+        SnukEnv *env = snuk_scope_lookup(type.type_value.closure, name);
         SNUK_ASSERT(env, "member doesn't exists");
         SnukValue v = snuk_interpreter_eval_expr(intpret, assign->assign.value);
         SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, env->type),
@@ -957,7 +958,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr)
                     "match");
         env = snuk_env_create(name, env->type, v);
         snuk_value_free(v);
-        SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(new_scope), env), "duplicate vars");
+        SNUK_ASSERT(snuk_scope_add_env(new_scope, env), "duplicate vars");
     }
 
     SnukValue value = {
@@ -976,7 +977,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr)
                     "value type didn't "
                     "match");
         SnukEnv *env = snuk_env_create(expr->type_inst_expr.name, value.type_value.type, value);
-        SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(intpret->current), env), "duplicate vars");
+        SNUK_ASSERT(snuk_scope_add_env(intpret->current, env), "duplicate vars");
     }
 
     return value;
@@ -1096,7 +1097,7 @@ static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr)
     // Add self
     if (!is_self) {
         SnukEnv *self_env = snuk_env_create(self, type.type_value.type, type);
-        SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(intpret->current), self_env), "self error");
+        SNUK_ASSERT(snuk_scope_add_env(intpret->current, self_env), "self error");
         // Only access the type and type instance's scopes
         SnukScope *type_inst_scope = GET_SCOPE(type.type_value.closure);
         SnukScope *type_scope = GET_SCOPE(type_inst_scope->parent);
@@ -1107,7 +1108,7 @@ static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr)
 
     // Remove self
     if (!is_self) {
-        snuk_scope_remove_env(GET_SCOPE(intpret->current), self);
+        snuk_scope_remove_env(intpret->current, self);
         // Restore the parent of type scope of the instance
         SnukScope *type_inst_scope = GET_SCOPE(type.type_value.closure);
         SnukScope *type_scope = GET_SCOPE(type_inst_scope->parent);
