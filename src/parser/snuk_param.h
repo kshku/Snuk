@@ -21,7 +21,10 @@ struct SnukParam {
  * @return Newly allocated parameter storage.
  */
 SNUK_INLINE SnukParam *parser_create_param(SnukParser *parser) {
-    return (SnukParam *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukParam), alignof(SnukParam));
+    SnukParam *param = (SnukParam *)parser->allocator->alloc(
+        parser->allocator->data, sizeof(SnukParam), alignof(SnukParam));
+    SNUK_ASSERT(param, "allocator is full, increase memory size!");
+    return param;
 }
 
 /**

@@ -56,7 +56,10 @@ struct SnukItem {
  * @return Newly allocated item storage.
  */
 SNUK_INLINE SnukItem *parser_create_item(SnukParser *parser) {
-    return (SnukItem *)parser->allocator->alloc(parser->allocator->data, sizeof(SnukItem), alignof(SnukItem));
+    SnukItem *item = (SnukItem *)parser->allocator->alloc(
+        parser->allocator->data, sizeof(SnukItem), alignof(SnukItem));
+    SNUK_ASSERT(item, "allocator is full, increase memory size!");
+    return item;
 }
 
 /**
