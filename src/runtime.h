@@ -7,7 +7,7 @@
 
 #include <snmemory/frame.h>
 
-#define PAGES 10
+#define PAGES 20
 
 typedef struct Runtime {
     void *mem;

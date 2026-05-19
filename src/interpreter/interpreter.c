@@ -524,6 +524,43 @@ static SnukValue execute_binary_op(SnukInterpreter *intpret, SnukExpr *expr) {
     return res;
 }
 
+static void interpreter_print_type(SnukType *type) {
+    uint64_t count;
+    switch (type->type) {
+        case TYPE_ANY:
+            snuk_print("any", NULL);
+            break;
+
+        case TYPE_NAMED:
+            snuk_print(SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(type->name));
+            break;
+
+        case TYPE_FN:
+            snuk_print("fn(", NULL);
+            count = snuk_darray_get_length(type->fn.param_types);
+            for (uint64_t i = 0; i < count; ++i) {
+                if (i != 0) snuk_print(", ", NULL);
+                interpreter_print_type(type->fn.param_types[i]);
+            }
+            snuk_print(") - > ", NULL);
+            interpreter_print_type(type->fn.return_type);
+            break;
+
+        case TYPE_TYPE:
+            snuk_print("type {", NULL);
+            count = snuk_darray_get_length(type->member_types);
+            for (uint64_t i = 0; i < count; ++i) {
+                if (i != 0) snuk_print(", ", NULL);
+                interpreter_print_type(type->member_types[i]);
+            }
+            snuk_print("}", NULL);
+            break;
+
+        default:
+            break;
+    }
+}
+
 /**
  * @brief Evaluate each expression in the darray and print its value to stdout.
  */
@@ -532,8 +569,8 @@ static void execute_print_expr(SnukInterpreter *intpret, SnukExpr **exprs) {
 
     uint64_t count = snuk_darray_get_length(exprs);
     uint64_t len;
-    for (uint64_t j = 0; j < count; ++j) {
-        SnukValue value = snuk_interpreter_eval_expr(intpret, exprs[j]);
+    for (uint64_t i = 0; i < count; ++i) {
+        SnukValue value = snuk_interpreter_eval_expr(intpret, exprs[i]);
         switch (value.type) {
             case SNUK_VALUE_UNKOWN:
                 snuk_print("Something went wrong, value was UNKNOWN!");
@@ -556,12 +593,16 @@ static void execute_print_expr(SnukInterpreter *intpret, SnukExpr **exprs) {
                 snuk_print("null", NULL);
                 break;
             case SNUK_VALUE_FN:
-                snuk_print("fn:", NULL);
+                snuk_print("fn(", NULL);
                 len = snuk_darray_get_length(value.fn_value.params);
-                snuk_print("params: ", NULL);
-                for (uint64_t k = 0; k < len; ++k)
-                    snuk_print(SNUK_STRING_VIEW_FORMAT ", ",
-                               SNUK_STRING_VIEW_ARG(value.fn_value.params[k]->name));
+                for (uint64_t j = 0; j < len; ++j) {
+                    if (j != 0) snuk_print(", ", NULL);
+                    snuk_print(SNUK_STRING_VIEW_FORMAT ": ",
+                               SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
+                    interpreter_print_type(value.fn_value.params[j]->type);
+                }
+                snuk_print(") -> ");
+                interpreter_print_type(value.fn_value.type->fn.return_type);
                 break;
             case SNUK_VALUE_TYPE:
                 snuk_print("type:", NULL);
