@@ -915,7 +915,6 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr)
         SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(new_scope), env), "duplicate vars");
     }
 
-
     SnukValue value = {
         .type = SNUK_VALUE_TYPE_INST,
         .type_value = {
@@ -1037,6 +1036,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
 static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr) {
     bool is_self = expr->member_access.type->type == SNUK_EXPR_SELF;
+    SnukRefCounter *parent_of_type_scope = NULL;
     SnukStringView self = {.str = "self", .len = 4};
 
     SnukValue type = snuk_interpreter_eval_expr(intpret, expr->member_access.type);
@@ -1052,6 +1052,10 @@ static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr)
     if (!is_self) {
         SnukEnv *self_env = snuk_env_create(self, type.type_value.type, type);
         SNUK_ASSERT(snuk_scope_add_env(GET_SCOPE(intpret->current), self_env), "self error");
+        // Only access the type and type instance's scopes
+        SnukScope *type_inst_scope = GET_SCOPE(type.type_value.closure);
+        SnukScope *type_scope = GET_SCOPE(type_inst_scope->parent);
+        parent_of_type_scope = snuk_ref_counter_move(&type_scope->parent);
     }
 
     SnukValue ret = snuk_interpreter_eval_expr(intpret, expr->member_access.expr);
@@ -1059,6 +1063,10 @@ static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr)
     // Remove self
     if (!is_self) {
         snuk_scope_remove_env(GET_SCOPE(intpret->current), self);
+        // Restore the parent of type scope of the instance
+        SnukScope *type_inst_scope = GET_SCOPE(type.type_value.closure);
+        SnukScope *type_scope = GET_SCOPE(type_inst_scope->parent);
+        type_scope->parent = snuk_ref_counter_move(&parent_of_type_scope);
     }
 
     snuk_ref_counter_release(&intpret->current);
