@@ -71,6 +71,12 @@ SNUK_INLINE void parser_expect(SnukParser *parser, SnukTokenType expected, const
     if (!parser_match(parser, expected)) parser_error(parser, err_msg);
 }
 
+SNUK_INLINE bool parser_check_item_end(SnukParser *parser) {
+    // Does not consume
+    return parser_check(parser, SNUK_TOKEN_SEMICOLON) || parser_check(parser, SNUK_TOKEN_VSEMICOLON)
+           || parser_check(parser, SNUK_TOKEN_EOF);
+}
+
 /**
  * @brief Consume item end token if exists.
  *
@@ -79,8 +85,9 @@ SNUK_INLINE void parser_expect(SnukParser *parser, SnukTokenType expected, const
  * @return True when token is consumed.
  */
 SNUK_INLINE bool parser_match_item_end(SnukParser *parser) {
-    return parser_match(parser, SNUK_TOKEN_SEMICOLON) || parser_match(parser, SNUK_TOKEN_VSEMICOLON)
-           || parser_match(parser, SNUK_TOKEN_EOF);
+    if (!parser_check_item_end(parser)) return false;
+    parser_advance(parser);
+    return true;
 }
 
 /**

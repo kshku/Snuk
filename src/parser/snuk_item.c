@@ -79,9 +79,8 @@ static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
 static SnukItem *parse_flow_item(SnukParser *parser) {
     SnukTokenType type = parser->previous.type;
     SnukExpr *value = NULL;
-    if (parser->previous.type == SNUK_TOKEN_RETURN || parser->previous.type == SNUK_TOKEN_BREAK)
-        // TODO: look for delimiter, value is optional
-        // TODO: break and return items should be at the end of block only?
+    if ((parser->previous.type == SNUK_TOKEN_RETURN || parser->previous.type == SNUK_TOKEN_BREAK)
+        && !parser_check_item_end(parser))
         value = snuk_expr_parse(parser);
 
     parser_expect_item_end(parser);
