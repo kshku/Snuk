@@ -1007,7 +1007,7 @@ static PredefinedTypes pre_def_types[] = {
 };
 
 SNUK_INLINE SnukValueType get_predef_type(SnukStringView name) {
-    for (uint64_t i = 0; i < ARRAY_LEN(pre_def_types); ++i)
+    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(pre_def_types); ++i)
         if (snuk_string_view_equal_cstr(name, pre_def_types[i].type))
             return pre_def_types[i].val_type;
     return SNUK_VALUE_UNKOWN;

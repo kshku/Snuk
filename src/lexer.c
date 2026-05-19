@@ -421,7 +421,7 @@ static SnukToken lexer_scan_string(SnukLexer *lexer, char quote) {
  * @return Keyword token type, or SNUK_TOKEN_EOF when the word is not a keyword.
  */
 static SnukTokenType check_keyword(SnukStringView word) {
-    for (uint64_t i = 0; i < ARRAY_LEN(keywords); ++i)
+    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(keywords); ++i)
         if (snuk_string_view_equal_cstr(word, keywords[i].keyword)) return keywords[i].type;
     return SNUK_TOKEN_EOF;
 }
@@ -434,7 +434,7 @@ static SnukTokenType check_keyword(SnukStringView word) {
  * @return Value token type, or SNUK_TOKEN_EOF when the word is not a value.
  */
 static SnukTokenType check_values(SnukStringView word) {
-    for (uint64_t i = 0; i < ARRAY_LEN(values); ++i) {
+    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(values); ++i) {
         if (values[i].ignore_case && snuk_string_view_equal_cstr_ignore_case(word, values[i].value))
             return values[i].type;
         else if (snuk_string_view_equal_cstr(word, values[i].value)) return values[i].type;
