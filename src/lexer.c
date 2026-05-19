@@ -302,8 +302,8 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
     };
 
     // detect base
-    if (lexer_peek(lexer) == '0') {
-        switch (lexer_peek_next(lexer) | (1 << 5)) {
+    if (lexer_peek(lexer) == '0' && lexer_peek_next(lexer) != '.') {
+        switch (snuk_lower_case(lexer_peek_next(lexer))) {
             case 'x':
                 base = 16;
                 lexer_advance(lexer);
@@ -345,7 +345,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
         while (snuk_is_digit(lexer_peek(lexer))) lexer_advance(lexer);
     }
 
-    if (base == 10 && (lexer_peek(lexer) | (1 << 5)) == 'e') {
+    if (base == 10 && snuk_lower_case(lexer_peek(lexer)) == 'e') {
         is_float = true;
         lexer_advance(lexer);
 
