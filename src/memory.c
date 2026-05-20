@@ -135,41 +135,7 @@ static void try_increasing_allocator_size(void) {
         exit(EXIT_FAILURE);
     }
 
-    uint64_t page_size = sn_vm_get_page_size();
-
-    // trick to increase the freelist allocator size
-    // find the freelist which is just before the committed page
-    // and add this page to it
-
-    galloc.size += page_size;
-
-    if (!galloc.free_list) {
-        galloc.free_list = base;
-        *galloc.free_list = (snFreeNode){
-            .size = page_size,
-            .next = NULL,
-        };
-
-        return;
-    }
-
-#define NODE_END(node) (((uint8_t *)((node) + 1)) + (node)->size)
-    snFreeNode *cur_node = galloc.free_list;
-    snFreeNode *last_node = NULL;
-    while (cur_node) {
-        if (NODE_END(cur_node) == ((uint8_t *)base)) {
-            cur_node->size += page_size;
-            break;
-        }
-
-        last_node = cur_node;
-        cur_node = cur_node->next;
-    }
-
-    if (!cur_node) {
-        *(snFreeNode *)base = (snFreeNode){.size = page_size, .next = NULL};
-        last_node->next = (snFreeNode *)base;
-    }
+    sn_freelist_allocator_increase_memory_size(&galloc, base, sn_vm_get_page_size());
 }
 
 SNUK_INLINE void *snuk_allocator_global_alloc(void *data, uint64_t size, uint64_t align) {
