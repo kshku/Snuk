@@ -3,8 +3,8 @@ set(HEADERS
     snuk_item.h
     snuk_expr.h
     snuk_type.h
-    snuk_param.h
     parser.h
+    snuk_var.h
 )
 
 set(SRCS
@@ -12,7 +12,7 @@ set(SRCS
     snuk_item.c
     snuk_expr.c
     snuk_type.c
-    snuk_param.c
+    snuk_var.c
 )
 
 target_sources(snuk PRIVATE ${HEADERS} ${SRCS})

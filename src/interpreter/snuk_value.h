@@ -2,8 +2,8 @@
 
 #include "defines.h"
 #include "parser/snuk_expr.h"
-#include "parser/snuk_param.h"
 #include "parser/snuk_type.h"
+#include "parser/snuk_var.h"
 #include "refcount.h"
 #include "string_view.h"
 
@@ -47,7 +47,7 @@ struct SnukValue {
         struct {
             SnukRefCounter *closure;
             SnukExpr *body;
-            SnukParam **params;
+            SnukVar **params;
             SnukType *type;
         } fn_value;
 

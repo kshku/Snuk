@@ -1,0 +1,27 @@
+#include "snuk_var.h"
+
+#include "snuk_expr.h"
+#include "snuk_type.h"
+
+SnukVar *snuk_var_parse(SnukParser *parser) {
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
+
+    SnukStringView name = parser->previous.string_literal;
+
+    SnukType *type;
+    if (parser_match(parser, SNUK_TOKEN_COLON)) type = snuk_type_parse(parser);
+    else type = build_any_type(parser);
+
+    SnukExpr *value;
+    if (parser_match(parser, SNUK_TOKEN_ASSIGN)) value = snuk_expr_parse(parser);
+    else value = build_null_expr(parser);
+
+    return build_var(parser, name, type, value);
+}
+
+void snuk_var_log(SnukVar *var) {
+    if (!var) return;
+    log_trace("var " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(var->name));
+    snuk_type_log(var->type);
+    snuk_expr_log(var->value);
+}

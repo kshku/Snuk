@@ -2,8 +2,8 @@
 
 #include "darray.h"
 #include "snuk_item.h"
-#include "snuk_param.h"
 #include "snuk_type.h"
+#include "snuk_var.h"
 
 /**
  * @brief Pratt parser precedence levels.
@@ -535,24 +535,15 @@ static SnukExpr *parse_fn(SnukParser *parser) {
     SnukStringView name = {0};
     if (parser_match(parser, SNUK_TOKEN_IDENTIFIER)) name = parser->previous.string_literal;
 
-    SnukParam **params = snuk_darray_create(SnukParam *, parser->allocator);
+    SnukVar **params = snuk_darray_create(SnukVar *, parser->allocator);
     SnukType *fn_type = build_fn_type(parser, NULL, NULL, NULL);
 
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
     while (!parser_match(parser, SNUK_TOKEN_RPAREN) && parser->current.type != SNUK_TOKEN_EOF) {
-        parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected parameter name");
+        SnukVar *var = snuk_var_parse(parser);
 
-        SnukStringView name = parser->previous.string_literal;
-        SnukExpr *default_value = NULL;
-        SnukType *type = NULL;
-
-        if (parser_match(parser, SNUK_TOKEN_COLON)) type = snuk_type_parse(parser);
-        else type = build_any_type(parser);
-
-        if (parser_match(parser, SNUK_TOKEN_ASSIGN)) default_value = snuk_expr_parse(parser);
-
-        fn_type = build_fn_type(parser, fn_type, type, NULL);
-        snuk_darray_push(&params, build_param(parser, name, type, default_value));
+        fn_type = build_fn_type(parser, fn_type, var->type, NULL);
+        snuk_darray_push(&params, var);
 
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
@@ -618,7 +609,7 @@ static SnukExpr *parse_type(SnukParser *parser, SnukStringView name) {
             switch (item->type) {
                 case SNUK_ITEM_VAR_DECL:
                 case SNUK_ITEM_CONST_DECL:
-                    build_type_type(parser, type_type, item->decl_item.type);
+                    build_type_type(parser, type_type, item->var->type);
                     break;
                 case SNUK_ITEM_EXPR:
                     switch (item->expr->type) {
@@ -843,7 +834,7 @@ void snuk_expr_log(SnukExpr *expr) {
             if (expr->fn_expr.name.len)
                 log_trace("Name: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->fn_expr.name));
             count = snuk_darray_get_length(expr->fn_expr.params);
-            for (uint64_t i = 0; i < count; ++i) snuk_param_log(expr->fn_expr.params[i]);
+            for (uint64_t i = 0; i < count; ++i) snuk_var_log(expr->fn_expr.params[i]);
             log_trace("body:", NULL);
             snuk_expr_log(expr->fn_expr.body);
             snuk_type_log(expr->fn_expr.type);

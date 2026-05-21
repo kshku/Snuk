@@ -3,6 +3,7 @@
 #include "logger.h"
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
