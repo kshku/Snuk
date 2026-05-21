@@ -2,6 +2,7 @@
 
 #include "snuk_expr.h"
 #include "snuk_type.h"
+#include "snuk_var.h"
 
 /**
  * @brief Parse an expression item.
@@ -60,20 +61,11 @@ static SnukItem *parse_expr_item(SnukParser *parser) {
 }
 
 static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
-    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
-    SnukStringView identifier = parser->previous.string_literal;
-
-    SnukType *type = NULL;
-    if (parser_match(parser, SNUK_TOKEN_COLON)) type = snuk_type_parse(parser);
-    else type = build_any_type(parser);
-
-    SnukExpr *init = NULL;
-    if (parser_match(parser, SNUK_TOKEN_ASSIGN)) init = snuk_expr_parse(parser);
-    else init = build_null_expr(parser);
+    SnukVar *var = snuk_var_parse(parser);
 
     parser_expect_item_end(parser);
 
-    return build_decl_item(parser, identifier, type, init, is_const ? SNUK_ITEM_CONST_DECL : SNUK_ITEM_VAR_DECL);
+    return build_decl_item(parser, var, is_const ? SNUK_ITEM_CONST_DECL : SNUK_ITEM_VAR_DECL);
 }
 
 static SnukItem *parse_flow_item(SnukParser *parser) {
@@ -143,10 +135,7 @@ void snuk_item_log(SnukItem *item) {
                 default:
                     break;
             }
-            log_trace("identifier: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(item->decl_item.name));
-            if (item->decl_item.type) log_trace("type: ", NULL);
-            snuk_type_log(item->decl_item.type);
-            snuk_expr_log(item->decl_item.expr);
+            snuk_var_log(item->var);
             break;
         case SNUK_ITEM_RETURN:
             log_trace("return:", NULL);

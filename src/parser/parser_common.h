@@ -7,7 +7,7 @@
 typedef struct SnukItem SnukItem;
 typedef struct SnukExpr SnukExpr;
 typedef struct SnukType SnukType;
-typedef struct SnukParam SnukParam;
+typedef struct SnukVar SnukVar;
 
 /**
  * @brief Advance to the next token.

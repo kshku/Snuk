@@ -111,7 +111,7 @@ struct SnukExpr {
         } for_loop;
 
         struct {
-            SnukParam **params; /**< Darray of parameters. */
+            SnukVar **params; /**< Darray of parameters. */
             SnukExpr *body; /**< Body of function */
             SnukStringView name; /**< Name in case of syntax sugar */
             SnukType *type; /**< Type of the function */
@@ -433,7 +433,7 @@ SNUK_INLINE SnukExpr *build_for_expr(
  * @return Newly allocated fn expression node.
  */
 SNUK_INLINE SnukExpr *build_fn_expr(
-    SnukParser *parser, SnukParam **params, SnukExpr *body, SnukStringView name, SnukType *type) {
+    SnukParser *parser, SnukVar **params, SnukExpr *body, SnukStringView name, SnukType *type) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){
         .type = SNUK_EXPR_FN,

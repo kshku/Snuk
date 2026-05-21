@@ -37,13 +37,7 @@ struct SnukItem {
     union {
         SnukExpr *expr; /**< expression item payload (also used for
                            return and break). */
-
-        struct {
-            SnukStringView name; /**< Name. */
-            SnukType *type; /**< Type information. */
-            SnukExpr *expr; /**< Expression. */
-        } decl_item;
-
+        SnukVar *var;
         SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
     };
 };
@@ -83,19 +77,16 @@ SNUK_INLINE SnukItem *build_expr_item(SnukParser *parser, SnukExpr *expr) {
  * @brief Build a variable or constant declaration item.
  *
  * @param parser Parser context to operate on.
- * @param name Declared name expression.
- * @param type Type of the variable or constant.
- * @param expr Expression value.
  * @param item_type Type of the item.
+ * @param var The var node.
  *
  * @return Newly allocated declaration item.
  */
-SNUK_INLINE SnukItem *build_decl_item(
-    SnukParser *parser, SnukStringView name, SnukType *type, SnukExpr *expr, SnukItemType item_type) {
+SNUK_INLINE SnukItem *build_decl_item(SnukParser *parser, SnukVar *var, SnukItemType item_type) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = item_type,
-        .decl_item = {.name = parser_copy_string_view(parser, name), .type = type, .expr = expr},
+        .var = var,
     };
     return item;
 }
