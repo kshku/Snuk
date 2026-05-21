@@ -5,6 +5,10 @@ on:
     branches:
       - dev
       - main
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/**"
 
 jobs:
   clang-format:

@@ -4,11 +4,19 @@ on:
   push:
     branches:
       - dev
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/**"
 
   pull_request:
     branches:
       - dev
       - main
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/**"
 
   workflow_dispatch:
 
