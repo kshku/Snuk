@@ -77,5 +77,8 @@ SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name
 
 bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value);
 
+bool snuk_interpreter_create_env(
+    SnukInterpreter *intpret, SnukStringView name, SnukType *type, SnukValue value, bool is_const);
+
 bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value, SnukType *type);
 

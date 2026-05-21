@@ -90,7 +90,6 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView 
 SNUK_INLINE bool snuk_scope_add_env(SnukRefCounter *scope_rc, SnukEnv *env) {
     SnukScope *scope = GET_SCOPE(scope_rc);
     if (snuk_scope_lookup(scope_rc, env->name)) {
-        log_error("multiple declaration of '" SNUK_STRING_VIEW_FORMAT "'", SNUK_STRING_VIEW_ARG(env->name));
         snuk_env_free(env);
         return false;
     }
