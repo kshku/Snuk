@@ -53,7 +53,7 @@ static SnukValue execute_block_expr(
 static SnukValue execute_if_expr(SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue execute_while_expr(SnukInterpreter *intpret, SnukExpr *loop);
 static SnukValue execute_for_expr(SnukInterpreter *intpret, SnukExpr *loop);
-static SnukValue execute_call(SnukInterpreter *intpret, SnukExpr *expr);
+static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr);
 static SnukValue execute_compound_assign(SnukInterpreter *intpret, SnukExpr *expr);
@@ -99,6 +99,16 @@ bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, Snu
     return true;
 }
 
+bool snuk_interpreter_create_var(
+    SnukInterpreter *intpret, SnukStringView name, SnukType *type, SnukValue value, bool is_const) {
+    // TODO: constant
+    SNUK_UNUSED(is_const);
+    if (!snuk_interpreter_value_is_of_type(intpret, value, type)) return false;
+    SnukEnv *env = snuk_env_create(name, type, value);
+    if (!snuk_scope_add_env(intpret->current, env)) return false;
+    return true;
+}
+
 SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
     switch (item->type) {
         case SNUK_ITEM_EXPR:
@@ -106,13 +116,9 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
 
         case SNUK_ITEM_VAR_DECL:
         case SNUK_ITEM_CONST_DECL: {
-            // TODO: const
             SnukValue value = snuk_interpreter_eval_expr(intpret, item->var->value);
-
-            if (!snuk_interpreter_value_is_of_type(intpret, value, item->var->type)) break;
-            SnukEnv *env = snuk_env_create(item->var->name, item->var->type, value);
-            if (!snuk_scope_add_env(intpret->current, env)) break;
-
+            snuk_interpreter_create_var(
+                intpret, item->var->name, item->var->type, value, item->type == SNUK_ITEM_CONST_DECL);
             return value;
         }
 
@@ -224,7 +230,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 
         // TODO:
         case SNUK_EXPR_CALL:
-            return execute_call(intpret, expr);
+            return execute_call_expr(intpret, expr);
 
         case SNUK_EXPR_MEMBER:
             return execute_member_access(intpret, expr);
@@ -860,7 +866,7 @@ SNUK_INLINE SnukType *get_type_from_param_list(SnukVar **params, uint64_t count,
  * @brief Bind call arguments to a function's parameters in a new scope and
  * execute its body.
  */
-static SnukValue execute_call(SnukInterpreter *intpret, SnukExpr *expr) {
+static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue fn = snuk_interpreter_eval_expr(intpret, expr->call.fn);
     SNUK_ASSERT(fn.type == SNUK_VALUE_FN, "call expression on non function");
 
@@ -986,13 +992,8 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
     interpreter_pop_scope(intpret);
 
     // Syntax sugar
-    if (expr->type_expr.name.len) {
-        SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, value, value.type_value.type),
-                    "value type didn't "
-                    "match");
-        SnukEnv *env = snuk_env_create(expr->type_expr.name, value.type_value.type, value);
-        SNUK_ASSERT(snuk_scope_add_env(intpret->current, env), "duplicate vars");
-    }
+    if (expr->type_expr.name.len)
+        snuk_interpreter_create_var(intpret, expr->type_expr.name, value.type_value.type, value, false);
 
     return value;
 }
@@ -1224,13 +1225,8 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
             };
 
     // Syntax sugar
-    if (expr->fn_expr.name.len) {
-        SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, value, value.fn_value.type),
-                    "value type didn't "
-                    "match");
-        SnukEnv *env = snuk_env_create(expr->fn_expr.name, value.fn_value.type, value);
-        SNUK_ASSERT(snuk_scope_add_env(intpret->current, env), "duplicate vars");
-    }
+    if (expr->fn_expr.name.len)
+        snuk_interpreter_create_var(intpret, expr->fn_expr.name, value.fn_value.type, value, false);
 
     return value;
 }
