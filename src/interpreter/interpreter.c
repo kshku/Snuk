@@ -10,13 +10,7 @@
  * @brief Walk the scope chain from current to global to resolve a name.
  */
 SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView name) {
-    SnukRefCounter *rc = intpret->current;
-    SnukEnv *env;
-    while (rc) {
-        if ((env = snuk_scope_lookup(rc, name))) return env;
-        rc = GET_SCOPE_PARENT(rc);
-    }
-    return NULL;
+    return snuk_scope_lookup_recursive(intpret->current);
 }
 
 /**

@@ -83,6 +83,15 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView 
     return NULL;
 }
 
+SNUK_INLINE SnukEnv *snuk_scope_lookup_recursive(SnukRefCounter *scope_rc, SnukStringView name) {
+    SnukEnv *env;
+    while (scope_rc) {
+        if ((env = snuk_scope_lookup(rc, name))) return env;
+        rc = GET_SCOPE_PARENT(rc);
+    }
+    return NULL;
+}
+
 /**
  * @brief Append a binding to a scope's variable list.
  * Takes ownership of env regardless of success or failure.
