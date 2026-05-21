@@ -69,7 +69,6 @@ void snuk_value_free(SnukValue value) {
 }
 
 void snuk_value_log(SnukValue value) {
-    uint64_t count;
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_UNKOWN));
@@ -95,10 +94,6 @@ void snuk_value_log(SnukValue value) {
             break;
         case SNUK_VALUE_FN:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_FN));
-            count = snuk_darray_get_length(value.fn_value.params);
-            log_trace("params: ", NULL);
-            for (uint64_t j = 0; j < count; ++j)
-                log_trace(SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
             break;
         case SNUK_VALUE_TYPE:
             log_trace("type: %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE));
@@ -113,7 +108,6 @@ void snuk_value_log(SnukValue value) {
 }
 
 void snuk_value_print(SnukValue value) {
-    uint64_t count;
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
             snuk_println("Something went wrong, value was UNKNOWN!");
@@ -135,11 +129,6 @@ void snuk_value_print(SnukValue value) {
             break;
         case SNUK_VALUE_FN:
             snuk_print("fn:", NULL);
-            count = snuk_darray_get_length(value.fn_value.params);
-            snuk_print("params: ", NULL);
-            for (uint64_t j = 0; j < count; ++j)
-                snuk_print(SNUK_STRING_VIEW_FORMAT ", ",
-                           SNUK_STRING_VIEW_ARG(value.fn_value.params[j]->name));
             break;
         case SNUK_VALUE_TYPE:
             snuk_println("type:", NULL);

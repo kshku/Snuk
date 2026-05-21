@@ -47,7 +47,6 @@ struct SnukValue {
         struct {
             SnukRefCounter *closure;
             SnukExpr *body;
-            SnukVar **params;
             SnukType *type;
         } fn_value;
 
