@@ -16,3 +16,6 @@ add(1, 2)
 another(5, 10)
 
 fn (a = 5, b = 10) { return 2 * (a + b) }()
+
+print something
+print nothing
