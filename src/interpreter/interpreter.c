@@ -850,16 +850,6 @@ end:
 }
 
 /**
- * @brief Test whether a parameter name appears in the function's parameter
- * list.
- */
-SNUK_INLINE SnukType *get_type_from_param_list(SnukVar **params, uint64_t count, SnukStringView name) {
-    for (uint64_t i = 0; i < count; ++i)
-        if (snuk_string_view_equal(params[i]->name, name)) return params[i]->type;
-    return NULL;
-}
-
-/**
  * @brief Bind call arguments to a function's parameters in a new scope and
  * execute its body.
  */
@@ -936,46 +926,6 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr) {
 
     snuk_value_free(fn);
     return ret;
-}
-
-/**
- * @brief Get name from the item.
- */
-SNUK_INLINE SnukStringView get_name_from_item(SnukItem *item) {
-    switch (item->type) {
-        case SNUK_ITEM_EXPR:
-            switch (item->expr->type) {
-                case SNUK_EXPR_FN:
-                    return item->expr->fn_expr.name;
-                case SNUK_EXPR_TYPE:
-                    return item->expr->type_expr.name;
-
-                default:
-                    SNUK_SHOULD_NOT_REACH_HERE;
-                    break;
-            }
-
-        case SNUK_ITEM_VAR_DECL:
-        case SNUK_ITEM_CONST_DECL:
-            return item->var->name;
-
-        default:
-            SNUK_SHOULD_NOT_REACH_HERE;
-            break;
-    }
-    return (SnukStringView){0};
-}
-
-/**
- * @brief Test whether a member name appear in the type's member list.
- */
-SNUK_INLINE bool name_exists_in_member_list(SnukItem **members, uint64_t count, SnukStringView name) {
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukStringView member_name = get_name_from_item(members[i]);
-        if (snuk_string_view_equal(member_name, name)) return true;
-    }
-
-    return false;
 }
 
 static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *expr) {
