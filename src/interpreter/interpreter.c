@@ -26,7 +26,6 @@ SNUK_INLINE void interpreter_push_scope(SnukInterpreter *intpret) {
 SNUK_INLINE SnukValue interpreter_get_self(SnukInterpreter *intpret) {
     SnukStringView self = {.str = "self", .len = 4};
     SnukValue self_value = snuk_interpreter_get_env(intpret, self);
-    SNUK_ASSERT(self_value.type == SNUK_VALUE_TYPE_INST, "self error");
     return self_value;
 }
 
@@ -36,8 +35,7 @@ SNUK_INLINE SnukValue interpreter_get_self(SnukInterpreter *intpret) {
 SNUK_INLINE void interpreter_pop_scope(SnukInterpreter *intpret) {
     if (intpret->global == intpret->current) SNUK_SHOULD_NOT_REACH_HERE;
 
-    SnukScope *scope = GET_SCOPE(intpret->current);
-    SnukRefCounter *parent = snuk_ref_counter_retain(scope->parent);
+    SnukRefCounter *parent = snuk_ref_counter_retain(GET_SCOPE_PARENT(intpret->current));
 
     snuk_ref_counter_release(&intpret->current);
     intpret->current = snuk_ref_counter_move(&parent);
@@ -90,8 +88,9 @@ SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name
 
 bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value) {
     SnukEnv *env = interpreter_lookup(intpret, name);
-    if (!env) return false;
-    if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
+    SNUK_ASSERT(env, "var doesn't exists");
+    SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, value, env->type), "type mismatch");
+    snuk_value_free(env->value);
     env->value = snuk_value_copy(value);
     return true;
 }
@@ -247,13 +246,16 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         case SNUK_EXPR_MEMBER:
             return execute_member_access(intpret, expr);
 
-        case SNUK_EXPR_SELF:
-            return interpreter_get_self(intpret);
+        case SNUK_EXPR_SELF: {
+            SnukValue self = interpreter_get_self(intpret);
+            SNUK_ASSERT(self.type == SNUK_VALUE_TYPE_INST, "self error");
+            return self;
+        }
 
         case SNUK_EXPR_INDEX:
         case SNUK_EXPR_LINE_COMMENT:
         case SNUK_EXPR_BLOCK_COMMENT:
-            return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+            return (SnukValue){.type = SNUK_VALUE_NULL};
 
         case SNUK_EXPR_MAX:
         default:
@@ -795,15 +797,7 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr) {
     SnukValue fn = snuk_interpreter_eval_expr(intpret, expr->call.fn);
     SNUK_ASSERT(fn.type == SNUK_VALUE_FN, "call expression on non function");
 
-    SnukRefCounter *new_scope;
-    // if closure is not there, then we are inside the type or instance
-    if (fn.fn_value.closure) {
-        new_scope = snuk_scope_create(snuk_ref_counter_retain(fn.fn_value.closure));
-    } else {
-        SnukValue self_value = interpreter_get_self(intpret);
-        new_scope = snuk_scope_create(snuk_ref_counter_retain(self_value.type_value.closure));
-        snuk_value_free(self_value);
-    }
+    SnukRefCounter *new_scope = snuk_scope_create(snuk_ref_counter_retain(fn.fn_value.closure));
 
     uint64_t fn_param_count = snuk_darray_get_length(fn.fn_value.params);
     uint64_t call_param_count = snuk_darray_get_length(expr->call.params);
@@ -917,8 +911,6 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
         snuk_value_free(val);
     }
 
-    snuk_scope_free_fn_closures(intpret->current);
-
     SnukValue value = {
         .type = SNUK_VALUE_TYPE,
         .type_value = {.type = expr->type_expr.type, .closure = snuk_ref_counter_retain(intpret->current)}
@@ -944,29 +936,55 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr)
 
     SnukRefCounter *new_scope = snuk_scope_create(snuk_ref_counter_retain(type.type_value.closure));
 
-    uint64_t init_count = snuk_darray_get_length(expr->type_inst_expr.init);
+    SnukScope *type_scope = GET_SCOPE(type.type_value.closure);
+    uint64_t member_count = snuk_darray_get_length(type_scope->vars);
+    for (uint64_t i = 0; i < member_count; ++i) {
+        SnukEnv *type_env = type_scope->vars[i];
 
+        SnukValue value = snuk_value_copy(type_env->value);
+        switch (value.type) {
+            case SNUK_VALUE_FN:
+                snuk_ref_counter_release(&value.fn_value.closure);
+                value.fn_value.closure = snuk_ref_counter_retain(new_scope);
+                break;
+
+            case SNUK_VALUE_TYPE_INST:
+            case SNUK_VALUE_TYPE:
+                snuk_ref_counter_release(&value.type_value.closure);
+                value.type_value.closure = snuk_ref_counter_retain(new_scope);
+                break;
+
+            default:
+                break;
+        }
+
+        SnukEnv *env = snuk_env_create(type_env->name, type_env->type, value);
+        SNUK_ASSERT(snuk_scope_add_env(new_scope, env), "duplicate vars");
+        snuk_value_free(value);
+    }
+
+    uint64_t init_count = snuk_darray_get_length(expr->type_inst_expr.init);
     for (uint64_t i = 0; i < init_count; ++i) {
         SnukExpr *assign = expr->type_inst_expr.init[i];
         SNUK_ASSERT(assign->type == SNUK_EXPR_ASSIGN, "Expected assign expressions");
         SnukStringView name = assign->assign.identifier->identifier;
-        SnukEnv *env = snuk_scope_lookup(type.type_value.closure, name);
+        SnukEnv *env = snuk_scope_lookup(new_scope, name);
         SNUK_ASSERT(env, "member doesn't exists");
         SnukValue v = snuk_interpreter_eval_expr(intpret, assign->assign.value);
         SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, v, env->type),
                     "value type didn't "
                     "match");
-        env = snuk_env_create(name, env->type, v);
+        snuk_value_free(env->value);
+        env->value = snuk_value_copy(v);
         snuk_value_free(v);
-        SNUK_ASSERT(snuk_scope_add_env(new_scope, env), "duplicate vars");
     }
 
     SnukValue value = {
         .type = SNUK_VALUE_TYPE_INST,
         .type_value = {
-                       .type = expr->type_inst_expr.type,
-                       .closure = snuk_ref_counter_move(&new_scope),
-                       }
+            .type = expr->type_inst_expr.type,
+            .closure = snuk_ref_counter_move(&new_scope),
+        },
     };
 
     snuk_value_free(type);
@@ -1082,10 +1100,13 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
 static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr) {
     bool is_self = expr->member_access.type->type == SNUK_EXPR_SELF;
-    SnukRefCounter *parent_of_type_scope = NULL;
+    SnukRefCounter *parent_of_type_inst = NULL;
     SnukStringView self = {.str = "self", .len = 4};
 
     SnukValue type = snuk_interpreter_eval_expr(intpret, expr->member_access.type);
+    if (type.type == SNUK_VALUE_UNKOWN) {
+        SNUK_ASSERT(false, "member accessed using self doesn't exists");
+    }
     SNUK_ASSERT(type.type == SNUK_VALUE_TYPE_INST || type.type == SNUK_VALUE_TYPE,
                 "member access "
                 "on non "
@@ -1098,10 +1119,9 @@ static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr)
     if (!is_self) {
         SnukEnv *self_env = snuk_env_create(self, type.type_value.type, type);
         SNUK_ASSERT(snuk_scope_add_env(intpret->current, self_env), "self error");
-        // Only access the type and type instance's scopes
-        SnukScope *type_inst_scope = GET_SCOPE(type.type_value.closure);
-        SnukScope *type_scope = GET_SCOPE(type_inst_scope->parent);
-        parent_of_type_scope = snuk_ref_counter_move(&type_scope->parent);
+        // Only access the scope of type instance
+        SnukScope *scope = GET_SCOPE(type.type_value.closure);
+        parent_of_type_inst = snuk_ref_counter_move(&scope->parent);
     }
 
     SnukValue ret = snuk_interpreter_eval_expr(intpret, expr->member_access.expr);
@@ -1109,10 +1129,9 @@ static SnukValue execute_member_access(SnukInterpreter *intpret, SnukExpr *expr)
     // Remove self
     if (!is_self) {
         snuk_scope_remove_env(intpret->current, self);
-        // Restore the parent of type scope of the instance
-        SnukScope *type_inst_scope = GET_SCOPE(type.type_value.closure);
-        SnukScope *type_scope = GET_SCOPE(type_inst_scope->parent);
-        type_scope->parent = snuk_ref_counter_move(&parent_of_type_scope);
+        // Restore the parent of the instance
+        SnukScope *scope = GET_SCOPE(type.type_value.closure);
+        scope->parent = snuk_ref_counter_move(&parent_of_type_inst);
     }
 
     snuk_ref_counter_release(&intpret->current);

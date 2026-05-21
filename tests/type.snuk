@@ -4,13 +4,14 @@ var Point = type { // type definition
 }
 
 type Square { // type definition syntax sugar
+    fn area() {
+        self.width * self.height
+    }
+
     var top_left: Point
     var width: int
     var height: int
     
-    fn area() {
-        self.width * self.height
-    }
 }
 
 // type instance
@@ -44,3 +45,30 @@ if Square.width == null {
 
 // calling method with self on the type (not instance) will cause error
 // Square.area()
+
+fn make_type(color, use_self: bool = false) {
+    if (use_self) {
+        type {
+            var color = color
+            fn to_string() {
+                self.color
+                // self.square.area() // Accessing outside scope, throws error
+            }
+        }
+    } else {
+        type {
+            var color = color
+            fn to_string() {
+                color
+            }
+        }
+    }
+}
+
+var RedThing = make_type("Red")
+print RedThing.color
+print RedThing.to_string()
+print type RedThing{}.to_string() // works fine using type inst
+var BlueThing = make_type("Blue", use_self = true)
+// print BlueThing.to_string() // cannot call without instance since it uses self, will get self error
+print type BlueThing{}.to_string() // works

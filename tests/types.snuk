@@ -13,3 +13,5 @@ var anotherthing: type {
     int
     fn() -> float
 }
+x = "string" // can do this because x is of type any
+// z = "string" // can't do this because z is of type int
