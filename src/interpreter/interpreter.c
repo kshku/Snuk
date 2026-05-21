@@ -4,6 +4,8 @@
 #include "parser/snuk_var.h"
 #include "snuk_scope.h"
 
+#include <stdio.h>
+
 /**
  * @brief Walk the scope chain from current to global to resolve a name.
  */
@@ -306,6 +308,74 @@ static SnukValue execute_unary_op(SnukInterpreter *intpret, SnukExpr *expr) {
  * as needed.
  */
 static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenType op) {
+    if (left.type == SNUK_VALUE_STRING || right.type == SNUK_VALUE_STRING) {
+        if (left.type == right.type) {
+            // Trick to remove quotes
+            left.string_value.len--;
+            right.string_value.len--;
+            right.string_value.str++;
+            return (SnukValue){
+                .type = SNUK_VALUE_STRING,
+                .string_value = snuk_string_view_concat(left.string_value, right.string_value),
+            };
+        } else {
+            SnukValue v = left.type == SNUK_VALUE_STRING ? right : left;
+            SnukStringView str;
+            char buf[25] = {0};
+            uint64_t len = 0;
+            switch (v.type) {
+                case SNUK_VALUE_NULL:
+                    str = snuk_string_view_create_with_len("null", 4);
+                    break;
+                case SNUK_VALUE_INT:
+                    buf[len++] = '"';
+                    len = snprintf(buf + 1, SNUK_ARRAY_LENGTH(buf) - 2, PRId64, v.int_value);
+                    buf[len++] = '"';
+                    str = snuk_string_view_create_with_len(buf, len);
+                    break;
+                case SNUK_VALUE_FLOAT:
+                    buf[len++] = '"';
+                    len = snprintf(buf + 1, SNUK_ARRAY_LENGTH(buf) - 2, "%lf", v.float_value);
+                    buf[len++] = '"';
+                    str = snuk_string_view_create_with_len(buf, len);
+                    break;
+                case SNUK_VALUE_BOOL:
+                    str = v.bool_value ? snuk_string_view_create_with_len("true", 4)
+                                       : snuk_string_view_create_with_len("false", 5);
+                    break;
+                case SNUK_VALUE_FN:
+                    str = snuk_string_view_create_with_len("fn", 2);
+                    break;
+                case SNUK_VALUE_TYPE:
+                    str = snuk_string_view_create_with_len("type", 4);
+                    break;
+                case SNUK_VALUE_TYPE_INST:
+                    str = snuk_string_view_create_with_len("type instance", 13);
+                    break;
+                case SNUK_VALUE_UNKOWN:
+                default:
+                    goto fail;
+            }
+
+            if (left.type == SNUK_VALUE_STRING) {
+                left.string_value.len--;
+                str.len--;
+                str.str++;
+                return (SnukValue){
+                    .type = SNUK_VALUE_STRING,
+                    .string_value = snuk_string_view_concat(left.string_value, str),
+                };
+            }
+            str.len--;
+            right.string_value.len--;
+            right.string_value.str++;
+            return (SnukValue){
+                .type = SNUK_VALUE_STRING,
+                .string_value = snuk_string_view_concat(str, right.string_value),
+            };
+        }
+    }
+
     if (left.type != right.type) goto fail;
 
     SnukValue res = {.type = SNUK_VALUE_UNKOWN};
@@ -430,19 +500,6 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
             }
             if (op == SNUK_TOKEN_BANG_EQUAL) res.bool_value = !res.bool_value;
             return res;
-
-        case SNUK_TOKEN_PLUS:
-            if (left.type == SNUK_VALUE_STRING) {
-                // Trick to remove quotes
-                left.string_value.len--;
-                right.string_value.len--;
-                right.string_value.str++;
-                return (SnukValue){
-                    .type = SNUK_VALUE_STRING,
-                    .string_value = snuk_string_view_concat(left.string_value, right.string_value),
-                };
-            }
-            break;
 
         default:
             break;
