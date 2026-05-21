@@ -72,3 +72,11 @@ print type RedThing{}.to_string() // works fine using type inst
 var BlueThing = make_type("Blue", use_self = true)
 // print BlueThing.to_string() // cannot call without instance since it uses self, will get self error
 print type BlueThing{}.to_string() // works
+
+print Point
+print Square
+print RedThing
+print BlueThing
+
+print square
+print s2
