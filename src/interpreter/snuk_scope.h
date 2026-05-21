@@ -110,13 +110,3 @@ SNUK_INLINE void snuk_scope_remove_env(SnukRefCounter *scope_rc, SnukStringView 
         }
     }
 }
-
-SNUK_INLINE void snuk_scope_free_fn_closures(SnukRefCounter *scope_rc) {
-    SnukScope *scope = GET_SCOPE(scope_rc);
-    uint64_t count = snuk_darray_get_length(scope->vars);
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukEnv *env = scope->vars[i];
-        if (env->value.type == SNUK_VALUE_FN && env->value.fn_value.closure)
-            snuk_ref_counter_release(&env->value.fn_value.closure);
-    }
-}
