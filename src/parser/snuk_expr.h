@@ -39,6 +39,7 @@ typedef enum SnukExprType {
     SNUK_EXPR_MEMBER, /**< Member access expression. */
     SNUK_EXPR_SELF, /**< Self expression. */
     SNUK_EXPR_INDEX, /**< Index access expression. */
+    SNUK_EXPR_LIST, /**< List literal expression. */
 
     SNUK_EXPR_LINE_COMMENT, /**< Single line comment */
     SNUK_EXPR_BLOCK_COMMENT, /**< Multi line comment */
@@ -142,6 +143,10 @@ struct SnukExpr {
                                field/member */
             SnukExpr *field; /**< The field/member */
         } member_access;
+
+        struct {
+            SnukExpr **elements; /**< Darray of list elements */
+        } list;
     };
 };
 
@@ -549,6 +554,23 @@ SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *typ
 SNUK_INLINE SnukExpr *build_self_expr(SnukParser *parser) {
     SnukExpr *expr = parser_create_expr(parser);
     *expr = (SnukExpr){.type = SNUK_EXPR_SELF};
+    return expr;
+}
+
+/**
+ * @brief Build list expression node.
+ *
+ * @param parser Parser context to operate on.
+ * @param elements Dynamic array of list elements.
+ *
+ * @return Newly allocated list expression node.
+ */
+SNUK_INLINE SnukExpr *build_list_expr(SnukParser *parser, SnukExpr **elements) {
+    SnukExpr *expr = parser_create_expr(parser);
+    *expr = (SnukExpr){
+        .type = SNUK_EXPR_LIST,
+        .list = {.elements = elements},
+    };
     return expr;
 }
 

@@ -260,6 +260,7 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
         }
 
         case SNUK_EXPR_INDEX:
+        case SNUK_EXPR_LIST:
         case SNUK_EXPR_LINE_COMMENT:
         case SNUK_EXPR_BLOCK_COMMENT:
             return (SnukValue){.type = SNUK_VALUE_NULL};
