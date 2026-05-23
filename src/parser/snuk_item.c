@@ -61,7 +61,7 @@ static SnukItem *parse_expr_item(SnukParser *parser) {
 }
 
 static SnukItem *parse_decl_item(SnukParser *parser, bool is_const) {
-    SnukVar *var = snuk_var_parse(parser);
+    SnukVar *var = snuk_var_parse(parser, true);
 
     parser_expect_item_end(parser);
 

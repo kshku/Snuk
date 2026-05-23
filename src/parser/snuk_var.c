@@ -3,7 +3,7 @@
 #include "snuk_expr.h"
 #include "snuk_type.h"
 
-SnukVar *snuk_var_parse(SnukParser *parser) {
+SnukVar *snuk_var_parse(SnukParser *parser, bool default_null) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");
 
     SnukStringView name = parser->previous.string_literal;
@@ -14,7 +14,8 @@ SnukVar *snuk_var_parse(SnukParser *parser) {
 
     SnukExpr *value;
     if (parser_match(parser, SNUK_TOKEN_ASSIGN)) value = snuk_expr_parse(parser);
-    else value = build_null_expr(parser);
+    else if (default_null) value = build_null_expr(parser);
+    else value = NULL;
 
     return build_var(parser, name, type, value);
 }
