@@ -30,6 +30,11 @@ SNUK_INLINE SnukEnv *snuk_env_create(SnukStringView name, SnukType *type, SnukVa
     return env;
 }
 
+SNUK_INLINE void snuk_env_assign_value(SnukEnv *env, SnukValue value) {
+    snuk_value_free(env->value);
+    env->value = snuk_value_copy(value);
+}
+
 SNUK_INLINE void snuk_env_free(SnukEnv *env) {
     if (!env) return;
 

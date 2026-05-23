@@ -6,11 +6,15 @@
 SnukValue snuk_value_copy(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_FN:
-            value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
+            if (value.fn_value.weak_ref)
+                value.fn_value.closure = snuk_ref_counter_retain_weak(value.fn_value.closure);
+            else value.fn_value.closure = snuk_ref_counter_retain(value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
         case SNUK_VALUE_TYPE_INST:
-            value.type_value.closure = snuk_ref_counter_retain(value.type_value.closure);
+            if (value.type_value.weak_ref)
+                value.type_value.closure = snuk_ref_counter_retain_weak(value.type_value.closure);
+            else value.type_value.closure = snuk_ref_counter_retain(value.type_value.closure);
             break;
 
         case SNUK_VALUE_UNKOWN:
@@ -30,11 +34,13 @@ SnukValue snuk_value_copy(SnukValue value) {
 void snuk_value_free(SnukValue value) {
     switch (value.type) {
         case SNUK_VALUE_FN:
-            snuk_ref_counter_release(&value.fn_value.closure);
+            if (value.fn_value.weak_ref) snuk_ref_counter_release_weak(&value.fn_value.closure);
+            else snuk_ref_counter_release(&value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
         case SNUK_VALUE_TYPE_INST:
-            snuk_ref_counter_release(&value.type_value.closure);
+            if (value.type_value.weak_ref) snuk_ref_counter_release_weak(&value.type_value.closure);
+            else snuk_ref_counter_release(&value.type_value.closure);
             break;
 
         case SNUK_VALUE_UNKOWN:
