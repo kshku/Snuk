@@ -33,28 +33,9 @@ void snuk_value_free(SnukValue value) {
             snuk_ref_counter_release(&value.fn_value.closure);
             break;
         case SNUK_VALUE_TYPE:
-        case SNUK_VALUE_TYPE_INST: {
-            SnukScope *scope = GET_SCOPE(value.type_value.closure);
-            uint64_t count = snuk_darray_get_length(scope->vars);
-            uint64_t ignore_count = 0;
-            for (uint64_t i = 0; i < count; ++i) {
-                SnukEnv *env = scope->vars[i];
-                switch (env->value.type) {
-                    case SNUK_VALUE_FN:
-                    case SNUK_VALUE_TYPE:
-                        ignore_count++;
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            if (ignore_count + 1 == value.type_value.closure->ref_count)
-                snuk_scope_destroy_envs(scope);
-
+        case SNUK_VALUE_TYPE_INST:
             snuk_ref_counter_release(&value.type_value.closure);
             break;
-        }
 
         case SNUK_VALUE_UNKOWN:
         case SNUK_VALUE_INT:
