@@ -155,49 +155,51 @@ SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr) {
  * @brief Evaluate a unary expression's operand and apply the operator.
  */
 static SnukValue execute_unary_op(SnukValue val, SnukTokenType op) {
+    SnukValue value = snuk_value_copy(val);
     switch (op) {
         case SNUK_TOKEN_PLUS:
-            return val;
+            return value;
 
         case SNUK_TOKEN_MINUS:
-            switch (val.type) {
+            switch (value.type) {
                 case SNUK_VALUE_INT:
-                    val.int_value *= -1;
+                    value.int_value *= -1;
                     break;
                 case SNUK_VALUE_FLOAT:
-                    val.float_value *= -1;
+                    value.float_value *= -1;
                     break;
                 default:
                     // TODO: Errors
                     break;
             }
-            return val;
+            return value;
 
         case SNUK_TOKEN_BANG:
         case SNUK_TOKEN_KW_NOT: {
+            snuk_value_free(value);
             bool bool_value = !snuk_value_is_true(val);
-            snuk_value_free(val);
-            val = (SnukValue){
+            value = (SnukValue){
                 .type = SNUK_VALUE_BOOL,
                 .bool_value = bool_value,
             };
-            return val;
+            return value;
         }
 
         case SNUK_TOKEN_TILDE:
-            switch (val.type) {
+            switch (value.type) {
                 case SNUK_VALUE_INT:
-                    val.int_value = ~val.int_value;
-                    return val;
+                    value.int_value = ~value.int_value;
+                    break;
                 default:
                     // TODO: Errors
                     break;
             }
-            return val;
+            return value;
 
         default:
             break;
     }
+    snuk_value_free(value);
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 

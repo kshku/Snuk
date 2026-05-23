@@ -57,13 +57,14 @@ SNUK_INLINE void snuk_ref_counter_release(SnukRefCounter **rc) {
     SNUK_ASSERT((*rc)->strong_count, "releasing strong reference when no strong reference exists");
 
     log_debug("released a strong ref counter", NULL);
-    (*rc)->strong_count--;
 
-    if ((*rc)->strong_count == 0) {
+    if ((*rc)->strong_count == 1) {
         (*rc)->free_fn((*rc)->data, (*rc)->mem);
         (*rc)->mem = NULL;
         log_debug("ref counter held memory got destroyed", NULL);
     }
+
+    (*rc)->strong_count--;
 
     if ((*rc)->strong_count + (*rc)->weak_count == 0) {
         snuk_free(*rc);
