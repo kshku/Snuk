@@ -550,7 +550,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
 
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
     while (!parser_match(parser, SNUK_TOKEN_RPAREN) && parser->current.type != SNUK_TOKEN_EOF) {
-        SnukVar *var = snuk_var_parse(parser);
+        SnukVar *var = snuk_var_parse(parser, false);
 
         fn_type = build_fn_type(parser, fn_type, var->type, NULL);
         snuk_darray_push(&params, var);

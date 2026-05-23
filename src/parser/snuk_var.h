@@ -39,4 +39,4 @@ SNUK_INLINE SnukVar *build_var(SnukParser *parser, SnukStringView name, SnukType
 
 void snuk_var_log(SnukVar *var);
 
-SnukVar *snuk_var_parse(SnukParser *parser);
+SnukVar *snuk_var_parse(SnukParser *parser, bool default_null);

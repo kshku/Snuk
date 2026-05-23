@@ -46,12 +46,14 @@ struct SnukValue {
 
         struct {
             SnukRefCounter *closure;
+            bool weak_ref;
             SnukExpr *body;
             SnukType *type;
         } fn_value;
 
         struct {
             SnukRefCounter *closure;
+            bool weak_ref;
             SnukType *type;
         } type_value;
     };

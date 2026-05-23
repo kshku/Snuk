@@ -5,7 +5,7 @@
 #include "snuk_env.h"
 
 #define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))
-#define GET_SCOPE_PARENT(rc) ((SnukRefCounter *)GET_SCOPE(rc)->parent)
+#define SCOPE_PARENT(rc) (GET_SCOPE(rc)->parent)
 
 typedef struct SnukScope SnukScope;
 
@@ -18,6 +18,7 @@ typedef struct SnukScope SnukScope;
 struct SnukScope {
     SnukEnv **vars;  // darray
     SnukRefCounter *parent;
+    bool weak_ref;
 };
 
 SNUK_INLINE void snuk_scope_destroy_envs(SnukScope *scope) {
@@ -48,7 +49,10 @@ SNUK_INLINE void snuk_scope_destroy(void *data, void *ptr) {
 
     snuk_darray_destroy(scope->vars);
 
-    if (scope->parent) snuk_ref_counter_release(&scope->parent);
+    if (scope->parent) {
+        if (scope->weak_ref) snuk_ref_counter_release_weak(&scope->parent);
+        else snuk_ref_counter_release(&scope->parent);
+    }
 
     snuk_free(scope);
 }
@@ -62,13 +66,39 @@ SNUK_INLINE void snuk_scope_destroy(void *data, void *ptr) {
  * @return Refcounted handle to the new scope, with snuk_scope_free as the
  * finalizer.
  */
-SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent) {
+SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent, bool weak_ref) {
     SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
     *scope = (SnukScope){
         .vars = snuk_darray_create(SnukEnv *, NULL),
         .parent = snuk_ref_counter_move(&parent),
+        .weak_ref = weak_ref,
     };
     return snuk_ref_counter_create(scope, NULL, snuk_scope_destroy);
+}
+
+SNUK_INLINE void snuk_scope_downgrade_parent(SnukRefCounter *scope_rc) {
+    SnukScope *scope = GET_SCOPE(scope_rc);
+    SNUK_ASSERT(!scope->weak_ref, "parent is already a weak pointer");
+    snuk_ref_counter_downgrade(scope->parent);
+    scope->weak_ref = true;
+}
+
+SNUK_INLINE void snuk_scope_release_parent(SnukRefCounter *scope_rc) {
+    SnukScope *scope = GET_SCOPE(scope_rc);
+    if (scope->parent) {
+        if (scope->weak_ref) snuk_ref_counter_release_weak(&scope->parent);
+        else snuk_ref_counter_release(&scope->parent);
+    }
+}
+
+SNUK_INLINE void snuk_scope_set_parent(SnukRefCounter *scope_rc, SnukRefCounter *parent, bool weak_ref) {
+    SnukScope *scope = GET_SCOPE(scope_rc);
+    if (scope->parent) {
+        if (scope->weak_ref) snuk_ref_counter_release_weak(&scope->parent);
+        else snuk_ref_counter_release(&scope->parent);
+    }
+    scope->parent = snuk_ref_counter_move(&parent);
+    scope->weak_ref = weak_ref;
 }
 
 /**
@@ -87,7 +117,7 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup_recursive(SnukRefCounter *scope_rc, SnukS
     SnukEnv *env;
     while (scope_rc) {
         if ((env = snuk_scope_lookup(scope_rc, name))) return env;
-        scope_rc = GET_SCOPE_PARENT(scope_rc);
+        scope_rc = SCOPE_PARENT(scope_rc);
     }
     return NULL;
 }
