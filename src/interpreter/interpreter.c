@@ -505,8 +505,9 @@ static void interpreter_print_value(SnukValue value) {
             scope = GET_SCOPE(value.type_value.closure);
             len = snuk_darray_get_length(scope->vars);
             for (uint64_t i = 0; i < len; ++i) {
-                if (i != 0) snuk_print(" ", NULL);
                 SnukEnv *env = scope->vars[i];
+                if (snuk_string_view_equal_cstr(env->name, "self")) continue;
+                if (i != 0) snuk_print(" ", NULL);
                 snuk_print(SNUK_STRING_VIEW_FORMAT ": ", SNUK_STRING_VIEW_ARG(env->name));
                 interpreter_print_type(env->type);
                 snuk_print(" = ", NULL);
@@ -794,6 +795,19 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukValue type,
         },
     };
 
+    SnukValue self_value = {
+        .type = SNUK_VALUE_TYPE_INST,
+        .type_value = {
+            .type = value.type_value.type,
+            .closure = snuk_ref_counter_retain_weak(intpret->current),
+            .weak_ref = true,
+        },
+    };
+    SnukStringView self = snuk_string_view_create_with_len("self", 4);
+    SNUK_ASSERT(snuk_interpreter_create_env(intpret, self, self_value.type_value.type, self_value, true),
+                "something went wrong when creating self");
+    snuk_value_free(self_value);
+
     interpreter_pop_scope(intpret);
 
     // Reparent
@@ -870,26 +884,11 @@ static SnukValue execute_member_access(
         }
 
         case SNUK_EXPR_CALL: {
-            SnukStringView self = snuk_string_view_create_with_len("self", 4);
             SNUK_ASSERT(field->call.fn->type == SNUK_EXPR_IDENTIFIER, "something went wrong");
             field_name = field->call.fn->identifier;
             env = snuk_scope_lookup(type_or_inst.type_value.closure, field_name);
             SNUK_ASSERT(env, "field doesn't exists");
-            if (type_or_inst.type == SNUK_VALUE_TYPE_INST) {
-                // Add self
-                SnukEnv *self_env = snuk_env_create(self, type_or_inst.type_value.type, type_or_inst);
-                SNUK_ASSERT(snuk_scope_add_env(env->value.fn_value.closure, self_env),
-                            "self was "
-                            "already "
-                            "declared!");
-            }
-
             res = execute_call_expr(intpret, env->value, field->call.params, weak_ref);
-            if (type_or_inst.type == SNUK_VALUE_TYPE_INST) {
-                // Remove self
-                snuk_scope_remove_env(env->value.fn_value.closure, self);
-            }
-
             break;
         }
 
