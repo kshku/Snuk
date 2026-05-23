@@ -45,7 +45,7 @@ SNUK_INLINE void scope_depth_add_bracket(ScopeDepth *sd) {
 
 SNUK_INLINE void scope_depth_remove_bracket(ScopeDepth *sd) {
     uint64_t last = snuk_darray_get_length(sd) - 1;
-    SNUK_ASSERT(sd[last].paren > 0, "scope mismatch");
+    SNUK_ASSERT(sd[last].bracket > 0, "scope mismatch");
     sd[last].bracket--;
 }
 

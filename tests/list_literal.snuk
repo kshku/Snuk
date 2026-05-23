@@ -1,0 +1,48 @@
+// Basic list literals
+var empty = []
+var numbers = [1, 2, 3, 4, 5]
+var mixed = [1, "hello", true, null]
+var nested = [[1, 2], [3, 4]]
+
+// Trailing commas
+var trailing = [1, 2, ]
+var single_trailing = [42,]
+
+// Single element
+var single = [42]
+
+// Expressions and operations
+var ops = [1 + 2, 3 * 4, 10 / 2, 5 % 2]
+var bool_ops = [true && false, !true, 1 == 1, 5 > 3]
+
+// Function calls inside list
+fn get_num() -> any { return 99 }
+var with_calls = [get_num(), get_num() + 1]
+
+// Multi-line list literals
+var multiline = [
+    1,
+    2,
+    3,
+]
+
+// Function expressions inside list
+var fn_list = [
+    fn() { print "first" },
+    fn() { print "second" }
+]
+
+// Types and type instances inside list
+var type_list = [
+    type { var x = 1 },
+    type { var y = "test" }
+]
+
+// Empty nested lists
+var empty_nested = [[], [[]], [[], []]]
+
+// Deeply nested list
+var deep = [1, [2, [3, [4, "end"]]], 5]
+
+// Print some results to verify parser didn't crash
+print "Successfully parsed 15 list variants!"

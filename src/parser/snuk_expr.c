@@ -195,6 +195,15 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left);
 static SnukExpr *parse_comment(SnukParser *parser);
 
 /**
+ * @brief Parse a list literal.
+ *
+ * @param parser Parser context to work on.
+ *
+ * @return Parsed expression, or NULL on parse failure.
+ */
+static SnukExpr *parse_list(SnukParser *parser);
+
+/**
  * @brief Parse the type token.
  *
  * @param parser Parser context to operate on.
@@ -236,6 +245,7 @@ static ParseRule rules[] = {
     [SNUK_TOKEN_INF]            = {parse_primary,    NULL,                      PRECEDENCE_NONE       },
 
     [SNUK_TOKEN_LPAREN]         = {parse_grouping,   parse_call,                PRECEDENCE_PRIMARY    },
+    [SNUK_TOKEN_LBRACKET]       = {parse_list,       NULL,                      PRECEDENCE_NONE       },
 
     [SNUK_TOKEN_PLUS]           = {parse_unary,      parse_binary,              PRECEDENCE_TERM       },
     [SNUK_TOKEN_MINUS]          = {parse_unary,      parse_binary,              PRECEDENCE_TERM       },
@@ -596,6 +606,23 @@ static SnukExpr *parse_comment(SnukParser *parser) {
     return build_comment_expr(parser, t);
 }
 
+static SnukExpr *parse_list(SnukParser *parser) {
+    SnukExpr **elements = snuk_darray_create(SnukExpr *, parser->allocator);
+    while (!parser_match(parser, SNUK_TOKEN_RBRACKET) && parser->current.type != SNUK_TOKEN_EOF) {
+        SnukExpr *expr = snuk_expr_parse(parser);
+        snuk_darray_push(&elements, expr);
+        if (!parser_check(parser, SNUK_TOKEN_RBRACKET))
+            parser_expect(parser, SNUK_TOKEN_COMMA, "expected ',' or ']' after list element");
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACKET) {
+        parser_error(parser, "expected ']' after list elements");
+        return NULL;
+    }
+
+    return build_list_expr(parser, elements);
+}
+
 static SnukExpr *parse_type(SnukParser *parser, SnukStringView name) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
@@ -742,6 +769,8 @@ const char *snuk_expr_type_to_string(SnukExprType type) {
             return SNUK_STRINGIFY(SNUK_EXPR_MEMBER);
         case SNUK_EXPR_INDEX:
             return SNUK_STRINGIFY(SNUK_EXPR_INDEX);
+        case SNUK_EXPR_LIST:
+            return SNUK_STRINGIFY(SNUK_EXPR_LIST);
         case SNUK_EXPR_LINE_COMMENT:
             return SNUK_STRINGIFY(SNUK_EXPR_LINE_COMMENT);
         case SNUK_EXPR_BLOCK_COMMENT:
@@ -867,6 +896,14 @@ void snuk_expr_log(SnukExpr *expr) {
             // TODO:
             log_trace("Index:", NULL);
             break;
+        case SNUK_EXPR_LIST: {
+            log_trace("List:", NULL);
+            uint64_t len = snuk_darray_get_length(expr->list.elements);
+            for (uint64_t i = 0; i < len; ++i) {
+                snuk_expr_log(expr->list.elements[i]);
+            }
+            break;
+        }
         case SNUK_EXPR_LINE_COMMENT:
             log_trace("single line comment: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->comment));
             break;
