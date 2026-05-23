@@ -614,12 +614,12 @@ static SnukExpr *parse_list(SnukParser *parser) {
         if (!parser_check(parser, SNUK_TOKEN_RBRACKET))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected ',' or ']' after list element");
     }
-    
+
     if (parser->previous.type != SNUK_TOKEN_RBRACKET) {
         parser_error(parser, "expected ']' after list elements");
         return NULL;
     }
-    
+
     return build_list_expr(parser, elements);
 }
 
