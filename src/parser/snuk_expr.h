@@ -140,7 +140,7 @@ struct SnukExpr {
         struct {
             SnukExpr *type; /**< Type from which to access the
                                field/member */
-            SnukExpr *expr; /**< The expression field/member */
+            SnukExpr *field; /**< The field/member */
         } member_access;
     };
 };
@@ -526,15 +526,15 @@ SNUK_INLINE SnukExpr *build_call_expr(SnukParser *parser, SnukExpr *fn, SnukExpr
  *
  * @param parser Parser context to operate on.
  * @param type The type to access member from.
- * @param expr The expression on member.
+ * @param field The expression on member.
  *
  * @return Newly allocated member access expression node.
  */
-SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *type, SnukExpr *expr) {
+SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *type, SnukExpr *field) {
     SnukExpr *e = parser_create_expr(parser);
     *e = (SnukExpr){
         .type = SNUK_EXPR_MEMBER,
-        .member_access = {.type = type, .expr = expr},
+        .member_access = {.type = type, .field = field},
     };
     return e;
 }

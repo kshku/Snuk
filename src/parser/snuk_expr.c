@@ -860,6 +860,8 @@ void snuk_expr_log(SnukExpr *expr) {
         case SNUK_EXPR_MEMBER:
             // TODO:
             log_trace("Member:", NULL);
+            snuk_expr_log(expr->member_access.type);
+            snuk_expr_log(expr->member_access.field);
             break;
         case SNUK_EXPR_INDEX:
             // TODO:

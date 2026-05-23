@@ -86,8 +86,8 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView 
 SNUK_INLINE SnukEnv *snuk_scope_lookup_recursive(SnukRefCounter *scope_rc, SnukStringView name) {
     SnukEnv *env;
     while (scope_rc) {
-        if ((env = snuk_scope_lookup(rc, name))) return env;
-        rc = GET_SCOPE_PARENT(rc);
+        if ((env = snuk_scope_lookup(scope_rc, name))) return env;
+        scope_rc = GET_SCOPE_PARENT(scope_rc);
     }
     return NULL;
 }
