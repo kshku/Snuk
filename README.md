@@ -67,20 +67,41 @@ Snuk is dynamically typed. Almost everything is an expression —
 variables, functions, types, control flow. Semicolons are optional.
 
 The value of a block, function, if/else, or loop is the last
-executed item. `return` and `break` are for early exits only.
+executed item. `return` and `break` can be used for early exits.
 
 **Separator rule:** `()` uses `,` — `{}` uses `;` or newlines.
 
-### Variables
+### Variables and typing
+
+Snuk uses gradual typing. Without a type annotation a variable has
+type `any` — it accepts any value at any time. With an annotation
+the type is enforced at runtime. No implicit conversions between types.
 
 ```snuk
-var x = 10
-var name = "snuk"
+// untyped — type is "any", accepts anything
+var a = 10
+a = "hello"       // valid — a is any
+
+// typed — enforced at runtime
+var b: int = 10
+// b = "hello"    // runtime error
+
+// "any" explicit — identical to no annotation
+var c: any = 10
+c = true          // valid
+
+// type annotations
+var speed: float = 2.5
+var name: str = "snuk"
 const MAX = 100
 
-// type annotations — optional, enforced at runtime when present
-var speed: float = 2.5
-var p: type Point        // user-defined type annotation
+// "type" keyword optional in annotations — both identical
+var x1: int = 10
+var x2: type int = 10
+
+// user-defined type annotation
+var p: Point        // shorthand
+var p2: type Point  // identical
 ```
 
 ### Blocks as expressions
@@ -92,6 +113,7 @@ var result = {
 }
 
 // break exits early with a value
+var x = 10
 var early = {
     if x > 5 { break x * 2 }
     x + 1
@@ -104,23 +126,25 @@ var early = {
 // if/else — value is last item of taken branch
 var label = if x > 10 { "big" } else { "small" }
 
-while x > 0 { x = x - 1 }
+var wc = 0
+while wc < 10 { wc = wc + 1 }
 
 for var i = 0; i < 10; i = i + 1 { print i }
 
 // infinite loop — break exits with optional value
+var fv = 0
 var result = for {
-    x = x + 1
-    if x >= 100 { break x }
+    fv = fv + 1
+    if fv >= 100 { break fv }
 }
 
-do { x = x - 1 } while x > 0
+do { wc = wc - 1 } while wc > 0
 ```
 
 ### Functions
 
 Functions are values. Last item is the return value.
-`return` is for early exits only.
+`return` can be used for early exits.
 
 ```snuk
 // statement form
@@ -133,6 +157,8 @@ var add = fn(a, b) { a + b }
 fn withdraw(balance, amount) {
     if amount > balance { return false }
     balance - amount
+    // can also use return here
+    // return balance - amount
 }
 
 // typed parameters — enforced at runtime
@@ -152,28 +178,39 @@ print add5(3)    // 8
 Types are structs with methods. No inheritance. Duck typing.
 `{}` uses `;` or newlines as separators.
 
+Inside methods, name lookup follows this order:
+1. local scope — parameters and variables declared in the method
+2. instance scope — fields of the instance
+3. closure scope — variables captured at type definition
+4. outer scopes
+
+Fields are accessible directly by name. `self` is always available
+as an explicit reference to the instance — useful when a local
+variable shadows a field name.
+
 ```snuk
-// definition — statement form
+// definition
 type Point {
     var x: float = 0.0
     var y: float = 0.0
 
     fn to_string() {
-        "(" + self.x + ", " + self.y + ")"
+        "(" + x + ", " + y + ")"    // fields accessed directly
+    }
+
+    fn set_x(x) {
+        // parameter x shadows field x
+        self.x = x    // self disambiguates
     }
 }
 
-// definition — expression form
-var Point = type {
-    var x = 0.0
-    var y = 0.0
-}
-
-// instantiation — four equivalent forms
-var s1: type Square = type Square { width: 10; height: 10 }  // full explicit
-var s2 = type Square { width: 10; height: 10 }               // most common
-type Square s3 = { width: 10; height: 10 }                   // type-first
-type Square s4 { width: 10; height: 10 }                     // most compact
+// instantiation — four forms
+// only form 1 and type-first forms create typed variables
+// form 2 (var = type Name {}) creates an untyped (any) variable
+var s1: type Square = type Square { width: 10; height: 10 }  // typed
+var s2 = type Square { width: 10; height: 10 }               // untyped (any)
+type Square s3 = { width: 10; height: 10 }                   // typed, type-first
+type Square s4 { width: 10; height: 10 }                     // typed, compact
 
 // newlines as separators
 var p = type Point {
@@ -182,22 +219,30 @@ var p = type Point {
 }
 
 // nested types
-var sq = type Square {
-    top_left: type Point { x: 10; y: 20 }
+type SquareWithPos {
+    var top_left: type Point = type Point { x: 0.0; y: 0.0 }
+    var width: int = 0
+    var height: int = 0
+    fn area() { width * height }    // direct field access
+}
+
+var sq = type SquareWithPos {
+    top_left: type Point { x: 10.0; y: 20.0 }
     width: 100
     height: 50
 }
 
-// type factory — types capture enclosing scope
+// type factory — closure scope lower priority than instance scope
 fn make_type(color) {
     type {
-        var color = color
-        fn to_string() { self.color }
+        var color = color       // instance field
+        fn to_string() { color }    // resolves to instance field
     }
 }
 
 p.x = 10.0
 print p.to_string()
+print sq.top_left.x    // 10.0
 ```
 
 ### Duck typing
@@ -209,28 +254,16 @@ fn print_area(shape) { print shape.area() }
 type Rectangle {
     var width = 0.0
     var height = 0.0
-    fn area() { self.width * self.height }
+    fn area() { width * height }    // direct field access
 }
 
 type Circle {
     var radius = 0.0
-    fn area() { 3.14159 * self.radius * self.radius }
+    fn area() { 3.14159 * radius * radius }
 }
 
 print_area(type Rectangle { width: 10.0; height: 5.0 })
 print_area(type Circle { radius: 7.0 })
-```
-
-### Lists
-
-```snuk
-var items = [1, 2, 3, 4, 5]
-items[0] = 99
-items.add(6)
-items.remove(0)
-print items.length
-
-for item in items { print item }
 ```
 
 ### Built-in types
@@ -240,11 +273,11 @@ for item in items { print item }
 | `int` | `42`, `-7` |
 | `float` | `3.14`, `-0.5` |
 | `bool` | `true`, `false` |
-| `string` | `"hello"`, `'world'` |
+| `str` | `"hello"`, `'world'` |
 | `null` | `null` |
 | `fn` | `fn(a, b) { }` |
 | `type` | `type { }` |
-| `list` | `[1, 2, 3]` |
+| `list` | `[1, 2, 3]` *(not yet implemented)* |
 
 ### Operators
 
