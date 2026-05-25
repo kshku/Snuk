@@ -1,0 +1,20 @@
+type Point {
+    var px: float = 0.0
+    var py: float = 0.0
+
+    fn distance_to(other: Point) -> float {
+        var dx = self.px - other.px
+        var dy = self.py - other.py
+        dx * dx + dy * dy
+    }
+
+    fn to_string() -> str {
+        "(" + self.px + ", " + self.py + ")"
+    }
+}
+
+var p: Point = type Point{px: 3.0; py: 4.0}
+print p
+
+print p.distance_to(type Point{})
+print p.to_string()
