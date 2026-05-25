@@ -5,7 +5,7 @@ var Point = type { // type definition
 
 type Square { // type definition syntax sugar
     fn area() {
-        self.width * self.height
+        width * height
     }
 
     var top_left: Point

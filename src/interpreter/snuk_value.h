@@ -45,6 +45,7 @@ struct SnukValue {
         SnukStringView string_value;
 
         struct {
+            SnukRefCounter *instance;
             SnukRefCounter *closure;
             bool weak_ref;
             SnukExpr *body;
@@ -52,6 +53,7 @@ struct SnukValue {
         } fn_value;
 
         struct {
+            SnukRefCounter *instance;
             SnukRefCounter *closure;
             bool weak_ref;
             SnukType *type;
