@@ -5,7 +5,7 @@ var Point = type { // type definition
 
 type Square { // type definition syntax sugar
     fn area() {
-        width * height
+        self.width * height
     }
 
     var top_left: Point
@@ -72,6 +72,8 @@ print type RedThing{}.to_string() // works fine using type inst
 var BlueThing = make_type("Blue", use_self = true)
 // print BlueThing.to_string() // cannot call without instance since it uses self, will get self error
 print type BlueThing{}.to_string() // works
+
+print make_type("Green").to_string()
 
 print Point
 print Square
