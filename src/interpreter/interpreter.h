@@ -20,6 +20,7 @@
 typedef struct SnukInterpreter {
     SnukRefCounter *current;
     SnukRefCounter *global;
+    SnukRefCounter *instance;
     SnukSignal signal;
 } SnukInterpreter;
 
