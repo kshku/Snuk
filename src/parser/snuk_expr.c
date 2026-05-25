@@ -761,12 +761,16 @@ const char *snuk_expr_type_to_string(SnukExprType type) {
             return SNUK_STRINGIFY(SNUK_EXPR_FN);
         case SNUK_EXPR_TYPE:
             return SNUK_STRINGIFY(SNUK_EXPR_TYPE);
+        case SNUK_EXPR_TYPE_INST:
+            return SNUK_STRINGIFY(SNUK_EXPR_TYPE_INST);
         case SNUK_EXPR_BLOCK:
             return SNUK_STRINGIFY(SNUK_EXPR_BLOCK);
         case SNUK_EXPR_CALL:
             return SNUK_STRINGIFY(SNUK_EXPR_CALL);
         case SNUK_EXPR_MEMBER:
             return SNUK_STRINGIFY(SNUK_EXPR_MEMBER);
+        case SNUK_EXPR_SELF:
+            return SNUK_STRINGIFY(SNUK_EXPR_SELF);
         case SNUK_EXPR_INDEX:
             return SNUK_STRINGIFY(SNUK_EXPR_INDEX);
         case SNUK_EXPR_LIST:
@@ -887,10 +891,12 @@ void snuk_expr_log(SnukExpr *expr) {
             for (uint64_t i = 0; i < count; ++i) snuk_expr_log(expr->call.params[i]);
             break;
         case SNUK_EXPR_MEMBER:
-            // TODO:
             log_trace("Member:", NULL);
             snuk_expr_log(expr->member_access.type);
             snuk_expr_log(expr->member_access.field);
+            break;
+        case SNUK_EXPR_SELF:
+            log_trace("self", NULL);
             break;
         case SNUK_EXPR_INDEX:
             // TODO:
