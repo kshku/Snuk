@@ -658,7 +658,8 @@ loop_start:
     }
 
     snuk_value_free(res);
-    res = execute_block_expr(intpret, expr->while_loop.body, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL, weak_ref);
+    res = execute_block_expr(intpret, expr->while_loop.body, SNUK_SIGNAL_CONTINUE,
+                             SNUK_SIGNAL_RETURN | SNUK_SIGNAL_BREAK, weak_ref);
 
     switch (intpret->signal) {
         case SNUK_SIGNAL_RETURN:
@@ -670,8 +671,7 @@ loop_start:
             goto end;
 
         case SNUK_SIGNAL_CONTINUE:
-            // Nothing to do, iteration continues
-            intpret->signal = SNUK_SIGNAL_NONE;
+            SNUK_SHOULD_NOT_REACH_HERE;
             break;
 
         case SNUK_SIGNAL_NONE:
@@ -715,7 +715,8 @@ loop_start:
     }
 
     snuk_value_free(res);
-    res = execute_block_expr(intpret, expr->for_loop.body, SNUK_SIGNAL_NONE, SNUK_SIGNAL_ALL, false);
+    res = execute_block_expr(
+        intpret, expr->for_loop.body, SNUK_SIGNAL_CONTINUE, SNUK_SIGNAL_RETURN | SNUK_SIGNAL_BREAK, false);
 
     switch (intpret->signal) {
         case SNUK_SIGNAL_RETURN:
@@ -727,8 +728,7 @@ loop_start:
             goto end;
 
         case SNUK_SIGNAL_CONTINUE:
-            // Nothing to do, iteration continues
-            intpret->signal = SNUK_SIGNAL_NONE;
+            SNUK_SHOULD_NOT_REACH_HERE;
             break;
 
         case SNUK_SIGNAL_NONE:
@@ -1199,7 +1199,8 @@ static SnukValue interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr,
             return execute_inst_creation(intpret, expr, weak_ref);
 
         case SNUK_EXPR_BLOCK:
-            return execute_block_expr(intpret, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_NONE, weak_ref);
+            return execute_block_expr(
+                intpret, expr, SNUK_SIGNAL_BREAK, SNUK_SIGNAL_RETURN | SNUK_SIGNAL_CONTINUE, weak_ref);
 
         case SNUK_EXPR_CALL:
             return execute_call_expr(intpret, expr, weak_ref);
