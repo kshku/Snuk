@@ -39,7 +39,6 @@ SNUK_INLINE void *snuk_ref_counter_get(SnukRefCounter *rc) {
 SNUK_INLINE SnukRefCounter *snuk_ref_counter_retain(SnukRefCounter *rc) {
     SNUK_ASSERT(rc, "SnukRefCounter is null");
     if (!rc->strong_count) return NULL;
-    log_debug("retained a strong ref counter", NULL);
     rc->strong_count++;
     return rc;
 }
@@ -47,7 +46,6 @@ SNUK_INLINE SnukRefCounter *snuk_ref_counter_retain(SnukRefCounter *rc) {
 SNUK_INLINE SnukRefCounter *snuk_ref_counter_retain_weak(SnukRefCounter *rc) {
     SNUK_ASSERT(rc, "SnukRefCounter is null");
     if (!rc->weak_count && !rc->strong_count) return NULL;
-    log_debug("retained a weak ref counter", NULL);
     rc->weak_count++;
     return rc;
 }
@@ -56,12 +54,9 @@ SNUK_INLINE void snuk_ref_counter_release(SnukRefCounter **rc) {
     SNUK_ASSERT(*rc, "SnukRefCounter is null");
     SNUK_ASSERT((*rc)->strong_count, "releasing strong reference when no strong reference exists");
 
-    log_debug("released a strong ref counter", NULL);
-
     if ((*rc)->strong_count == 1) {
         (*rc)->free_fn((*rc)->data, (*rc)->mem);
         (*rc)->mem = NULL;
-        log_debug("ref counter held memory got destroyed", NULL);
     }
 
     (*rc)->strong_count--;
@@ -78,7 +73,6 @@ SNUK_INLINE void snuk_ref_counter_release_weak(SnukRefCounter **rc) {
     SNUK_ASSERT(*rc, "SnukRefCounter is null");
     SNUK_ASSERT((*rc)->weak_count, "releasing weak reference when no weak reference exists");
 
-    log_debug("released a weak ref counter", NULL);
     (*rc)->weak_count--;
 
     if ((*rc)->strong_count + (*rc)->weak_count == 0) {

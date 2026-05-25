@@ -5,9 +5,9 @@
 #include "memory.h"
 #include "snuk_string.h"
 
-#include <snmemory/frame.h>
+#include <snmemory/linear.h>
 
-#define PAGES 20
+#define PAGES 50
 
 typedef struct Runtime {
     void *mem;
