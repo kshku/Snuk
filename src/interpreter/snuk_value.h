@@ -53,7 +53,6 @@ struct SnukValue {
         } fn_value;
 
         struct {
-            SnukRefCounter *instance;
             SnukRefCounter *closure;
             bool weak_ref;
             SnukType *type;
