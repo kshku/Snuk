@@ -5,4 +5,14 @@ fn factorial(n: int) {
     return n * factorial(n - 1)
 }
 
+type Math {
+    fn factorial(n: int) {
+        if n == 1 or n == 0 {
+            return 1
+        }
+        return n * factorial(n - 1)
+    }
+}
+
 print factorial(4)
+print Math.factorial(4)

@@ -1045,8 +1045,9 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukValue fn, SnukE
         }
 
         SnukValue val = interpreter_eval_expr(intpret, value, true);
-        SNUK_ASSERT(snuk_interpreter_create_env(intpret, name, type, val, false), "duplicate "
-                                                                                  "parameter");
+        SNUK_ASSERT(snuk_interpreter_create_env(intpret, name, type, val, false),
+                    "duplicate "
+                    "parameter");
         snuk_value_free(val);
     }
 
