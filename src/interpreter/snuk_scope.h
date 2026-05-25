@@ -23,11 +23,8 @@ struct SnukScope {
 
 SNUK_INLINE void snuk_scope_destroy_envs(SnukScope *scope) {
     uint64_t count = snuk_darray_get_length(scope->vars);
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukEnv *env;
-        snuk_darray_pop(&scope->vars, &env);
-        snuk_env_free(env);
-    }
+    for (uint64_t i = 0; i < count; ++i) snuk_env_free(scope->vars[i]);
+    snuk_darray_clear(&scope->vars);
 }
 
 /**
