@@ -586,14 +586,15 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
     }
 
     if (parser->previous.type != SNUK_TOKEN_RPAREN) {
-        parser_error(parser, "expected ')");
+        parser_error(parser, "expected ')'");
         return NULL;
     }
     return build_call_expr(parser, left, params);
 }
 
 static SnukExpr *parse_member(SnukParser *parser, SnukExpr *left) {
-    SnukExpr *expr = snuk_expr_parse(parser);
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected a member");
+    SnukExpr *expr = parse_primary(parser);
     return build_member_access_expr(parser, left, expr);
 }
 

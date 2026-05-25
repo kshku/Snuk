@@ -1228,10 +1228,11 @@ static SnukValue execute_assign_expr(SnukInterpreter *intpret, SnukExpr *expr, b
     SnukExpr *identifier = expr->assign.identifier;
     switch (identifier->type) {
         case SNUK_EXPR_IDENTIFIER:
-            SNUK_ASSERT(snuk_interpreter_set_env(intpret, identifier->identifier, value), "failed "
-                                                                                          "to set "
-                                                                                          "env "
-                                                                                          "value");
+            SNUK_ASSERT(snuk_interpreter_set_env(intpret, identifier->identifier, value),
+                        "failed "
+                        "to set "
+                        "env "
+                        "value");
             break;
 
         case SNUK_EXPR_MEMBER: {
