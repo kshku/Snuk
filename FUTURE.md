@@ -11,12 +11,9 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 - Type casting ?
 - Arbitrary precision integers (bignum) ?
 - Pattern matching (`match` / `case`)
-- Error handling (result type or try/catch) ?
 - Modules and imports ?
-- Closures and anonymous functions
 - Generator functions ?
 - String interpolation (`"hello {name}"`) ?
-- Static typing mode (opt-in strict types)
 
 ## Standard Library
 
@@ -64,22 +61,17 @@ fn render(obj: Drawable) {
 
 - Interfaces provide explicit API contracts for libraries.
 - Allows extending the existing types.
-- Requires external method definitions (fn TypeName.method)
-- Can add `extend` keyword as syntax sugar
+- Add `extend` keyword
 ```snuk
 extend string {
     fn shout() {
         print string.uppercase() + '!!!'
     }
 }
-// equivalent to
-fn string.shout() {
-    print string.uppercase() + '!!!'
-}
 ```
 - Language syntax grows
 
-## Operator overloading
+## Operator overloading ?
 
 Allow operator overloading.
 
@@ -92,3 +84,5 @@ type Point {
     }
 }
 ```
+
+- Requires multiple dispatch
