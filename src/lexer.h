@@ -47,6 +47,7 @@ typedef enum SnukTokenType {
     SNUK_TOKEN_TYPE,
     SNUK_TOKEN_SELF,
     SNUK_TOKEN_PRINT,
+    SNUK_TOKEN_EXTEND,
 
     // punctuation
     SNUK_TOKEN_LPAREN,  // (
