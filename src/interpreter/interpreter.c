@@ -997,9 +997,8 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
         }
 
         SnukValue val = interpreter_eval_expr(intpret, value, true);
-        SNUK_ASSERT(snuk_interpreter_create_env(intpret, name, type, val, false),
-                    "duplicate "
-                    "parameter");
+        SNUK_ASSERT(
+            snuk_interpreter_create_env(intpret, name, type, val, false), "duplicate parameter");
         snuk_value_free(val);
     }
 
@@ -1236,17 +1235,14 @@ static SnukValue execute_assign_expr(SnukInterpreter *intpret, SnukExpr *expr, b
     switch (identifier->type) {
         case SNUK_EXPR_IDENTIFIER:
             SNUK_ASSERT(snuk_interpreter_set_env(intpret, identifier->identifier, value),
-                        "failed "
-                        "to set "
-                        "env "
-                        "value");
+                        "failed to set env value");
             break;
 
         case SNUK_EXPR_MEMBER: {
             SnukExpr *field = identifier->member_access.field;
             SnukValue type_or_inst = interpreter_eval_expr(intpret, identifier->member_access.type, weak_ref);
-            SNUK_ASSERT(set_member(type_or_inst, field->identifier, value), "failed to set env "
-                                                                            "value");
+            SNUK_ASSERT(
+                set_member(type_or_inst, field->identifier, value), "failed to set env value");
             interpreter_trash(intpret, type_or_inst);
             break;
         }
