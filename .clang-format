@@ -79,7 +79,7 @@ PenaltyBreakComment: 1
 PenaltyBreakFirstLessLess: 1
 PenaltyBreakOpenParenthesis: 1
 PenaltyBreakScopeResolution: 1
-PenaltyBreakString: 10
+PenaltyBreakString: 100
 PenaltyBreakTemplateDeclaration: 1
 PenaltyExcessCharacter: 1
 PenaltyIndentedWhitespace: 1
