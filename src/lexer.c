@@ -79,6 +79,7 @@ KeyWord keywords[] = {
     {.keyword = "print",    .type = SNUK_TOKEN_PRINT   },
     {.keyword = "self",     .type = SNUK_TOKEN_SELF    },
     {.keyword = "type",     .type = SNUK_TOKEN_TYPE    },
+    {.keyword = "extend",   .type = SNUK_TOKEN_EXTEND  },
     {.keyword = "or",       .type = SNUK_TOKEN_KW_OR   },
     {.keyword = "and",      .type = SNUK_TOKEN_KW_AND  },
     {.keyword = "not",      .type = SNUK_TOKEN_KW_NOT  },
@@ -766,6 +767,8 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_FN);
         case SNUK_TOKEN_TYPE:
             return SNUK_STRINGIFY(SNUK_TOKEN_TYPE);
+        case SNUK_TOKEN_EXTEND:
+            return SNUK_STRINGIFY(SNUK_TOKEN_EXTEND);
         case SNUK_TOKEN_SELF:
             return SNUK_STRINGIFY(SNUK_TOKEN_SELF);
         case SNUK_TOKEN_PRINT:
