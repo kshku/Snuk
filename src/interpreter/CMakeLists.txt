@@ -12,3 +12,5 @@ set(SRCS
 )
 
 target_sources(snuk PRIVATE ${HEADERS} ${SRCS})
+
+add_subdirectory(builtins)

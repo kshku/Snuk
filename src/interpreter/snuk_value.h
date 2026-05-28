@@ -8,6 +8,9 @@
 #include "string_view.h"
 
 typedef struct SnukValue SnukValue;
+typedef struct SnukInterpreter SnukInterpreter;
+
+typedef SnukValue (*builtin_function)(SnukInterpreter *intpret);
 
 typedef enum SnukValueType {
     SNUK_VALUE_UNKOWN,
@@ -17,6 +20,7 @@ typedef enum SnukValueType {
     SNUK_VALUE_STRING,
     SNUK_VALUE_NULL,
     SNUK_VALUE_FN,
+    SNUK_VALUE_FN_BUILTIN,
     SNUK_VALUE_TYPE,
     SNUK_VALUE_TYPE_INST,
 
@@ -51,6 +55,11 @@ struct SnukValue {
             SnukExpr *body;
             SnukType *type;
         } fn_value;
+
+        struct {
+            SnukRefCounter *closure;
+            builtin_function fn;
+        } builtin_fn;
 
         struct {
             SnukRefCounter *closure;

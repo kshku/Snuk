@@ -339,7 +339,7 @@ static SnukToken lexer_scan_number(SnukLexer *lexer) {
     }
 
     // fraction
-    if (base == 10 && lexer_peek(lexer) == '.') {
+    if (base == 10 && lexer_peek(lexer) == '.' && !snuk_is_alpha(lexer_peek_next(lexer))) {
         is_float = true;
         lexer_advance(lexer);
 
