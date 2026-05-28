@@ -123,6 +123,8 @@ static SnukItem *parse_extend_item(SnukParser *parser) {
         return NULL;
     }
 
+    parser_expect_item_end(parser);
+
     return extend_item;
 }
 
