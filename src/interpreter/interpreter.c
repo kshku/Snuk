@@ -1106,6 +1106,9 @@ static SnukValue interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item,
             intpret->signal = SNUK_SIGNAL_CONTINUE;
             return (SnukValue){.type = SNUK_VALUE_NULL};
 
+        case SNUK_ITEM_EXTEND:
+            break;
+
         case SNUK_ITEM_MAX:
         default:
             break;
