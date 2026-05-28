@@ -57,6 +57,8 @@ struct SnukItem {
     };
 };
 
+extern SnukItem continue_item;
+
 /**
  * @brief Allocate a item.
  *
@@ -116,6 +118,8 @@ SNUK_INLINE SnukItem *build_decl_item(SnukParser *parser, SnukVar *var, SnukItem
  * @return Newly allocated control-flow item.
  */
 SNUK_INLINE SnukItem *build_flow_item(SnukParser *parser, SnukTokenType type, SnukExpr *value) {
+    if (type == SNUK_TOKEN_CONTINUE) return &continue_item;
+
     SnukItem *item = parser_create_item(parser);
     switch (type) {
         case SNUK_TOKEN_RETURN:
@@ -128,11 +132,6 @@ SNUK_INLINE SnukItem *build_flow_item(SnukParser *parser, SnukTokenType type, Sn
             *item = (SnukItem){
                 .type = SNUK_ITEM_BREAK,
                 .expr = value,
-            };
-            break;
-        case SNUK_TOKEN_CONTINUE:
-            *item = (SnukItem){
-                .type = SNUK_ITEM_CONTINUE,
             };
             break;
         default:

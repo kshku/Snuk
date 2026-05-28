@@ -150,6 +150,9 @@ struct SnukExpr {
     };
 };
 
+extern SnukExpr null_expr;
+extern SnukExpr self_expr;
+
 /**
  * @brief Allocate an expression node.
  *
@@ -188,11 +191,8 @@ SNUK_INLINE SnukExpr *build_comment_expr(SnukParser *parser, SnukToken comment_t
  * @return Newly allocated null expression node.
  */
 SNUK_INLINE SnukExpr *build_null_expr(SnukParser *parser) {
-    SnukExpr *null_expr = parser_create_expr(parser);
-    *null_expr = (SnukExpr){
-        .type = SNUK_EXPR_NULL,
-    };
-    return null_expr;
+    SNUK_UNUSED(parser);
+    return &null_expr;
 }
 
 /**
@@ -552,9 +552,8 @@ SNUK_INLINE SnukExpr *build_member_access_expr(SnukParser *parser, SnukExpr *typ
  * @return Newly allocated self expression node.
  */
 SNUK_INLINE SnukExpr *build_self_expr(SnukParser *parser) {
-    SnukExpr *expr = parser_create_expr(parser);
-    *expr = (SnukExpr){.type = SNUK_EXPR_SELF};
-    return expr;
+    SNUK_UNUSED(parser);
+    return &self_expr;
 }
 
 /**
