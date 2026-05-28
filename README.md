@@ -279,6 +279,27 @@ print_area(type Circle { radius: 7.0 })
 | `type` | `type { }` |
 | `list` | `[1, 2, 3]` *(not yet implemented)* |
 
+### Built-in methods
+
+All primitive types have conversion methods callable directly on literals.
+Falsy values: `0`, `0.0`, `false`, `""`, `null` — everything else is truthy.
+
+```snuk
+100.to_float()          // 100.0
+100.to_bool()           // true
+100.to_str()            // "100"
+"500".to_int()          // 500
+"abc".to_int()          // null — parse failure
+
+"hello".length()              // 5
+"hello".get()                 // "hello"
+"hello".get(1)                // "ello"
+"hello".get(0, 2)             // "he"   (start=0, len=2)
+"hello".get(start=1, len=3)   // "ell"
+"hello".get(len=3)            // "hel"
+// returns null on out of bounds
+```
+
 ### Operators
 
 | Category | Operators |

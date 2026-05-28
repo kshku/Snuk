@@ -45,6 +45,27 @@ Snuk uses [Semantic Versioning](https://semver.org/).
 - Comment trivia — leading and trailing comments attached to tokens
 - Optional semicolons — newlines work as separators inside `{}`
 
+### Built-in methods
+
+All four primitive types (`int`, `float`, `bool`, `str`) have:
+
+- `.to_int()` — convert to int, returns `null` on failure
+- `.to_float()` — convert to float, returns `null` on failure
+- `.to_bool()` — convert to bool (falsy: `0`, `0.0`, `false`, `""`, `null`)
+- `.to_str()` — convert to string representation
+
+`str` additionally has:
+
+- `.length()` — number of characters
+- `.get(start=0, len=null)` — substring extraction
+  - `.get()` — whole string
+  - `.get(i)` — from index `i` to end
+  - `.get(i, n)` — from index `i`, length `n`
+  - `.get(start=i)` — from index `i` to end (named)
+  - `.get(len=n)` — first `n` characters (named)
+  - `.get(start=i, len=n)` — from index `i`, length `n` (named)
+  - returns `null` on out of bounds
+
 ### Interpreter
 
 - Tree-walk interpreter
@@ -52,6 +73,7 @@ Snuk uses [Semantic Versioning](https://semver.org/).
 - Control flow signals for `return`, `break`, `continue`
 - Runtime type enforcement for annotated variables and parameters
 - Instance scope inserted between local and closure scope on method calls
+- Reference counting for memory management
 
 ### Infrastructure
 
