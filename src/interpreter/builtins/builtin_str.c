@@ -139,7 +139,7 @@ static SnukValue build_get(SnukValue value) {
         {
          .name = snuk_string_view_create_with_len("len", 3),
          .type = &int_type,
-         .value = (SnukValue){.type = SNUK_VALUE_INT, .int_value = -1},
+         .value = (SnukValue){.type = SNUK_VALUE_NULL},
          },
         {
          .name = self,
@@ -225,12 +225,13 @@ static SnukValue get(SnukInterpreter *intpret) {
     get_parameters(intpret->current, names, envs, 2);
 
     int64_t start = envs[0]->value.int_value;
-    int64_t len = envs[1]->value.int_value;
     SnukStringView string = self_env->value.string_value;
+    int64_t len;
+    if (envs[1]->value.type == SNUK_VALUE_NULL) len = (int64_t)string.len - 2;
+    else len = envs[1]->value.int_value;
 
     if (start < 0 || start >= (int64_t)string.len - 2) goto fail;
-    if (len < 0) len = (int64_t)string.len - 2 - start;
-    if (start + len > (int64_t)string.len - 2) goto fail;
+    if (len < 0 || start + len > (int64_t)string.len - 2) goto fail;
 
     char *new_str = snuk_alloc((len + 2) * sizeof(char), alignof(char));
     new_str[0] = '"';
