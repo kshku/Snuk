@@ -543,7 +543,58 @@ print_shape(type Rectangle { width: 10.0; height: 5.0 })
 print_shape(type Circle { radius: 7.0 })
 
 
-// ── 10. PRINT ────────────────────────────────────────────────
+
+// ── 10. BUILT-IN METHODS ─────────────────────────────────────
+
+// All primitive types (int, float, bool, str) have:
+//
+//   .to_int()    → int    — converts to int,   null on failure
+//   .to_float()  → float  — converts to float, null on failure
+//   .to_bool()   → bool   — converts to bool
+//   .to_str()    → str    — converts to string representation
+//
+// Falsy values: 0, 0.0, false, "", null
+// Everything else is truthy.
+// Methods can be called directly on literals.
+
+var bi1: int   = 100.to_int()         // 100
+var bf1: float = 100.to_float()       // 100.0
+var bb1: bool  = 100.to_bool()        // true  (non-zero)
+var bs1: str   = 100.to_str()         // "100"
+var bs2: str   = 10.5.to_str()        // "10.5"
+
+var bi2: int   = "500".to_int()       // 500
+var bf2: float = "500.5".to_float()   // 500.5
+var bf3: float = "500".to_float()     // 500.0
+var bi3        = "abc".to_int()       // null — parse failure
+var bf4        = "abc".to_float()     // null — parse failure
+
+var bb2: bool  = 0.to_bool()          // false — zero is falsy
+var bb3: bool  = "".to_bool()         // false — empty string is falsy
+var bb4: bool  = false.to_bool()      // false
+
+// str additionally has:
+//
+//   .length()                     → int — number of characters
+//   .get()                        → str — whole string
+//   .get(start)                   → str — from index start to end
+//   .get(start, len)              → str — from start, length len
+//   .get(start=i)                 → str — named: from index i to end
+//   .get(len=n)                   → str — named: first n characters
+//   .get(start=i, len=n)          → str — named: from i, length n
+//   returns null on out of bounds
+
+var sv = "hello"
+var sn1: int = sv.length()              // 5
+var ss1: str = sv.get()                 // "hello"
+var ss2: str = sv.get(3)               // "lo"
+var ss3: str = sv.get(0, 2)            // "he"   (start=0, len=2)
+var ss4: str = sv.get(len=3)           // "hel"
+var ss5: str = sv.get(start=1, len=3)  // "ell"
+var ss6: str = sv.get(start=1)         // "ello"
+
+
+// ── 11. PRINT ────────────────────────────────────────────────
 
 print "hello"           // hello
 print 42                // 42
@@ -553,7 +604,7 @@ print add               // fn(a, b)
 print Point             // type { px, py }
 
 
-// ── 11. COMPLETE EXAMPLES ────────────────────────────────────
+// ── 12. COMPLETE EXAMPLES ────────────────────────────────────
 
 // fibonacci
 fn fib(n) {
