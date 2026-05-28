@@ -45,13 +45,13 @@ cmake --build build
 
 ```bash
 # Start the REPL
-./build/snuk
+./build/repl/snuk
 
 # Run a file
-./build/snuk myfile.snuk
+./build/repl/snuk myfile.snuk
 
 # Run a command
-./build/snuk -c <command>
+./build/repl/snuk -c <command>
 ```
 
 ---
