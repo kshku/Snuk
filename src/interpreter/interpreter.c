@@ -1,29 +1,11 @@
 #include "interpreter.h"
 
+#include "builtins/snuk_builtins.h"
 #include "io.h"
 #include "parser/snuk_var.h"
 #include "snuk_scope.h"
 
 #include <stdio.h>
-
-typedef struct PredefinedTypes {
-    const char *type;
-    SnukValueType val_type;
-} PredefinedTypes;
-
-static PredefinedTypes pre_def_types[] = {
-    {.type = "int",   .val_type = SNUK_VALUE_INT   },
-    {.type = "float", .val_type = SNUK_VALUE_FLOAT },
-    {.type = "bool",  .val_type = SNUK_VALUE_BOOL  },
-    {.type = "str",   .val_type = SNUK_VALUE_STRING},
-};
-
-SNUK_INLINE SnukValueType get_predef_type(SnukStringView name) {
-    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(pre_def_types); ++i)
-        if (snuk_string_view_equal_cstr(name, pre_def_types[i].type))
-            return pre_def_types[i].val_type;
-    return SNUK_VALUE_UNKOWN;
-}
 
 /**
  * @brief Walk the scope chain from current to global to resolve a name.
@@ -146,7 +128,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
         return snuk_type_equal(value.type_value.type, type);
 
     if (type->type == TYPE_NAMED) {
-        if (value.type == get_predef_type(type->name)) return true;
+        if (value.type == snuk_builtin_get_value_type(type->name)) return true;
 
         if (value.type == SNUK_VALUE_TYPE_INST) return snuk_type_equal(value.type_value.type, type);
 
@@ -833,7 +815,6 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
     snuk_ref_counter_downgrade(self_value.type_value.closure);
     self_value.type_value.weak_ref = true;
 
-    SnukStringView self = snuk_string_view_create_with_len("self", 4);
     SNUK_ASSERT(snuk_interpreter_create_env(intpret, self, self_value.type_value.type, self_value, true),
                 "something went wrong while creating self");
 
@@ -953,14 +934,19 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr, bool 
  */
 static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
     SnukValue fn = interpreter_eval_expr(intpret, expr->call.fn, weak_ref);
-    SNUK_ASSERT(fn.type == SNUK_VALUE_FN, "call expression on non function");
+    SNUK_ASSERT(fn.type == SNUK_VALUE_FN || fn.type == SNUK_VALUE_FN_BUILTIN,
+                "call expression on non function");
+
+    SnukRefCounter *fn_scope_rc = NULL;
+    if (fn.type == SNUK_VALUE_FN) fn_scope_rc = fn.fn_value.closure;
+    else fn_scope_rc = fn.builtin_fn.closure;
 
     SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
     if (fn.fn_value.instance) intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
 
     interpreter_push_scope(intpret);
 
-    SnukScope *fn_scope = GET_SCOPE(fn.fn_value.closure);
+    SnukScope *fn_scope = GET_SCOPE(fn_scope_rc);
 
     uint64_t fn_param_count = snuk_darray_get_length(fn_scope->vars);
     uint64_t param_count = snuk_darray_get_length(expr->call.params);
@@ -980,7 +966,7 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
         if (param->type == SNUK_EXPR_ASSIGN) {
             named_params = true;
             name = param->assign.identifier->identifier;
-            fn_env = snuk_scope_lookup(fn.fn_value.closure, name);
+            fn_env = snuk_scope_lookup(fn_scope_rc, name);
             SNUK_ASSERT(fn_env, "parameter doesn't exists");
             type = fn_env->type;
             value = param->assign.value;
@@ -1016,12 +1002,15 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
     interpreter_pop_scope(intpret);
 
     // Release parent and hold the closure
-    snuk_scope_set_parent(new_scope, snuk_ref_counter_retain(fn.fn_value.closure), false);
+    snuk_scope_set_parent(new_scope, snuk_ref_counter_retain(fn_scope_rc), false);
 
     SnukRefCounter *temp = snuk_ref_counter_move(&intpret->current);
     intpret->current = snuk_ref_counter_move(&new_scope);
 
-    SnukValue ret = execute_block_expr(intpret, fn.fn_value.body, SNUK_SIGNAL_RETURN, SNUK_SIGNAL_NONE, false);
+    SnukValue ret;
+    if (fn.type == SNUK_VALUE_FN)
+        ret = execute_block_expr(intpret, fn.fn_value.body, SNUK_SIGNAL_RETURN, SNUK_SIGNAL_NONE, false);
+    else ret = fn.builtin_fn.fn(intpret);
 
     new_scope = snuk_ref_counter_move(&intpret->current);
     intpret->current = snuk_ref_counter_move(&temp);
@@ -1204,7 +1193,6 @@ static SnukValue interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr,
             return execute_member_get(intpret, expr, weak_ref);
 
         case SNUK_EXPR_SELF: {
-            SnukStringView self = snuk_string_view_create_with_len("self", 4);
             SnukValue self_value = snuk_interpreter_get_env(intpret, self);
             SNUK_ASSERT(self_value.type == SNUK_VALUE_TYPE_INST, "self error");
             return self_value;
@@ -1251,8 +1239,14 @@ static SnukValue execute_assign_expr(SnukInterpreter *intpret, SnukExpr *expr, b
 }
 
 static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
-    SnukValue type = interpreter_eval_expr(intpret, expr->member_access.type, weak_ref);
-    SnukValue res = get_member(type, expr->member_access.field->identifier);
-    interpreter_trash(intpret, type);
+    SnukValue type_or_inst = interpreter_eval_expr(intpret, expr->member_access.type, weak_ref);
+    SnukValue res;
+    if (type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST)
+        res = get_member(type_or_inst, expr->member_access.field->identifier);
+    else res = snuk_builtin_get_member(type_or_inst, expr->member_access.field->identifier);
+
+    SNUK_ASSERT(res.type != SNUK_VALUE_UNKOWN, "couldn't get the member");
+
+    interpreter_trash(intpret, type_or_inst);
     return res;
 }
