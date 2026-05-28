@@ -1,4 +1,4 @@
-#include "snuk_type.h"
+#include "snuk/parser/snuk_type.h"
 
 SnukType any_type = {
     .type = TYPE_ANY,

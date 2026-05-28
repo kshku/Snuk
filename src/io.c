@@ -1,8 +1,8 @@
-#include "io.h"
+#include "snuk/io.h"
 
-#include "logger.h"
-#include "memory.h"
-#include "snuk_string.h"
+#include "snuk/logger.h"
+#include "snuk/memory.h"
+#include "snuk/snuk_string.h"
 
 #include <snfile/snfile.h>
 #include <stdarg.h>

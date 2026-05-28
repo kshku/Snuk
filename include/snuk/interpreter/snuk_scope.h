@@ -1,7 +1,7 @@
 #pragma once
 
-#include "defines.h"
-#include "refcount.h"
+#include "snuk/defines.h"
+#include "snuk/refcount.h"
 #include "snuk_env.h"
 
 #define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))

@@ -1,4 +1,4 @@
-#include "darray.h"
+#include "snuk/darray.h"
 
 #include <stdlib.h>
 #include <string.h>

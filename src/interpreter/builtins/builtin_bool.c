@@ -1,4 +1,4 @@
-#include "builtin_bool.h"
+#include "snuk/interpreter/builtins/builtin_bool.h"
 
 static SnukValue to_int(SnukInterpreter *intpret);
 static SnukValue to_float(SnukInterpreter *intpret);

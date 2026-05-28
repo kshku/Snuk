@@ -1,7 +1,7 @@
 #pragma once
 
-#include <logger.h>
-#include <memory.h>
+#include <snuk/logger.h>
+#include <snuk/memory.h>
 #include <stdbool.h>
 #include <string.h>
 

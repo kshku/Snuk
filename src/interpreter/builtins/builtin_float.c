@@ -1,4 +1,4 @@
-#include "builtin_float.h"
+#include "snuk/interpreter/builtins/builtin_float.h"
 
 #include <stdio.h>
 

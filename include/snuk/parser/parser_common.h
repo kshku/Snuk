@@ -1,8 +1,8 @@
 #pragma once
 
-#include "defines.h"
-#include "logger.h"
 #include "parser.h"
+#include "snuk/defines.h"
+#include "snuk/logger.h"
 
 typedef struct SnukItem SnukItem;
 typedef struct SnukExpr SnukExpr;

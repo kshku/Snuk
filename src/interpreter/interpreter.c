@@ -1,9 +1,9 @@
-#include "interpreter.h"
+#include "snuk/interpreter/interpreter.h"
 
-#include "builtins/snuk_builtins.h"
-#include "io.h"
-#include "parser/snuk_var.h"
-#include "snuk_scope.h"
+#include "snuk/interpreter/builtins/snuk_builtins.h"
+#include "snuk/interpreter/snuk_scope.h"
+#include "snuk/io.h"
+#include "snuk/parser/snuk_var.h"
 
 #include <stdio.h>
 

@@ -1,4 +1,4 @@
-set(HEADERS
+set(PUBLIC_HEADERS
     builtin_int.h
     builtin_float.h
     builtin_bool.h
@@ -6,6 +6,8 @@ set(HEADERS
     builtin_null.h
     snuk_builtins.h
     builtins_common.h
+)
+set(HEADERS
 )
 
 set(SRCS
@@ -16,4 +18,7 @@ set(SRCS
     builtin_null.c
 )
 
-target_sources(snuk PRIVATE ${HEADERS} ${SRCS})
+set(INCLUDE_BASE "${PROJECT_SOURCE_DIR}/include/snuk/interpreter/builtins")
+list(TRANSFORM PUBLIC_HEADERS PREPEND "${INCLUDE_BASE}/")
+
+target_sources(snuk PRIVATE ${PUBLIC_HEADERS} ${HEADERS} ${SRCS})

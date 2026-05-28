@@ -1,4 +1,4 @@
-#include "builtin_int.h"
+#include "snuk/interpreter/builtins/builtin_int.h"
 
 #include <stdio.h>
 

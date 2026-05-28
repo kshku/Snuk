@@ -1,4 +1,4 @@
-#include "builtin_str.h"
+#include "snuk/interpreter/builtins/builtin_str.h"
 
 #include <stdio.h>
 

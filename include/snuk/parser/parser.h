@@ -1,10 +1,10 @@
 #pragma once
 
-#include "defines.h"
-#include "lexer.h"
+#include "snuk/defines.h"
+#include "snuk/lexer.h"
 
 /*
- * We will have Items similar to Rust.
+ * We will have items similar to rust.
  * But since this is interpreted language, items cannot appear in any order.
  * Items should be defined or declared first before it can be used.
  *

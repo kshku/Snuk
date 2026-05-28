@@ -1,13 +1,13 @@
 #pragma once
 
-#include "defines.h"
-#include "parser/snuk_expr.h"
-#include "parser/snuk_item.h"
-#include "refcount.h"
+#include "snuk/defines.h"
+#include "snuk/parser/snuk_expr.h"
+#include "snuk/parser/snuk_item.h"
+#include "snuk/refcount.h"
+#include "snuk/string_view.h"
 #include "snuk_env.h"
 #include "snuk_signal.h"
 #include "snuk_value.h"
-#include "string_view.h"
 
 /**
  * @brief Mutable interpreter state shared across exec and eval calls.

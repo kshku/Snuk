@@ -1,11 +1,11 @@
 #pragma once
 
-#include "defines.h"
-#include "parser/snuk_expr.h"
-#include "parser/snuk_type.h"
-#include "parser/snuk_var.h"
-#include "refcount.h"
-#include "string_view.h"
+#include "snuk/defines.h"
+#include "snuk/parser/snuk_expr.h"
+#include "snuk/parser/snuk_type.h"
+#include "snuk/parser/snuk_var.h"
+#include "snuk/refcount.h"
+#include "snuk/string_view.h"
 
 typedef struct SnukValue SnukValue;
 typedef struct SnukInterpreter SnukInterpreter;

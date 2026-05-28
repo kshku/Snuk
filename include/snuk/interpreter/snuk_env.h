@@ -1,10 +1,10 @@
 #pragma once
 
-#include "darray.h"
-#include "defines.h"
-#include "parser/snuk_type.h"
+#include "snuk/darray.h"
+#include "snuk/defines.h"
+#include "snuk/parser/snuk_type.h"
+#include "snuk/string_view.h"
 #include "snuk_value.h"
-#include "string_view.h"
 
 typedef struct SnukEnv SnukEnv;
 

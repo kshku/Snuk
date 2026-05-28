@@ -1,9 +1,9 @@
-#include "snuk_expr.h"
+#include "snuk/parser/snuk_expr.h"
 
-#include "darray.h"
-#include "snuk_item.h"
-#include "snuk_type.h"
-#include "snuk_var.h"
+#include "snuk/darray.h"
+#include "snuk/parser/snuk_item.h"
+#include "snuk/parser/snuk_type.h"
+#include "snuk/parser/snuk_var.h"
 
 SnukExpr null_expr = {
     .type = SNUK_EXPR_NULL,
