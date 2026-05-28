@@ -269,15 +269,11 @@ static SnukValue perform_binary_op(SnukValue left, SnukValue right, SnukTokenTyp
                     str = snuk_string_view_create_with_len("null", 4);
                     break;
                 case SNUK_VALUE_INT:
-                    buf[len++] = '"';
-                    len = snprintf(buf + 1, SNUK_ARRAY_LENGTH(buf) - 2, PRId64, v.int_value);
-                    buf[len++] = '"';
+                    len = snprintf(buf, SNUK_ARRAY_LENGTH(buf), "\"%" PRId64 "\"", v.int_value);
                     str = snuk_string_view_create_with_len(buf, len);
                     break;
                 case SNUK_VALUE_FLOAT:
-                    buf[len++] = '"';
-                    len = snprintf(buf + 1, SNUK_ARRAY_LENGTH(buf) - 2, "%lf", v.float_value);
-                    buf[len++] = '"';
+                    len = snprintf(buf, SNUK_ARRAY_LENGTH(buf), "\"%lf\"", v.float_value);
                     str = snuk_string_view_create_with_len(buf, len);
                     break;
                 case SNUK_VALUE_BOOL:
