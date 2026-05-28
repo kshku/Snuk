@@ -32,6 +32,7 @@ SnukValue snuk_value_copy(SnukValue value) {
         case SNUK_VALUE_BOOL:
         case SNUK_VALUE_STRING:
         case SNUK_VALUE_NULL:
+        case SNUK_VALUE_INTERFACE:
         case SNUK_VALUE_MAX:
         default:
             break;
@@ -65,6 +66,7 @@ void snuk_value_free(SnukValue value) {
         case SNUK_VALUE_BOOL:
         case SNUK_VALUE_STRING:
         case SNUK_VALUE_NULL:
+        case SNUK_VALUE_INTERFACE:
         case SNUK_VALUE_MAX:
         default:
             break;
@@ -104,6 +106,9 @@ void snuk_value_log(SnukValue value) {
         case SNUK_VALUE_TYPE_INST:
             log_trace("type %s", SNUK_STRINGIFY(SNUK_VALUE_TYPE_INST));
             break;
+        case SNUK_VALUE_INTERFACE:
+            log_trace("type %s", SNUK_STRINGIFY(SNUK_VALUE_INTERFACE));
+            break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;
             break;
@@ -138,6 +143,9 @@ void snuk_value_print(SnukValue value) {
             break;
         case SNUK_VALUE_TYPE_INST:
             snuk_println("type inst:", NULL);
+            break;
+        case SNUK_VALUE_INTERFACE:
+            snuk_println("interface:", NULL);
             break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;

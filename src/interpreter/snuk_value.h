@@ -23,6 +23,7 @@ typedef enum SnukValueType {
     SNUK_VALUE_FN_BUILTIN,
     SNUK_VALUE_TYPE,
     SNUK_VALUE_TYPE_INST,
+    SNUK_VALUE_INTERFACE,
 
     SNUK_VALUE_MAX,
 } SnukValueType;
@@ -67,6 +68,10 @@ struct SnukValue {
             bool weak_ref;
             SnukType *type;
         } type_value;
+
+        struct {
+            SnukItem **members;
+        } interface;
     };
 };
 

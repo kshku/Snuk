@@ -108,6 +108,7 @@ static SnukValue interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr,
 static SnukValue execute_assign_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref);
 static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref);
 static SnukValue execute_extend(SnukInterpreter *intpret, SnukItem *item, bool weak_ref);
+static SnukValue execute_interface(SnukInterpreter *intpret, SnukItem *item, bool weak_ref);
 
 void snuk_interpreter_init(SnukInterpreter *intpret) {
     *intpret = (SnukInterpreter){
@@ -139,6 +140,9 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
     if (value.type == SNUK_VALUE_NULL || type->type == TYPE_ANY) return true;
 
+    // TODO:
+    if (type->type == TYPE_INTERFACE && value.type == SNUK_VALUE_INTERFACE) return true;
+
     if (type->type == TYPE_FN && value.type == SNUK_VALUE_FN)
         return snuk_type_equal(value.fn_value.type, type);
 
@@ -147,18 +151,42 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
     if (type->type == TYPE_NAMED) {
         if (value.type == snuk_builtin_get_value_type(type->name)) return true;
-
-        if (value.type == SNUK_VALUE_TYPE_INST) return snuk_type_equal(value.type_value.type, type);
-
-        if (value.type != SNUK_VALUE_TYPE) return false;
+        if (value.type != SNUK_VALUE_TYPE && value.type != SNUK_VALUE_TYPE_INST) return false;
 
         SnukEnv *env = interpreter_lookup(intpret, type->name);
         if (!env) return false;
 
-        return snuk_type_equal(value.type_value.type, env->type);
+        if (env->type->type == TYPE_INTERFACE) {
+            SnukValue val;
+            if (value.type == SNUK_VALUE_TYPE_INST) {
+                SnukEnv *env = interpreter_lookup(intpret, value.type_value.type->name);
+                if (!env) return false;
+                val = env->value;
+            } else {
+                val = value;
+            }
+            return snuk_interpreter_type_is_of_interface(intpret, val, env->value);
+        }
+
+        if (value.type == SNUK_VALUE_TYPE) return snuk_type_equal(value.type_value.type, env->type);
+        else return snuk_type_equal(value.type_value.type, type);
+
+        return false;
     }
 
     return false;
+}
+
+bool snuk_interpreter_type_is_of_interface(SnukInterpreter *intpret, SnukValue type, SnukValue interface) {
+    SnukItem **members = interface.interface.members;
+    uint64_t count = snuk_darray_get_length(members);
+    for (uint64_t i = 0; i < count; ++i) {
+        SnukEnv *env = snuk_scope_lookup(type.type_value.closure, members[i]->var->name);
+        if (!env) return false;
+        if (!snuk_interpreter_value_is_of_type(intpret, env->value, members[i]->var->type))
+            return false;
+    }
+    return true;
 }
 
 SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name) {
@@ -795,7 +823,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
         SnukEnv *type_env = type_scope->vars[i];
         SnukValue value = snuk_value_copy(type_env->value);
         SNUK_ASSERT(snuk_interpreter_create_env(intpret, type_env->name, type_env->type, value, false),
-                    "duplicate member value");
+                    "something went wrong while creating member");
         snuk_value_free(value);
     }
 
@@ -913,7 +941,7 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr, bool 
         SnukValue value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
         if (param->value) value = interpreter_eval_expr(intpret, param->value, false);
         SNUK_ASSERT(snuk_interpreter_create_env(intpret, param->name, param->type, value, false),
-                    "duplicate parameter names");
+                    "something went wrong while creating parameter");
         snuk_value_free(value);
     }
 
@@ -991,8 +1019,8 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
         }
 
         SnukValue val = interpreter_eval_expr(intpret, value, true);
-        SNUK_ASSERT(
-            snuk_interpreter_create_env(intpret, name, type, val, false), "duplicate parameter");
+        SNUK_ASSERT(snuk_interpreter_create_env(intpret, name, type, val, false),
+                    "something went wrong while creating parameter");
         snuk_value_free(val);
     }
 
@@ -1094,7 +1122,7 @@ static SnukValue interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item,
             SnukValue value = interpreter_eval_expr(intpret, item->var->value, weak_ref);
             SNUK_ASSERT(snuk_interpreter_create_env(intpret, item->var->name, item->var->type,
                                                     value, item->type == SNUK_ITEM_CONST_DECL),
-                        "duplicate variable");
+                        "something went wrong while creating variable");
             return value;
         }
 
@@ -1118,6 +1146,9 @@ static SnukValue interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item,
 
         case SNUK_ITEM_EXTEND:
             return execute_extend(intpret, item, weak_ref);
+
+        case SNUK_ITEM_INTERFACE:
+            return execute_interface(intpret, item, weak_ref);
 
         case SNUK_ITEM_MAX:
         default:
@@ -1288,4 +1319,18 @@ static SnukValue execute_extend(SnukInterpreter *intpret, SnukItem *item, bool w
     intpret->current = snuk_ref_counter_move(&temp);
 
     return type;
+}
+
+static SnukValue execute_interface(SnukInterpreter *intpret, SnukItem *item, bool weak_ref) {
+    SNUK_UNUSED(weak_ref);
+    SnukValue value = {
+        .type = SNUK_VALUE_INTERFACE,
+        .interface = {
+            .members = item->interface_item.members,
+        },
+    };
+    SNUK_ASSERT(snuk_interpreter_create_env(
+                    intpret, item->interface_item.name, item->interface_item.type, value, false),
+                "failed to create interface");
+    return value;
 }

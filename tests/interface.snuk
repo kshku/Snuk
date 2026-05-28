@@ -1,0 +1,35 @@
+interface Printable {
+    var to_str: fn() -> str
+}
+
+type Point {
+    var x: int
+    var y: int
+}
+
+fn print_object(obj: Printable) {
+    print obj.to_str()
+}
+
+type Point p = {x: 2; y: 3};
+// print_object(p) // fails
+
+extend Point {
+    fn to_str() -> str {
+        "(" + x.to_str() + ", " + y.to_str() + ")"
+    }
+}
+
+print_object(p) // should print
+
+type Square {
+    var width: int = 100
+    var height: int = 100
+    
+    // fn to_str() { // gives error
+    fn to_str() -> str { // type matters
+        width.to_str() + "x" + height.to_str()
+    }
+}
+
+print_object(Square)
