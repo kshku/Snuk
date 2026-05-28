@@ -26,6 +26,7 @@ typedef enum SnukItemType {
     SNUK_ITEM_CONTINUE, /**< Transfer control to next iteration. */
 
     SNUK_ITEM_EXTEND, /**< extend types */
+    SNUK_ITEM_INTERFACE, /**< interface */
 
     SNUK_ITEM_MAX, /**< Sentinel value for item kinds. */
 } SnukItemType;
@@ -46,6 +47,11 @@ struct SnukItem {
             SnukExpr *type;
             SnukItem **members;
         } extend_item;
+
+        struct {
+            SnukStringView name;
+            SnukItem **members;
+        } interface_item;
     };
 };
 
@@ -175,6 +181,26 @@ SNUK_INLINE SnukItem *build_extend_item(SnukParser *parser, SnukItem *item, Snuk
     }
     if (type) item->extend_item.type = type;
     if (member) snuk_darray_push(&item->extend_item.members, member);
+    return item;
+}
+
+/**
+ * @brief Build a interface item.
+ * @param parser Parser context to operate on.
+ * @param name Name of the interface.
+ * @param members Members of the interface.
+ *
+ * @return Extend item.
+ */
+SNUK_INLINE SnukItem *build_interface_item(SnukParser *parser, SnukStringView name, SnukItem **members) {
+    SnukItem *item = parser_create_item(parser);
+    *item = (SnukItem){
+        .type = SNUK_ITEM_INTERFACE,
+        .interface_item = {
+            .name = parser_copy_string_view(parser, name),
+            .members = members,
+        },
+    };
     return item;
 }
 

@@ -50,6 +50,15 @@ static SnukItem *parse_print_item(SnukParser *parser);
  */
 static SnukItem *parse_extend_item(SnukParser *parser);
 
+/**
+ * @brief Parse a interface item.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed item, or NULL on parse failure.
+ */
+static SnukItem *parse_interface_item(SnukParser *parser);
+
 SnukItem *snuk_item_parse(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST))
         return parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST);
@@ -61,6 +70,8 @@ SnukItem *snuk_item_parse(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
 
     if (parser_match(parser, SNUK_TOKEN_EXTEND)) return parse_extend_item(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_INTERFACE)) return parse_interface_item(parser);
 
     return parse_expr_item(parser);
 }
@@ -104,7 +115,7 @@ static SnukItem *parse_print_item(SnukParser *parser) {
 static SnukItem *parse_extend_item(SnukParser *parser) {
     SnukItem *extend_item = build_extend_item(parser, NULL, NULL, NULL);
 
-    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "Expected type name to extend");
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected type name to extend");
     build_extend_item(parser, extend_item, build_identifier_expr(parser), NULL);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
@@ -126,6 +137,31 @@ static SnukItem *parse_extend_item(SnukParser *parser) {
     parser_expect_item_end(parser);
 
     return extend_item;
+}
+
+static SnukItem *parse_interface_item(SnukParser *parser) {
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected interface name");
+    SnukStringView name = parser->previous.string_literal;
+
+    SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
+        if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)) {
+            SnukItem *item = snuk_item_parse(parser);
+            snuk_darray_push(members, item);
+        } else {
+            parser_error(parser, "unexpected token");
+        }
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "expected '}'");
+        return NULL;
+    }
+
+    parser_expect_item_end(parser);
+
+    return build_interface_item(parser, name, members);
 }
 
 const char *snuk_item_type_to_string(SnukItemType type) {
