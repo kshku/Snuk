@@ -5,6 +5,14 @@
 #include "snuk_type.h"
 #include "snuk_var.h"
 
+SnukExpr null_expr = {
+    .type = SNUK_EXPR_NULL,
+};
+
+SnukExpr self_expr = {
+    .type = SNUK_EXPR_SELF,
+};
+
 /**
  * @brief Pratt parser precedence levels.
  */

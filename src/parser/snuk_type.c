@@ -1,5 +1,9 @@
 #include "snuk_type.h"
 
+SnukType any_type = {
+    .type = TYPE_ANY,
+};
+
 SnukType *snuk_type_parse(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_TYPE)) {
         // type <type>

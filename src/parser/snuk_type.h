@@ -31,6 +31,8 @@ struct SnukType {
     };
 };
 
+extern SnukType any_type;
+
 SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
     if (type1->type != type2->type) return false;
 
@@ -93,11 +95,8 @@ SNUK_INLINE SnukType *parser_create_type(SnukParser *parser) {
  * @return Newly allocated type node.
  */
 SNUK_INLINE SnukType *build_any_type(SnukParser *parser) {
-    SnukType *type = parser_create_type(parser);
-    *type = (SnukType){
-        .type = TYPE_ANY,
-    };
-    return type;
+    SNUK_UNUSED(parser);
+    return &any_type;
 }
 
 /**

@@ -4,6 +4,10 @@
 #include "snuk_type.h"
 #include "snuk_var.h"
 
+SnukItem continue_item = {
+    .type = SNUK_ITEM_CONTINUE,
+};
+
 /**
  * @brief Parse an expression item.
  *
