@@ -86,3 +86,49 @@ type Point {
 ```
 
 - Requires multiple dispatch
+
+## Function type should include parameter name ?
+```snuk
+fn name(a: int, b: float)
+// or
+var name: fn(a: int, b: float)
+```
+
+This enables use functions from interfaces by passing parameters using parameter names like
+```snuk
+interface Drawable {
+    fn draw(x: int, y: float, renderer: type Renderer)
+}
+
+fn draw_things(obj: Drawable) {
+    obj.draw(renderer=renderer, x=10, y=20.0)
+}
+```
+Without this (current):
+```snuk
+interface Drawable {
+    var darw: fn(int, float, type Renderer) // have to declare functions like this
+}
+
+fn draw_things(obj: Drawable) {
+    obj.draw(10, 20.0, renderer) // cannot pass params by name
+}
+```
+
+This also makes us unable to bind function expression to a variable if parameters doesn't match.
+Another approach is to have function declarations like
+```snuk
+fn a_fn(a: int, b: float)
+```
+which creates a function will null body.
+It can be then defined as
+```snuk
+fn a_fn(a: int, b: float) {
+    // ...
+}
+```
+But this is inconsistant with
+```snuk
+var a_fn: fn(int, float)
+```
+way of defining.
