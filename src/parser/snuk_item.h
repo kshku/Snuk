@@ -3,6 +3,7 @@
 #include "darray.h"
 #include "defines.h"
 #include "parser_common.h"
+#include "snuk_type.h"
 #include "string_view.h"
 
 /**
@@ -51,6 +52,7 @@ struct SnukItem {
         struct {
             SnukStringView name;
             SnukItem **members;
+            SnukType *type;
         } interface_item;
     };
 };
@@ -199,6 +201,7 @@ SNUK_INLINE SnukItem *build_interface_item(SnukParser *parser, SnukStringView na
         .interface_item = {
             .name = parser_copy_string_view(parser, name),
             .members = members,
+            .type = build_interface_type(parser, name),
         },
     };
     return item;

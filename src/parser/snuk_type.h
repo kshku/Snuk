@@ -14,6 +14,7 @@ struct SnukType {
         TYPE_NAMED, /**< Named type */
         TYPE_FN, /**< Function type */
         TYPE_TYPE, /**< Type type */
+        TYPE_INTERFACE,
 
         TYPE_MAX, /**< Sentinel value for type kinds. */
     } type;
@@ -159,6 +160,15 @@ SNUK_INLINE SnukType *build_type_type(SnukParser *parser, SnukType *type, SnukTy
         };
     }
     if (member_type) snuk_darray_push(&type->member_types, member_type);
+    return type;
+}
+
+SNUK_INLINE SnukType *build_interface_type(SnukParser *parser, SnukStringView name) {
+    SnukType *type = parser_create_type(parser);
+    *type = (SnukType){
+        .type = TYPE_INTERFACE,
+        .name = parser_copy_string_view(parser, name),
+    };
     return type;
 }
 

@@ -148,7 +148,7 @@ static SnukItem *parse_interface_item(SnukParser *parser) {
     while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
         if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)) {
             SnukItem *item = snuk_item_parse(parser);
-            snuk_darray_push(members, item);
+            snuk_darray_push(&members, item);
         } else {
             parser_error(parser, "unexpected token");
         }

@@ -84,3 +84,4 @@ bool snuk_interpreter_create_env(
 
 bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value, SnukType *type);
 
+bool snuk_interpreter_type_is_of_interface(SnukInterpreter *intpret, SnukValue type, SnukValue interface);
