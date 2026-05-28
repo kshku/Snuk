@@ -1,6 +1,6 @@
 #pragma once
 
-#include "defines.h"
+#include "snuk/defines.h"
 
 /**
  * @brief Control-flow signal flags raised during item or expression evaluation.

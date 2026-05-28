@@ -1,7 +1,7 @@
-#include "snuk_var.h"
+#include "snuk/parser/snuk_var.h"
 
-#include "snuk_expr.h"
-#include "snuk_type.h"
+#include "snuk/parser/snuk_expr.h"
+#include "snuk/parser/snuk_type.h"
 
 SnukVar *snuk_var_parse(SnukParser *parser, bool default_null) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an identifier");

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "defines.h"
-#include "interpreter/interpreter.h"
-#include "memory.h"
-#include "snuk_string.h"
+#include "snuk/defines.h"
+#include "snuk/interpreter/interpreter.h"
+#include "snuk/memory.h"
+#include "snuk/snuk_string.h"
 
 #include <snmemory/linear.h>
 

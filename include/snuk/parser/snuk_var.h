@@ -1,8 +1,8 @@
 #pragma once
 
-#include "defines.h"
 #include "parser_common.h"
-#include "string_view.h"
+#include "snuk/defines.h"
+#include "snuk/string_view.h"
 
 typedef struct SnukVar {
     SnukStringView name; /**< Name of the variable. */

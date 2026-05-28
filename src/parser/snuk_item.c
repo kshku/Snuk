@@ -1,8 +1,8 @@
-#include "snuk_item.h"
+#include "snuk/parser/snuk_item.h"
 
-#include "snuk_expr.h"
-#include "snuk_type.h"
-#include "snuk_var.h"
+#include "snuk/parser/snuk_expr.h"
+#include "snuk/parser/snuk_type.h"
+#include "snuk/parser/snuk_var.h"
 
 SnukItem continue_item = {
     .type = SNUK_ITEM_CONTINUE,

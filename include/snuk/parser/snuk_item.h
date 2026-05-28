@@ -1,10 +1,10 @@
 #pragma once
 
-#include "darray.h"
-#include "defines.h"
 #include "parser_common.h"
+#include "snuk/darray.h"
+#include "snuk/defines.h"
+#include "snuk/string_view.h"
 #include "snuk_type.h"
-#include "string_view.h"
 
 /**
  * @brief Parser items kinds.

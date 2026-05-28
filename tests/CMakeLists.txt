@@ -2,7 +2,7 @@ enable_testing()
 
 add_custom_target(run_tests
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    DEPENDS snuk
+    DEPENDS snuk_repl
     COMMENT "Run all the tests"
     COMMAND ctest --test-dir ${CMAKE_CURRENT_BINARY_DIR} -L unit --output-on-failure
     COMMAND ctest --test-dir ${CMAKE_CURRENT_BINARY_DIR} -L snuk_files --output-on-failure
@@ -11,7 +11,7 @@ add_custom_target(run_tests
 add_subdirectory(unit)
 
 function(run_snuk_file name source)
-    add_test(NAME ${name} COMMAND $<TARGET_FILE:snuk> ${source})
+    add_test(NAME ${name} COMMAND $<TARGET_FILE:snuk_repl> ${source})
     set_tests_properties(${name} PROPERTIES LABELS "snuk_files")
     set_tests_properties(${name} PROPERTIES FAIL_REGULAR_EXPRESSION "[0-9]+:[0-9]+ error at '.*")
 endfunction()

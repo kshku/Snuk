@@ -1,6 +1,6 @@
-#include "memory.h"
+#include "snuk/memory.h"
 
-#include "logger.h"
+#include "snuk/logger.h"
 
 #include <stdlib.h>
 

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../interpreter.h"
-#include "../snuk_env.h"
-#include "../snuk_scope.h"
-#include "../snuk_value.h"
-#include "defines.h"
-#include "memory.h"
-#include "parser/snuk_type.h"
-#include "string_view.h"
+#include "snuk/defines.h"
+#include "snuk/interpreter/interpreter.h"
+#include "snuk/interpreter/snuk_env.h"
+#include "snuk/interpreter/snuk_scope.h"
+#include "snuk/interpreter/snuk_value.h"
+#include "snuk/memory.h"
+#include "snuk/parser/snuk_type.h"
+#include "snuk/string_view.h"
 
 // NOTE: When getting member functions, add that value as self and self must be last one to be added
 // in the scope. (check build_to_int function for reference)

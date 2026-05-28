@@ -1,4 +1,4 @@
-#include "builtin_null.h"
+#include "snuk/interpreter/builtins/builtin_null.h"
 
 static SnukValue to_int(SnukInterpreter *intpret);
 static SnukValue to_float(SnukInterpreter *intpret);

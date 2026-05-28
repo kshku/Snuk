@@ -1,4 +1,7 @@
-set(HEADERS
+add_library(snuk STATIC)
+target_link_libraries(snuk PUBLIC snuk_configs)
+
+set(PUBLIC_HEADERS
     defines.h
     logger.h
     memory.h
@@ -6,22 +9,26 @@ set(HEADERS
     snuk_string.h
     lexer.h
     darray.h
-    runtime.h
+)
+
+set(HEADERS
 )
 
 set(SRCS
-    main.c
     logger.c
     memory.c
     io.c
     lexer.c
     darray.c
-    runtime.c
 )
+
+set(INCLUDE_BASE "${PROJECT_SOURCE_DIR}/include/snuk")
+
+list(TRANSFORM PUBLIC_HEADERS PREPEND "${INCLUDE_BASE}/")
 
 target_include_directories(snuk PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_sources(snuk PRIVATE ${HEADERS} ${SRCS})
+target_sources(snuk PRIVATE ${PUBLIC_HEADERS} ${HEADERS} ${SRCS})
 
 add_subdirectory(parser)
 add_subdirectory(interpreter)

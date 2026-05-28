@@ -1,8 +1,8 @@
-#include "lexer.h"
+#include "snuk/lexer.h"
 
-#include "darray.h"
-#include "logger.h"
-#include "snuk_string.h"
+#include "snuk/darray.h"
+#include "snuk/logger.h"
+#include "snuk/snuk_string.h"
 
 #include <errno.h>
 #include <stdlib.h>

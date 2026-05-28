@@ -1,7 +1,7 @@
-#include "snuk_value.h"
+#include "snuk/interpreter/snuk_value.h"
 
-#include "io.h"
-#include "snuk_scope.h"
+#include "snuk/interpreter/snuk_scope.h"
+#include "snuk/io.h"
 
 SnukValue snuk_value_copy(SnukValue value) {
     switch (value.type) {

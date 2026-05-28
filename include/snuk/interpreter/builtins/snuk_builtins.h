@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../snuk_value.h"
 #include "builtin_bool.h"
 #include "builtin_float.h"
 #include "builtin_int.h"
 #include "builtin_null.h"
 #include "builtin_str.h"
-#include "defines.h"
+#include "snuk/defines.h"
+#include "snuk/interpreter/snuk_value.h"
 
 typedef struct SnukBuiltinTypes {
     const char *type;

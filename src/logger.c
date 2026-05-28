@@ -1,6 +1,6 @@
-#include "logger.h"
+#include "snuk/logger.h"
 
-#include "defines.h"
+#include "snuk/defines.h"
 
 #include <snlogger/snlogger.h>
 #include <stdio.h>
