@@ -35,7 +35,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
-The binary is produced at `build/snuk` (Linux, macOS) or `build/Release/snuk.exe` (Windows).
+The binary is produced at `build/repl/snuk` (Linux, macOS) or `build/Release/repl/snuk.exe` (Windows).
 
 ---
 
@@ -44,19 +44,19 @@ The binary is produced at `build/snuk` (Linux, macOS) or `build/Release/snuk.exe
 ### REPL
 
 ```bash
-./build/snuk
+./build/repl/snuk
 ```
 
 ### Run a file
 
 ```bash
-./build/snuk myfile.snuk
+./build/repl/snuk myfile.snuk
 ```
 
 ### Run a command
 
 ```bash
-./build/snuk -c "print 1 + 2"
+./build/repl/snuk -c "print 1 + 2"
 ```
 
 ---
