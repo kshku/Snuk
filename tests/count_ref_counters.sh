@@ -3,7 +3,7 @@
 for file in tests/*.snuk
 do
     echo $file
-    build/snuk "$file" \
+    build/repl/snuk "$file" \
     | grep -E '\[DEBUG\]: (created a ref counter|a ref counter got destroyed)' \
     | awk '
     BEGIN {
@@ -25,7 +25,7 @@ done
 file=docs/snuk_language.snuk
 
 echo $file
-build/snuk "$file" \
+build/repl/snuk "$file" \
 | grep -E '\[DEBUG\]: (created a ref counter|a ref counter got destroyed)' \
 | awk '
 BEGIN {
