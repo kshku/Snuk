@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+SnukStringView self = {.str = "self", .len = 4};
+
 /**
  * @brief Walk the scope chain from current to global to resolve a name.
  */
