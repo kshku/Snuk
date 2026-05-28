@@ -61,28 +61,29 @@ typedef struct Value {
 } Value;
 
 KeyWord keywords[] = {
-    {.keyword = "var",      .type = SNUK_TOKEN_VAR     },
-    {.keyword = "const",    .type = SNUK_TOKEN_CONST   },
-    {.keyword = "any",      .type = SNUK_TOKEN_ANY     },
-    {.keyword = "if",       .type = SNUK_TOKEN_IF      },
-    {.keyword = "else",     .type = SNUK_TOKEN_ELSE    },
-    {.keyword = "match",    .type = SNUK_TOKEN_MATCH   },
-    {.keyword = "case",     .type = SNUK_TOKEN_CASE    },
-    {.keyword = "while",    .type = SNUK_TOKEN_WHILE   },
-    {.keyword = "do",       .type = SNUK_TOKEN_DO      },
-    {.keyword = "for",      .type = SNUK_TOKEN_FOR     },
-    {.keyword = "in",       .type = SNUK_TOKEN_IN      },
-    {.keyword = "return",   .type = SNUK_TOKEN_RETURN  },
-    {.keyword = "break",    .type = SNUK_TOKEN_BREAK   },
-    {.keyword = "continue", .type = SNUK_TOKEN_CONTINUE},
-    {.keyword = "fn",       .type = SNUK_TOKEN_FN      },
-    {.keyword = "print",    .type = SNUK_TOKEN_PRINT   },
-    {.keyword = "self",     .type = SNUK_TOKEN_SELF    },
-    {.keyword = "type",     .type = SNUK_TOKEN_TYPE    },
-    {.keyword = "extend",   .type = SNUK_TOKEN_EXTEND  },
-    {.keyword = "or",       .type = SNUK_TOKEN_KW_OR   },
-    {.keyword = "and",      .type = SNUK_TOKEN_KW_AND  },
-    {.keyword = "not",      .type = SNUK_TOKEN_KW_NOT  },
+    {.keyword = "var",       .type = SNUK_TOKEN_VAR      },
+    {.keyword = "const",     .type = SNUK_TOKEN_CONST    },
+    {.keyword = "any",       .type = SNUK_TOKEN_ANY      },
+    {.keyword = "if",        .type = SNUK_TOKEN_IF       },
+    {.keyword = "else",      .type = SNUK_TOKEN_ELSE     },
+    {.keyword = "match",     .type = SNUK_TOKEN_MATCH    },
+    {.keyword = "case",      .type = SNUK_TOKEN_CASE     },
+    {.keyword = "while",     .type = SNUK_TOKEN_WHILE    },
+    {.keyword = "do",        .type = SNUK_TOKEN_DO       },
+    {.keyword = "for",       .type = SNUK_TOKEN_FOR      },
+    {.keyword = "in",        .type = SNUK_TOKEN_IN       },
+    {.keyword = "return",    .type = SNUK_TOKEN_RETURN   },
+    {.keyword = "break",     .type = SNUK_TOKEN_BREAK    },
+    {.keyword = "continue",  .type = SNUK_TOKEN_CONTINUE },
+    {.keyword = "fn",        .type = SNUK_TOKEN_FN       },
+    {.keyword = "print",     .type = SNUK_TOKEN_PRINT    },
+    {.keyword = "self",      .type = SNUK_TOKEN_SELF     },
+    {.keyword = "type",      .type = SNUK_TOKEN_TYPE     },
+    {.keyword = "interface", .type = SNUK_TOKEN_INTERFACE},
+    {.keyword = "extend",    .type = SNUK_TOKEN_EXTEND   },
+    {.keyword = "or",        .type = SNUK_TOKEN_KW_OR    },
+    {.keyword = "and",       .type = SNUK_TOKEN_KW_AND   },
+    {.keyword = "not",       .type = SNUK_TOKEN_KW_NOT   },
 };
 
 Value values[] = {
@@ -767,6 +768,8 @@ const char *snuk_lexer_token_type_to_string(SnukTokenType type) {
             return SNUK_STRINGIFY(SNUK_TOKEN_FN);
         case SNUK_TOKEN_TYPE:
             return SNUK_STRINGIFY(SNUK_TOKEN_TYPE);
+        case SNUK_TOKEN_INTERFACE:
+            return SNUK_STRINGIFY(SNUK_TOKEN_INTERFACE);
         case SNUK_TOKEN_EXTEND:
             return SNUK_STRINGIFY(SNUK_TOKEN_EXTEND);
         case SNUK_TOKEN_SELF:
