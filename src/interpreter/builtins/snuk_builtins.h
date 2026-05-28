@@ -4,6 +4,7 @@
 #include "builtin_bool.h"
 #include "builtin_float.h"
 #include "builtin_int.h"
+#include "builtin_null.h"
 #include "builtin_str.h"
 #include "defines.h"
 
@@ -36,6 +37,8 @@ SNUK_INLINE SnukValue snuk_builtin_get_member(SnukValue value, SnukStringView fi
             return builtin_bool_get_member(value, field);
         case SNUK_VALUE_STRING:
             return builtin_str_get_member(value, field);
+        case SNUK_VALUE_NULL:
+            return builtin_null_get_member(value, field);
 
         default:
             break;
