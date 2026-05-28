@@ -22,6 +22,8 @@ SnukValue snuk_value_copy(SnukValue value) {
             if (value.type_value.weak_ref)
                 value.type_value.closure = snuk_ref_counter_retain_weak(value.type_value.closure);
             else value.type_value.closure = snuk_ref_counter_retain(value.type_value.closure);
+            if (value.type_value.type_scope)
+                value.type_value.type_scope = snuk_ref_counter_retain(value.type_value.type_scope);
             break;
 
         case SNUK_VALUE_UNKOWN:
@@ -54,6 +56,7 @@ void snuk_value_free(SnukValue value) {
         case SNUK_VALUE_TYPE_INST:
             if (value.type_value.weak_ref) snuk_ref_counter_release_weak(&value.type_value.closure);
             else snuk_ref_counter_release(&value.type_value.closure);
+            if (value.type_value.type_scope) snuk_ref_counter_release(&value.type_value.type_scope);
             break;
 
         case SNUK_VALUE_UNKOWN:

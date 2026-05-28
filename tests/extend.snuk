@@ -1,0 +1,14 @@
+type Point {
+    var x: float
+    var y: float
+}
+
+type Point p = {x: 20.0; y: 20.0};
+
+extend Point {
+    fn to_string() {
+        "(" + self.x.to_str() + ", " + self.y.to_str() + ")"
+    }
+}
+
+print p.to_string()
