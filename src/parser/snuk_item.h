@@ -25,6 +25,8 @@ typedef enum SnukItemType {
                         them. */
     SNUK_ITEM_CONTINUE, /**< Transfer control to next iteration. */
 
+    SNUK_ITEM_EXTEND, /**< extend types */
+
     SNUK_ITEM_MAX, /**< Sentinel value for item kinds. */
 } SnukItemType;
 
@@ -39,6 +41,11 @@ struct SnukItem {
                            return and break). */
         SnukVar *var;
         SnukExpr **print_exprs; /**< Dynamic array of expressions to print. */
+
+        struct {
+            SnukExpr *type;
+            SnukItem **members;
+        } extend_item;
     };
 };
 
@@ -145,6 +152,29 @@ SNUK_INLINE SnukItem *build_print_item(SnukParser *parser, SnukItem *item, SnukE
         };
     }
     if (expr) snuk_darray_push(&item->print_exprs, expr);
+    return item;
+}
+
+/**
+ * @brief Build a extend item.
+ * @param parser Parser context to operate on.
+ * @param item Existing extend item to append to, or NULL to create one.
+ * @param type_expr the extension.
+ *
+ * @return Extend item.
+ */
+SNUK_INLINE SnukItem *build_extend_item(SnukParser *parser, SnukItem *item, SnukExpr *type, SnukItem *member) {
+    if (!item) {
+        item = parser_create_item(parser);
+        *item = (SnukItem){
+            .type = SNUK_ITEM_EXTEND,
+            .extend_item = {
+                .members = snuk_darray_create(SnukItem *, parser->allocator),
+            },
+        };
+    }
+    if (type) item->extend_item.type = type;
+    if (member) snuk_darray_push(&item->extend_item.members, member);
     return item;
 }
 

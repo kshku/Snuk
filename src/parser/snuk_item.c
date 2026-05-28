@@ -41,6 +41,15 @@ static SnukItem *parse_flow_item(SnukParser *parser);
  */
 static SnukItem *parse_print_item(SnukParser *parser);
 
+/**
+ * @brief Parse a extend item.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Parsed item, or NULL on parse failure.
+ */
+static SnukItem *parse_extend_item(SnukParser *parser);
+
 SnukItem *snuk_item_parse(SnukParser *parser) {
     if (parser_match(parser, SNUK_TOKEN_VAR) || parser_match(parser, SNUK_TOKEN_CONST))
         return parse_decl_item(parser, parser->previous.type == SNUK_TOKEN_CONST);
@@ -50,6 +59,8 @@ SnukItem *snuk_item_parse(SnukParser *parser) {
         return parse_flow_item(parser);
 
     if (parser_match(parser, SNUK_TOKEN_PRINT)) return parse_print_item(parser);
+
+    if (parser_match(parser, SNUK_TOKEN_EXTEND)) return parse_extend_item(parser);
 
     return parse_expr_item(parser);
 }
@@ -90,6 +101,31 @@ static SnukItem *parse_print_item(SnukParser *parser) {
     return print_item;
 }
 
+static SnukItem *parse_extend_item(SnukParser *parser) {
+    SnukItem *extend_item = build_extend_item(parser, NULL, NULL, NULL);
+
+    parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "Expected type name to extend");
+    build_extend_item(parser, extend_item, build_identifier_expr(parser), NULL);
+
+    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
+    while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
+        if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)
+            || parser_check(parser, SNUK_TOKEN_FN) || parser_check(parser, SNUK_TOKEN_TYPE)) {
+            SnukItem *item = snuk_item_parse(parser);
+            build_extend_item(parser, extend_item, NULL, item);
+        } else {
+            parser_error(parser, "unexpected token");
+        }
+    }
+
+    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
+        parser_error(parser, "expected '}'");
+        return NULL;
+    }
+
+    return extend_item;
+}
+
 const char *snuk_item_type_to_string(SnukItemType type) {
     switch (type) {
         case SNUK_ITEM_EXPR:
@@ -106,6 +142,8 @@ const char *snuk_item_type_to_string(SnukItemType type) {
             return SNUK_STRINGIFY(SNUK_ITEM_BREAK);
         case SNUK_ITEM_CONTINUE:
             return SNUK_STRINGIFY(SNUK_ITEM_CONTINUE);
+        case SNUK_ITEM_EXTEND:
+            return SNUK_STRINGIFY(SNUK_ITEM_EXTEND);
         case SNUK_ITEM_MAX:
             return SNUK_STRINGIFY(SNUK_ITEM_MAX);
         default:
@@ -147,6 +185,12 @@ void snuk_item_log(SnukItem *item) {
             break;
         case SNUK_ITEM_CONTINUE:
             log_trace("continue", NULL);
+            break;
+        case SNUK_ITEM_EXTEND:
+            log_trace("extend", NULL);
+            snuk_expr_log(item->extend_item.type);
+            count = snuk_darray_get_length(item->extend_item.members);
+            for (uint64_t i = 0; i < count; ++i) snuk_item_log(item->extend_item.members[i]);
             break;
         case SNUK_ITEM_PRINT:
             log_trace("print:", NULL);
