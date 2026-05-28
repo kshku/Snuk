@@ -12,8 +12,7 @@
 // NOTE: When getting member functions, add that value as self and self must be last one to be added
 // in the scope. (check build_to_int function for reference)
 
-static SnukStringView self = {.str = "self", .len = 4};
-
+extern SnukStringView self;
 extern SnukType int_type;
 extern SnukType float_type;
 extern SnukType bool_type;
