@@ -147,25 +147,11 @@ static SnukItem *parse_interface_item(SnukParser *parser) {
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected interface name");
     SnukStringView name = parser->previous.string_literal;
 
-    SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
-    parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
-    while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
-        if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)) {
-            SnukItem *item = snuk_item_parse(parser);
-            snuk_darray_push(&members, item);
-        } else {
-            parser_error(parser, "unexpected token");
-        }
-    }
-
-    if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "expected '}'");
-        return NULL;
-    }
+    SnukType *type = snuk_type_parse_interface(parser);
 
     parser_expect_item_end(parser);
 
-    return build_interface_item(parser, name, members);
+    return build_interface_item(parser, name, type);
 }
 
 const char *snuk_item_type_to_string(SnukItemType type) {

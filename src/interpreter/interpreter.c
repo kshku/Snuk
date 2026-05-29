@@ -136,18 +136,12 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret) {
 
 bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value, SnukType *type) {
     // in case of parameter without default value, value will be unknown
-    if (value.type == SNUK_VALUE_UNKOWN) return true;
+    if (value.type == SNUK_VALUE_UNKOWN || value.type == SNUK_VALUE_NULL) return true;
 
-    if (value.type == SNUK_VALUE_NULL || type->type == TYPE_ANY) return true;
+    if (type->type == TYPE_ANY) return true;
 
-    // TODO:
-    if (type->type == TYPE_INTERFACE && value.type == SNUK_VALUE_INTERFACE) return true;
-
-    if (type->type == TYPE_FN && value.type == SNUK_VALUE_FN)
-        return snuk_type_equal(value.fn_value.type, type);
-
-    if (type->type == TYPE_TYPE && (value.type == SNUK_VALUE_TYPE || value.type == SNUK_VALUE_TYPE_INST))
-        return snuk_type_equal(value.type_value.type, type);
+    if (type->type == TYPE_TYPE && value.type == SNUK_VALUE_TYPE)
+        return snuk_type_equal(type, value.type_value.type);
 
     if (type->type == TYPE_NAMED) {
         if (value.type == snuk_builtin_get_value_type(type->name)) return true;
@@ -156,37 +150,43 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
         SnukEnv *env = interpreter_lookup(intpret, type->name);
         if (!env) return false;
 
-        if (env->type->type == TYPE_INTERFACE) {
-            SnukValue val;
-            if (value.type == SNUK_VALUE_TYPE_INST) {
-                SnukEnv *env = interpreter_lookup(intpret, value.type_value.type->name);
-                if (!env) return false;
-                val = env->value;
-            } else {
-                val = value;
-            }
-            return snuk_interpreter_type_is_of_interface(intpret, val, env->value);
-        }
+        if (env->type->type == TYPE_INTERFACE)
+            return snuk_interpreter_value_is_of_type(intpret, value, env->type);
 
-        if (value.type == SNUK_VALUE_TYPE) return snuk_type_equal(value.type_value.type, env->type);
-        else return snuk_type_equal(value.type_value.type, type);
+        if (value.type == SNUK_VALUE_TYPE_INST) return snuk_type_equal(type, value.type_value.type);
+
+        if (env->type->type == TYPE_TYPE)
+            // Must be having same closure
+            return env->value.type_value.closure == value.type_value.closure;
+
+        return false;
+    }
+
+    if (type->type == TYPE_FN && value.type == SNUK_VALUE_FN)
+        return snuk_type_equal(value.fn_value.type, type);
+
+    if (type->type == TYPE_INTERFACE) {
+        if (value.type == SNUK_VALUE_INTERFACE) return snuk_type_equal(type, value.interface.type);
+
+        if (value.type == SNUK_VALUE_TYPE || value.type == SNUK_VALUE_TYPE_INST) {
+            SnukVar **members = type->members;
+            uint64_t count = snuk_darray_get_length(members);
+            for (uint64_t i = 0; i < count; ++i) {
+                SnukEnv *member = snuk_scope_lookup(value.type_value.closure, members[i]->name);
+                if (!member && value.type_value.type_scope)
+                    member = snuk_scope_lookup(value.type_value.type_scope, members[i]->name);
+                if (!member) return false;
+                if (!snuk_interpreter_value_is_of_type(intpret, member->value, members[i]->type)) {
+                    return false;
+                }
+            }
+            return true;
+        }
 
         return false;
     }
 
     return false;
-}
-
-bool snuk_interpreter_type_is_of_interface(SnukInterpreter *intpret, SnukValue type, SnukValue interface) {
-    SnukItem **members = interface.interface.members;
-    uint64_t count = snuk_darray_get_length(members);
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukEnv *env = snuk_scope_lookup(type.type_value.closure, members[i]->var->name);
-        if (!env) return false;
-        if (!snuk_interpreter_value_is_of_type(intpret, env->value, members[i]->var->type))
-            return false;
-    }
-    return true;
 }
 
 SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name) {
@@ -480,6 +480,9 @@ static void interpreter_print_type(SnukType *type) {
         case TYPE_ANY:
             snuk_print("any", NULL);
             break;
+        case TYPE_TYPE:
+            snuk_print("type", NULL);
+            break;
 
         case TYPE_NAMED:
             snuk_print(SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(type->name));
@@ -496,14 +499,14 @@ static void interpreter_print_type(SnukType *type) {
             interpreter_print_type(type->fn.return_type);
             break;
 
-        case TYPE_TYPE:
-            snuk_print("type {", NULL);
-            count = snuk_darray_get_length(type->member_types);
+        case TYPE_INTERFACE:
+            snuk_print("interface", NULL);
+            count = snuk_darray_get_length(type->members);
             for (uint64_t i = 0; i < count; ++i) {
-                if (i != 0) snuk_print(", ", NULL);
-                interpreter_print_type(type->member_types[i]);
+                if (i != 0) snuk_print("; ", NULL);
+                snuk_print(SNUK_STRING_VIEW_FORMAT ": ", SNUK_STRING_VIEW_ARG(type->members[i]->name));
+                interpreter_print_type(type->members[i]->type);
             }
-            snuk_print("}", NULL);
             break;
 
         default:
@@ -1319,7 +1322,7 @@ static SnukValue execute_interface(SnukInterpreter *intpret, SnukItem *item, boo
     SnukValue value = {
         .type = SNUK_VALUE_INTERFACE,
         .interface = {
-            .members = item->interface_item.members,
+            .type = item->interface_item.type,
         },
     };
     SNUK_ASSERT(snuk_interpreter_create_env(

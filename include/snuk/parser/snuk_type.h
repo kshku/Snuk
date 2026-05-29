@@ -11,67 +11,30 @@
 struct SnukType {
     enum {
         TYPE_ANY, /**< No type annotation */
+        TYPE_TYPE, /**< Type type */
         TYPE_NAMED, /**< Named type */
         TYPE_FN, /**< Function type */
-        TYPE_TYPE, /**< Type type */
-        TYPE_INTERFACE,
+        TYPE_INTERFACE, /**< Interface type */
 
         TYPE_MAX, /**< Sentinel value for type kinds. */
     } type;
 
     union {
-        SnukStringView name; /**< Type name (for named parameters) */
+        SnukStringView name; /**< Type name */
 
         struct {
-            SnukType *return_type; /**< The return type of function */
             SnukType **param_types; /**< Darray of parameter types */
+            SnukType *return_type; /**< The return type of function */
         } fn;
 
-        SnukType **member_types; /**< Darray of type of the members */
+        SnukVar **members; /**< Members of the inerface */
     };
 };
 
 extern SnukType any_type;
+extern SnukType type_type;
 
-SNUK_INLINE bool snuk_type_equal(SnukType *type1, SnukType *type2) {
-    if (type1->type != type2->type) return false;
-
-    uint64_t count1;
-    uint64_t count2;
-    switch (type1->type) {
-        case TYPE_ANY:
-            return true;
-
-        case TYPE_NAMED:
-            return snuk_string_view_equal(type1->name, type2->name);
-
-        case TYPE_FN:
-            if (!snuk_type_equal(type1->fn.return_type, type2->fn.return_type)) return false;
-
-            count1 = snuk_darray_get_length(type1->fn.param_types);
-            count2 = snuk_darray_get_length(type2->fn.param_types);
-            if (count1 != count2) return false;
-
-            for (uint64_t i = 0; i < count1; ++i)
-                if (!snuk_type_equal(type1->fn.param_types[i], type2->fn.param_types[i]))
-                    return false;
-            return true;
-
-        case TYPE_TYPE:
-            count1 = snuk_darray_get_length(type1->member_types);
-            count2 = snuk_darray_get_length(type2->member_types);
-            if (count1 != count2) return false;
-            for (uint64_t i = 0; i < count1; ++i)
-                if (!snuk_type_equal(type1->member_types[i], type2->member_types[i])) return false;
-
-            return true;
-
-        default:
-            SNUK_SHOULD_NOT_REACH_HERE;
-            break;
-    }
-    return false;
-}
+bool snuk_type_equal(SnukType *type1, SnukType *type2);
 
 /**
  * @brief Allocate a type node.
@@ -97,6 +60,18 @@ SNUK_INLINE SnukType *parser_create_type(SnukParser *parser) {
 SNUK_INLINE SnukType *build_any_type(SnukParser *parser) {
     SNUK_UNUSED(parser);
     return &any_type;
+}
+
+/**
+ * @brief Build a type type.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Newly allocated type node.
+ */
+SNUK_INLINE SnukType *build_type_type(SnukParser *parser) {
+    SNUK_UNUSED(parser);
+    return &type_type;
 }
 
 /**
@@ -141,33 +116,17 @@ SNUK_INLINE SnukType *build_fn_type(SnukParser *parser, SnukType *type, SnukType
     return type;
 }
 
-/**
- * @brief Build a type type.
- *
- * @param parser Parser context to operate on.
- * @param type Existing type type to append member type or NULL to create one.
- * @param member_type The member type to append.
- *
- * @return Newly allocated type node.
- */
-SNUK_INLINE SnukType *build_type_type(SnukParser *parser, SnukType *type, SnukType *member_type) {
+SNUK_INLINE SnukType *build_interface_type(SnukParser *parser, SnukType *type, SnukVar *member) {
     if (!type) {
         type = parser_create_type(parser);
         *type = (SnukType){
-            .type = TYPE_TYPE,
-            .member_types = snuk_darray_create(SnukType *, parser->allocator),
+            .type = TYPE_INTERFACE,
+            .members = snuk_darray_create(SnukVar *, parser->allocator),
         };
     }
-    if (member_type) snuk_darray_push(&type->member_types, member_type);
-    return type;
-}
 
-SNUK_INLINE SnukType *build_interface_type(SnukParser *parser, SnukStringView name) {
-    SnukType *type = parser_create_type(parser);
-    *type = (SnukType){
-        .type = TYPE_INTERFACE,
-        .name = parser_copy_string_view(parser, name),
-    };
+    if (member) snuk_darray_push(&type->members, member);
+
     return type;
 }
 
@@ -179,6 +138,8 @@ SNUK_INLINE SnukType *build_interface_type(SnukParser *parser, SnukStringView na
  * @return Parsed type, or NULL on parse failure.
  */
 SnukType *snuk_type_parse(SnukParser *parser);
+
+SnukType *snuk_type_parse_interface(SnukParser *parser);
 
 /**
  * @brief Log a parsed type annotation.
