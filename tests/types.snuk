@@ -8,10 +8,7 @@ var transform: fn(float) -> float
 var n: fn()
 var o: fn(int, any)
 var z2: fn(any, fn ()) -> fn (int) -> int
-var something: type {int; float}
-var anotherthing: type {
-    int
-    fn() -> float
-}
+var something: type
+var anotherthing: type = type SomeType{var x: int}
 x = "string" // can do this because x is of type any
 // z = "string" // can't do this because z is of type int
