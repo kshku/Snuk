@@ -815,31 +815,12 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
     SnukValue type = snuk_interpreter_get_env(intpret, expr->type_inst_expr.type->name);
     SNUK_ASSERT(type.type == SNUK_VALUE_TYPE, "type instance creation expression on non type");
 
+    // We will copy the values from type to instance only when it is assigned.
+    // If instance doesn't have a value, but type has:
+    // - interpreter_get_member fetches member directly from type.
+    // - interpreter_set_member will create a new env in instance scope to put new value.
+
     interpreter_push_scope(intpret);
-
-    SnukScope *type_scope = GET_SCOPE(type.type_value.closure);
-    uint64_t member_count = snuk_darray_get_length(type_scope->vars);
-    for (uint64_t i = 0; i < member_count; ++i) {
-        SnukEnv *type_env = type_scope->vars[i];
-        SnukValue value = snuk_value_copy(type_env->value);
-        SNUK_ASSERT(snuk_interpreter_create_env(intpret, type_env->name, type_env->type, value, false),
-                    "something went wrong while creating member");
-        snuk_value_free(value);
-    }
-
-    uint64_t init_count = snuk_darray_get_length(expr->type_inst_expr.init);
-    for (uint64_t i = 0; i < init_count; ++i) {
-        SnukExpr *assign = expr->type_inst_expr.init[i];
-        SNUK_ASSERT(assign->type == SNUK_EXPR_ASSIGN, "Expected assign expressions");
-        SnukStringView name = assign->assign.identifier->identifier;
-        SnukEnv *env = snuk_scope_lookup(intpret->current, name);
-        SNUK_ASSERT(env, "member doesn't exists");
-        // The instance itself is the closure, so not adding instance scope
-        SnukValue value = interpreter_eval_expr(intpret, assign->assign.value, true);
-        SNUK_ASSERT(snuk_interpreter_value_is_of_type(intpret, value, env->type), "type mismatch");
-        snuk_env_assign_value(env, value);
-        snuk_value_free(value);
-    }
 
     SnukValue value = {
         .type = SNUK_VALUE_TYPE_INST,
@@ -850,6 +831,18 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
             .type_scope = snuk_ref_counter_retain(type.type_value.closure),
         },
     };
+
+    uint64_t init_count = snuk_darray_get_length(expr->type_inst_expr.init);
+    for (uint64_t i = 0; i < init_count; ++i) {
+        SnukExpr *assign = expr->type_inst_expr.init[i];
+        SNUK_ASSERT(assign->type == SNUK_EXPR_ASSIGN, "Expected assign expressions");
+        SnukStringView name = assign->assign.identifier->identifier;
+        // The instance itself is the closure, so not adding instance scope
+        SnukValue val = interpreter_eval_expr(intpret, assign->assign.value, true);
+        SNUK_ASSERT(
+            interpreter_set_member(intpret, value, name, val), "failed to initialize member");
+        snuk_value_free(val);
+    }
 
     SnukValue self_value = snuk_value_copy(value);
     snuk_ref_counter_downgrade(self_value.type_value.closure);
