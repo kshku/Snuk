@@ -51,7 +51,6 @@ struct SnukItem {
 
         struct {
             SnukStringView name;
-            SnukItem **members;
             SnukType *type;
         } interface_item;
     };
@@ -187,20 +186,19 @@ SNUK_INLINE SnukItem *build_extend_item(SnukParser *parser, SnukItem *item, Snuk
 
 /**
  * @brief Build a interface item.
+ *
  * @param parser Parser context to operate on.
  * @param name Name of the interface.
- * @param members Members of the interface.
  *
  * @return Extend item.
  */
-SNUK_INLINE SnukItem *build_interface_item(SnukParser *parser, SnukStringView name, SnukItem **members) {
+SNUK_INLINE SnukItem *build_interface_item(SnukParser *parser, SnukStringView name, SnukType *type) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = SNUK_ITEM_INTERFACE,
         .interface_item = {
             .name = parser_copy_string_view(parser, name),
-            .members = members,
-            .type = build_interface_type(parser, name),
+            .type = type,
         },
     };
     return item;

@@ -500,6 +500,7 @@ static bool lexer_should_insert_vsemicolon(SnukLexer *lexer) {
         case SNUK_TOKEN_NAN:
         case SNUK_TOKEN_INF:
         case SNUK_TOKEN_ANY:  // after the type annotation
+        case SNUK_TOKEN_TYPE:  // after the type annotation
         case SNUK_TOKEN_RETURN:
         case SNUK_TOKEN_BREAK:
         case SNUK_TOKEN_CONTINUE:

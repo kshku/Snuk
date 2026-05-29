@@ -70,7 +70,7 @@ struct SnukValue {
         } type_value;
 
         struct {
-            SnukItem **members;
+            SnukType *type;
         } interface;
     };
 };

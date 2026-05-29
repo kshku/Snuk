@@ -636,33 +636,12 @@ static SnukExpr *parse_type(SnukParser *parser, SnukStringView name) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
     SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
-    SnukType *type_type = build_type_type(parser, NULL, NULL);
+    SnukType *type_type = build_type_type(parser);
 
     while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
         if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)
             || parser_check(parser, SNUK_TOKEN_FN) || parser_check(parser, SNUK_TOKEN_TYPE)) {
             SnukItem *item = snuk_item_parse(parser);
-            switch (item->type) {
-                case SNUK_ITEM_VAR_DECL:
-                case SNUK_ITEM_CONST_DECL:
-                    build_type_type(parser, type_type, item->var->type);
-                    break;
-                case SNUK_ITEM_EXPR:
-                    switch (item->expr->type) {
-                        case SNUK_EXPR_FN:
-                            build_type_type(parser, type_type, item->expr->fn_expr.type);
-                            break;
-                        case SNUK_EXPR_TYPE:
-                            build_type_type(parser, type_type, item->expr->type_expr.type);
-                            break;
-                        default:
-                            SNUK_SHOULD_NOT_REACH_HERE;
-                    }
-                    break;
-                default:
-                    SNUK_SHOULD_NOT_REACH_HERE;
-                    break;
-            }
             snuk_darray_push(&members, item);
         } else {
             parser_error(parser, "unexpected token");
