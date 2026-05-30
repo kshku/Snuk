@@ -1,6 +1,7 @@
 #pragma once
 
 #include "snuk/defines.h"
+#include "snuk/memory.h"
 #include "snuk/parser/snuk_expr.h"
 #include "snuk/parser/snuk_item.h"
 #include "snuk/refcount.h"
@@ -8,6 +9,8 @@
 #include "snuk_env.h"
 #include "snuk_signal.h"
 #include "snuk_value.h"
+
+#include <snmemory/linear.h>
 
 /**
  * @brief Mutable interpreter state shared across exec and eval calls.
@@ -23,6 +26,9 @@ typedef struct SnukInterpreter {
     SnukRefCounter *instance;
     SnukValue *trash;
     SnukSignal signal;
+    void *mem;
+    SnukAllocator allocator;
+    snLinearAllocator la;
 } SnukInterpreter;
 
 /**

@@ -15,6 +15,9 @@ SnukValue snuk_value_copy(SnukValue value) {
 
         case SNUK_VALUE_FN_BUILTIN:
             value.builtin_fn.closure = snuk_ref_counter_retain(value.builtin_fn.closure);
+            if (value.builtin_fn.instance)
+                value.builtin_fn.instance = snuk_ref_counter_retain_weak(value.builtin_fn.instance);
+
             break;
 
         case SNUK_VALUE_TYPE:
@@ -51,6 +54,8 @@ void snuk_value_free(SnukValue value) {
 
         case SNUK_VALUE_FN_BUILTIN:
             snuk_ref_counter_release(&value.builtin_fn.closure);
+            if (value.builtin_fn.instance)
+                snuk_ref_counter_release_weak(&value.builtin_fn.instance);
             break;
 
         case SNUK_VALUE_TYPE:

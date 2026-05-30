@@ -58,8 +58,10 @@ struct SnukValue {
         } fn_value;
 
         struct {
+            SnukRefCounter *instance;
             SnukRefCounter *closure;
             builtin_function fn;
+            SnukType *type;
         } builtin_fn;
 
         struct {
