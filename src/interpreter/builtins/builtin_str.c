@@ -192,7 +192,7 @@ static SnukValue build_get(SnukInterpreter *intpret) {
          .value = (SnukValue){.type = SNUK_VALUE_INT, .int_value = 0},
          },
         {
-         .name = snuk_string_view_create_with_len("len", 3),
+         .name = snuk_string_view_create_with_len("len",                                                3),
          .type = &int_type,
          .value = (SnukValue){.type = SNUK_VALUE_NULL},
          },
