@@ -1,8 +1,9 @@
 #include "runtime.h"
-#include "snuk/io.h"
-#include "snuk/logger.h"
-#include "snuk/memory.h"
-#include "snuk/snuk_string.h"
+
+#include <snuk/io.h>
+#include <snuk/logger.h>
+#include <snuk/memory.h>
+#include <snuk/snuk_string.h>
 
 #define PROMPT_STR ">>> "
 #define LINE_BUFFER_SIZE 1024

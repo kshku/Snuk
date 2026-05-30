@@ -1,11 +1,10 @@
 #pragma once
 
-#include "snuk/defines.h"
-#include "snuk/interpreter/interpreter.h"
-#include "snuk/memory.h"
-#include "snuk/snuk_string.h"
-
 #include <snmemory/linear.h>
+#include <snuk/defines.h>
+#include <snuk/interpreter/interpreter.h>
+#include <snuk/memory.h>
+#include <snuk/snuk_string.h>
 
 #define PAGES 50
 

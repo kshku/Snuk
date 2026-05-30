@@ -7,7 +7,6 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 17)
 
 add_library(snuk_configs INTERFACE)
-target_include_directories(snuk_configs INTERFACE ${PROJECT_SOURCE_DIR}/include)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(snuk_configs INTERFACE SNUK_DEBUG)
@@ -18,6 +17,8 @@ set(msvc_comp "$<COMPILE_LANG_AND_ID:C,MSVC>")
 
 target_compile_options(snuk_configs INTERFACE "$<${gcc_clang_comp}:-Wall;-Wextra;-Wformat;-Wuninitialized;-Wunused;-Wpedantic>")
 target_compile_options(snuk_configs INTERFACE "$<${gcc_clang_comp}:-fvisibility=hidden>")
+
+target_include_directories(snuk_configs INTERFACE ${PROJECT_SOURCE_DIR}/include)
 
 target_compile_definitions(snuk_configs INTERFACE
     SNUK_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
