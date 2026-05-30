@@ -38,13 +38,12 @@ SNUK_INLINE void runtime_free_fn(void *data, void *ptr) {
 SNUK_INLINE void snuk_runtime_init(Runtime *rt) {
     *rt = (Runtime){
         .mem = snuk_allocate_pages(PAGES),
-        .parser_allocator =
-            {
-                               .data = (void *)&rt->la,
-                               .alloc = runtime_alloc_fn,
-                               .realloc = runtime_realloc_fn,
-                               .free = runtime_free_fn,
-                               },
+        .parser_allocator = {
+           .data = (void *)&rt->la,
+           .alloc = runtime_alloc_fn,
+           .realloc = runtime_realloc_fn,
+           .free = runtime_free_fn,
+       },
     };
     sn_linear_allocator_init(&rt->la, rt->mem, PAGES * snuk_page_size());
     snuk_interpreter_init(&rt->interpreter);

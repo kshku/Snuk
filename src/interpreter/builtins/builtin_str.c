@@ -1,4 +1,4 @@
-#include "snuk/interpreter/builtins/builtin_str.h"
+#include "snuk/interpreter/builtins/snuk_builtins.h"
 
 #include <stdio.h>
 
@@ -9,12 +9,12 @@ static SnukValue to_str(SnukInterpreter *intpret);
 static SnukValue length(SnukInterpreter *intpret);
 static SnukValue get(SnukInterpreter *intpret);
 
-static SnukValue build_to_int(SnukValue value);
-static SnukValue build_to_float(SnukValue value);
-static SnukValue build_to_bool(SnukValue value);
-static SnukValue build_to_str(SnukValue value);
-static SnukValue build_length(SnukValue value);
-static SnukValue build_get(SnukValue value);
+static SnukValue build_to_int(SnukInterpreter *intpret);
+static SnukValue build_to_float(SnukInterpreter *intpret);
+static SnukValue build_to_bool(SnukInterpreter *intpret);
+static SnukValue build_to_str(SnukInterpreter *intpret);
+static SnukValue build_length(SnukInterpreter *intpret);
+static SnukValue build_get(SnukInterpreter *intpret);
 
 static BuiltinMember str_members[] = {
     {.field = "to_int",   .build_field = build_to_int  },
@@ -30,106 +30,161 @@ SnukType str_type = {
     .name = {.str = "str", .len = 3}
 };
 
-SnukValue builtin_str_get_member(SnukValue value, SnukStringView field) {
-    SNUK_ASSERT(value.type == SNUK_VALUE_STRING, "something went wrong");
-    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(str_members); ++i)
-        if (snuk_string_view_equal_cstr(field, str_members[i].field))
-            return str_members[i].build_field(value);
-    return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-}
+SnukValue builtin_str_create_type(SnukInterpreter *intpret, bool weak_ref) {
+    interpreter_push_scope(intpret);
 
-static SnukValue build_to_int(SnukValue value) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
+    SNUK_ASSERT(snuk_interpreter_create_env(intpret, value_str, &any_type, (SnukValue){.type = SNUK_VALUE_NULL}, false),
+                "something went wrong");
 
-    Parameters params[] = {
-        {.name = self, .type = &str_type, value}, // self should be last to add
+    for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(str_members); ++i) {
+        SnukStringView name = snuk_string_view_create(str_members[i].field);
+        SnukValue member = str_members[i].build_field(intpret);
+        SnukType *type = NULL;
+        switch (member.type) {
+            case SNUK_VALUE_FN_BUILTIN:
+                type = member.builtin_fn.type;
+                break;
+
+            default:
+                SNUK_SHOULD_NOT_REACH_HERE;
+                break;
+        }
+        SNUK_ASSERT(type, "something went wrong");
+
+        SNUK_ASSERT(snuk_interpreter_create_env(intpret, name, type, member, false),
+                    "something went wrong");
+        snuk_value_free(member);
+    }
+
+    SnukValue value = {
+        .type = SNUK_VALUE_TYPE,
+        .type_value = {
+            .type_scope = NULL,
+            .closure = snuk_ref_counter_retain(intpret->current),
+            .weak_ref = false,
+            .type = &type_type,
+        },
     };
 
-    add_paramters(scope, params, SNUK_ARRAY_LENGTH(params));
+    interpreter_pop_scope(intpret);
+
+    if (weak_ref) snuk_scope_downgrade_parent(value.type_value.closure);
+
+    return value;
+}
+
+static SnukValue build_to_int(SnukInterpreter *intpret) {
+    SnukRefCounter *scope = snuk_scope_create(snuk_ref_counter_retain_weak(intpret->current), true);
+
+    static SnukType type;
+    type = (SnukType){
+        .type = TYPE_FN,
+        .fn = {
+            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
+            .return_type = &int_type,
+        },
+    };
 
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = scope,
+            .closure = snuk_ref_counter_move(&scope),
             .fn = to_int,
+            .type = &type,
         },
     };
 }
 
-static SnukValue build_to_float(SnukValue value) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
+static SnukValue build_to_float(SnukInterpreter *intpret) {
+    SnukRefCounter *scope = snuk_scope_create(snuk_ref_counter_retain_weak(intpret->current), true);
 
-    Parameters params[] = {
-        {.name = self, .type = &str_type, value}, // self should be last to add
+    static SnukType type;
+    type = (SnukType){
+        .type = TYPE_FN,
+        .fn = {
+            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
+            .return_type = &float_type,
+        },
     };
-
-    add_paramters(scope, params, SNUK_ARRAY_LENGTH(params));
 
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = scope,
+            .closure = snuk_ref_counter_move(&scope),
             .fn = to_float,
+            .type = &type,
         },
     };
 }
 
-static SnukValue build_to_bool(SnukValue value) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
+static SnukValue build_to_bool(SnukInterpreter *intpret) {
+    SnukRefCounter *scope = snuk_scope_create(snuk_ref_counter_retain_weak(intpret->current), true);
 
-    Parameters params[] = {
-        {.name = self, .type = &str_type, value}, // self should be last to add
+    static SnukType type;
+    type = (SnukType){
+        .type = TYPE_FN,
+        .fn ={
+            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
+            .return_type = &bool_type,
+        },
     };
-
-    add_paramters(scope, params, SNUK_ARRAY_LENGTH(params));
 
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = scope,
+            .closure = snuk_ref_counter_move(&scope),
             .fn = to_bool,
+            .type = &type,
         },
     };
 }
 
-static SnukValue build_to_str(SnukValue value) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
+static SnukValue build_to_str(SnukInterpreter *intpret) {
+    SnukRefCounter *scope = snuk_scope_create(snuk_ref_counter_retain_weak(intpret->current), true);
 
-    Parameters params[] = {
-        {.name = self, .type = &str_type, value}, // self should be last to add
+    static SnukType type;
+    type = (SnukType){
+        .type = TYPE_FN,
+        .fn ={
+            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
+            .return_type = &str_type,
+        },
     };
-
-    add_paramters(scope, params, SNUK_ARRAY_LENGTH(params));
 
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = scope,
+            .closure = snuk_ref_counter_move(&scope),
             .fn = to_str,
+            .type = &type,
         },
     };
 }
 
-static SnukValue build_length(SnukValue value) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
+static SnukValue build_length(SnukInterpreter *intpret) {
+    SnukRefCounter *scope = snuk_scope_create(snuk_ref_counter_retain_weak(intpret->current), true);
 
-    Parameters params[] = {
-        {.name = self, .type = &str_type, value}, // self should be last to add
+    static SnukType type;
+    type = (SnukType){
+        .type = TYPE_FN,
+        .fn ={
+            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
+            .return_type = &int_type,
+        },
     };
-
-    add_paramters(scope, params, SNUK_ARRAY_LENGTH(params));
 
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
             .closure = scope,
             .fn = length,
+            .type = &type,
         },
     };
 }
 
-static SnukValue build_get(SnukValue value) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
+static SnukValue build_get(SnukInterpreter *intpret) {
+    SnukRefCounter *scope = snuk_scope_create(snuk_ref_counter_retain_weak(intpret->current), true);
     Parameters params[] = {
         {
          .name = snuk_string_view_create_with_len("start", 5),
@@ -137,32 +192,49 @@ static SnukValue build_get(SnukValue value) {
          .value = (SnukValue){.type = SNUK_VALUE_INT, .int_value = 0},
          },
         {
-         .name = snuk_string_view_create_with_len("len", 3),
+         .name = snuk_string_view_create_with_len("len",                                                3),
          .type = &int_type,
          .value = (SnukValue){.type = SNUK_VALUE_NULL},
          },
-        {
-         .name = self,
-         .type = &str_type,
-         .value = value,
-         }, // self should be last to add
     };
 
     add_paramters(scope, params, SNUK_ARRAY_LENGTH(params));
+
+    static SnukType type;
+    type = (SnukType){
+        .type = TYPE_FN,
+        .fn ={
+            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
+            .return_type = &str_type,
+        },
+    };
+
+    snuk_darray_push(&type.fn.param_types, &int_type);
+    snuk_darray_push(&type.fn.param_types, &int_type);
 
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
             .closure = scope,
             .fn = get,
+            .type = &type,
         },
     };
 }
 
 static SnukValue to_int(SnukInterpreter *intpret) {
-    SnukEnv *self_env = snuk_scope_lookup(intpret->current, self);
-    SNUK_ASSERT(self_env, "something went wrong!");
-    char *str = snuk_string_view_get_cstr(self_env->value.string_value);
+    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SNUK_ASSERT(value_env, "something went wrong!");
+    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_STRING || value_env->value.type == SNUK_VALUE_NULL,
+                "unexpected value");
+
+    if (value_env->value.type == SNUK_VALUE_NULL)
+        return (SnukValue){
+            .type = SNUK_VALUE_INT,
+            .int_value = 0,
+        };
+
+    char *str = snuk_string_view_get_cstr(value_env->value.string_value);
 
     int64_t int_value = 0;
     if (sscanf(str, "\"%" PRId64 "\"", &int_value) == 0)
@@ -175,9 +247,18 @@ static SnukValue to_int(SnukInterpreter *intpret) {
 }
 
 static SnukValue to_float(SnukInterpreter *intpret) {
-    SnukEnv *self_env = snuk_scope_lookup(intpret->current, self);
-    SNUK_ASSERT(self_env, "something went wrong!");
-    char *str = snuk_string_view_get_cstr(self_env->value.string_value);
+    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SNUK_ASSERT(value_env, "something went wrong!");
+    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_STRING || value_env->value.type == SNUK_VALUE_NULL,
+                "unexpected value");
+
+    if (value_env->value.type == SNUK_VALUE_NULL)
+        return (SnukValue){
+            .type = SNUK_VALUE_FLOAT,
+            .float_value = 0.0,
+        };
+
+    char *str = snuk_string_view_get_cstr(value_env->value.string_value);
 
     double float_value = 0;
     if (sscanf(str, "\"%lf\"", &float_value) == 0) return (SnukValue){.type = SNUK_VALUE_NULL};
@@ -189,43 +270,60 @@ static SnukValue to_float(SnukInterpreter *intpret) {
 }
 
 static SnukValue to_bool(SnukInterpreter *intpret) {
-    SnukEnv *self_env = snuk_scope_lookup(intpret->current, self);
-    SNUK_ASSERT(self_env, "something went wrong!");
+    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SNUK_ASSERT(value_env, "something went wrong!");
+    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_STRING || value_env->value.type == SNUK_VALUE_NULL,
+                "unexpected value");
     // Return true if non-empty string
     return (SnukValue){
         .type = SNUK_VALUE_BOOL,
-        .bool_value = self_env->value.string_value.len != 0,
+        .bool_value
+        = value_env->value.type == SNUK_VALUE_NULL ? false : value_env->value.string_value.len != 0,
     };
 }
 
 static SnukValue to_str(SnukInterpreter *intpret) {
-    SnukEnv *self_env = snuk_scope_lookup(intpret->current, self);
-    SNUK_ASSERT(self_env, "something went wrong!");
-    return snuk_value_copy(self_env->value);
+    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SNUK_ASSERT(value_env, "something went wrong!");
+    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_STRING || value_env->value.type == SNUK_VALUE_NULL,
+                "unexpected value");
+    if (value_env->value.type == SNUK_VALUE_NULL)
+        return (SnukValue){
+            .type = SNUK_VALUE_STRING,
+            .string_value = snuk_string_view_create_with_len("\"null\"", 6),
+        };
+    return snuk_value_copy(value_env->value);
 }
 
 static SnukValue length(SnukInterpreter *intpret) {
-    SnukEnv *self_env = snuk_scope_lookup(intpret->current, self);
-    SNUK_ASSERT(self_env, "something went wrong!");
+    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SNUK_ASSERT(value_env, "something went wrong!");
+    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_STRING || value_env->value.type == SNUK_VALUE_NULL,
+                "unexpected value");
     return (SnukValue){
         .type = SNUK_VALUE_INT,
-        .int_value = (int64_t)self_env->value.string_value.len - 2,
+        .int_value
+        = value_env->value.type == SNUK_VALUE_NULL ? 0 : (int64_t)value_env->value.string_value.len - 2,
     };
 }
 
 static SnukValue get(SnukInterpreter *intpret) {
-    SnukEnv *self_env = snuk_scope_lookup(intpret->current, self);
-    SNUK_ASSERT(self_env, "something went wrong!");
+    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SNUK_ASSERT(value_env, "something went wrong!");
+    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_STRING || value_env->value.type == SNUK_VALUE_NULL,
+                "unexpected value");
+
+    if (value_env->value.type == SNUK_VALUE_NULL) return snuk_value_copy(value_env->value);
+
     SnukEnv *envs[2];
     SnukStringView names[] = {
         snuk_string_view_create_with_len("start", 5),
         snuk_string_view_create_with_len("len", 3),
-        self,
     };
     get_parameters(intpret->current, names, envs, 2);
 
     int64_t start = envs[0]->value.int_value;
-    SnukStringView string = self_env->value.string_value;
+    SnukStringView string = value_env->value.string_value;
     int64_t len;
     if (envs[1]->value.type == SNUK_VALUE_NULL) len = (int64_t)string.len - 2;
     else len = envs[1]->value.int_value;

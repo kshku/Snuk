@@ -1,93 +1,35 @@
 #include "snuk/interpreter/interpreter.h"
 
 #include "snuk/interpreter/builtins/snuk_builtins.h"
+#include "snuk/interpreter/interpreter_helper.h"
 #include "snuk/interpreter/snuk_scope.h"
 #include "snuk/io.h"
 #include "snuk/parser/snuk_var.h"
 
 #include <stdio.h>
 
-SnukStringView self = {.str = "self", .len = 4};
+#define PAGES 1
 
-/**
- * @brief Walk the scope chain from current to global to resolve a name.
- */
-SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView name) {
-    SnukEnv *env = NULL;
-    if (intpret->instance) {
-        env = snuk_scope_lookup(intpret->current, name);
-        if (!env) env = snuk_scope_lookup(intpret->instance, name);
-    }
-    if (!env) env = snuk_scope_lookup_recursive(intpret->current, name);
-    return env;
+SNUK_INLINE void *alloc_fn(void *data, uint64_t size, uint64_t align) {
+    snLinearAllocator *la = (snLinearAllocator *)data;
+    return sn_linear_allocator_allocate(la, size, align);
 }
 
-/**
- * @brief Push a new child scope and make it the interpreter's current scope.
- */
-SNUK_INLINE void interpreter_push_scope(SnukInterpreter *intpret) {
-    intpret->current = snuk_scope_create(snuk_ref_counter_move(&intpret->current), false);
+SNUK_INLINE void *realloc_fn(void *data, void *ptr, uint64_t new_size, uint64_t align) {
+    snLinearAllocator *la = (snLinearAllocator *)data;
+    void *new = sn_linear_allocator_allocate(la, new_size, align);
+    memcpy(new, ptr, new_size);
+    return new;
 }
 
-/**
- * @brief Pop the current scope and restore its parent as the active scope.
- */
-SNUK_INLINE void interpreter_pop_scope(SnukInterpreter *intpret) {
-    if (intpret->global == intpret->current) SNUK_SHOULD_NOT_REACH_HERE;
-
-    SnukScope *scope = GET_SCOPE(intpret->current);
-    SnukRefCounter *parent = snuk_ref_counter_retain(scope->parent);
-
-    snuk_ref_counter_release(&intpret->current);
-
-    intpret->current = snuk_ref_counter_move(&parent);
+SNUK_INLINE void free_fn(void *data, void *ptr) {
+    SNUK_UNUSED(data);
+    SNUK_UNUSED(ptr);
 }
 
-SNUK_INLINE SnukValue interpreter_get_member(SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field) {
-    SNUK_UNUSED(intpret);
-    SNUK_ASSERT(type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST, "something is wrong");
+SnukStringView self_str = {.str = "self", .len = 4};
 
-    // Do not lookup recursively
-    SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field);
-    if (!env && type_or_inst.type_value.type_scope)
-        env = snuk_scope_lookup(type_or_inst.type_value.type_scope, field);
-    if (!env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-
-    return snuk_value_copy(env->value);
-}
-
-SNUK_INLINE bool interpreter_set_member(
-    SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field, SnukValue value) {
-    SNUK_ASSERT(type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST, "something is wrong");
-
-    // Do not lookup recursively
-    SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field);
-    if (!env && type_or_inst.type_value.type_scope) {
-        env = snuk_scope_lookup(type_or_inst.type_value.type_scope, field);
-        // Add the new member to instance
-        if (env) {
-            if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
-            SnukEnv *inst_env = snuk_env_create(env->name, env->type, value);
-            if (!snuk_scope_add_env(type_or_inst.type_value.closure, inst_env)) return false;
-            return true;
-        }
-    }
-    if (!env) return false;
-
-    if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
-    snuk_env_assign_value(env, value);
-    return true;
-}
-
-SNUK_INLINE void interpreter_trash(SnukInterpreter *intpret, SnukValue value) {
-    snuk_darray_push(&intpret->trash, value);
-}
-
-SNUK_INLINE void interpreter_clear_trash(SnukInterpreter *intpret) {
-    uint64_t count = snuk_darray_get_length(intpret->trash);
-    for (uint64_t i = 0; i < count; ++i) snuk_value_free(intpret->trash[i]);
-    snuk_darray_clear(&intpret->trash);
-}
+SnukStringView value_str = {.str = "value", .len = 5};
 
 static void execute_print_item(SnukInterpreter *intpret, SnukExpr **exprs, bool weak_ref);
 static SnukValue execute_block_expr(
@@ -116,8 +58,19 @@ void snuk_interpreter_init(SnukInterpreter *intpret) {
         .signal = SNUK_SIGNAL_NONE,
         .instance = NULL,
         .trash = snuk_darray_create(SnukValue, NULL),
+        .mem = snuk_allocate_pages(PAGES),
+        .allocator = {
+            .data = (void *)&intpret->la,
+            .alloc = alloc_fn,
+            .realloc = realloc_fn,
+            .free = free_fn,
+        },
     };
+    sn_linear_allocator_init(&intpret->la, intpret->mem, PAGES * snuk_page_size());
     intpret->current = snuk_ref_counter_retain(intpret->global);
+
+    // Add builtin types
+    snuk_builtins_create_builtin_types(intpret, true);
 }
 
 void snuk_interpreter_deinit(SnukInterpreter *intpret) {
@@ -130,6 +83,9 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret) {
 
     snuk_ref_counter_release(&intpret->current);
     snuk_ref_counter_release(&intpret->global);
+
+    sn_linear_allocator_deinit(&intpret->la);
+    snuk_free_pages(intpret->mem, PAGES);
 
     *intpret = (SnukInterpreter){0};
 }
@@ -144,7 +100,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
         return snuk_type_equal(type, value.type_value.type);
 
     if (type->type == TYPE_NAMED) {
-        if (value.type == snuk_builtin_get_value_type(type->name)) return true;
+        if (value.type == snuk_builtins_get_value_type(type->name)) return true;
         if (value.type != SNUK_VALUE_TYPE && value.type != SNUK_VALUE_TYPE_INST) return false;
 
         SnukEnv *env = interpreter_lookup(intpret, type->name);
@@ -155,15 +111,19 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
         if (value.type == SNUK_VALUE_TYPE_INST) return snuk_type_equal(type, value.type_value.type);
 
-        if (env->type->type == TYPE_TYPE)
+        if (env->type->type == TYPE_TYPE || env->value.type == SNUK_VALUE_TYPE)
             // Must be having same closure
             return env->value.type_value.closure == value.type_value.closure;
 
         return false;
     }
 
-    if (type->type == TYPE_FN && value.type == SNUK_VALUE_FN)
-        return snuk_type_equal(value.fn_value.type, type);
+    if (type->type == TYPE_FN) {
+        if (value.type == SNUK_VALUE_FN) return snuk_type_equal(value.fn_value.type, type);
+        if (value.type == SNUK_VALUE_FN_BUILTIN)
+            return snuk_type_equal(value.builtin_fn.type, type);
+        return false;
+    }
 
     if (type->type == TYPE_INTERFACE) {
         if (value.type == SNUK_VALUE_INTERFACE) return snuk_type_equal(type, value.interface.type);
@@ -842,6 +802,12 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
         SnukStringView name = assign->assign.identifier->identifier;
         // The instance itself is the closure, so not adding instance scope
         SnukValue val = interpreter_eval_expr(intpret, assign->assign.value, true);
+
+        // if builtin type, make sure value of value member is right
+        SnukValueType val_type = snuk_builtins_get_value_type(value.type_value.type->name);
+        if (val_type != SNUK_VALUE_UNKOWN && snuk_string_view_equal(name, value_str))
+            SNUK_ASSERT(val.type == val_type, "invalid value to the member value");
+
         SNUK_ASSERT(
             interpreter_set_member(intpret, value, name, val), "failed to initialize member");
         snuk_value_free(val);
@@ -851,7 +817,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
     snuk_ref_counter_downgrade(self_value.type_value.closure);
     self_value.type_value.weak_ref = true;
 
-    SNUK_ASSERT(snuk_interpreter_create_env(intpret, self, self_value.type_value.type, self_value, true),
+    SNUK_ASSERT(snuk_interpreter_create_env(intpret, self_str, self_value.type_value.type, self_value, true),
                 "something went wrong while creating self");
 
     snuk_value_free(self_value);
@@ -978,7 +944,10 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
     else fn_scope_rc = fn.builtin_fn.closure;
 
     SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
-    if (fn.fn_value.instance) intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
+    if (fn.type == SNUK_VALUE_FN && fn.fn_value.instance)
+        intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
+    else if (fn.builtin_fn.instance)
+        intpret->instance = snuk_ref_counter_retain(fn.builtin_fn.instance);
 
     interpreter_push_scope(intpret);
 
@@ -1235,7 +1204,7 @@ static SnukValue interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr,
             return execute_member_get(intpret, expr, weak_ref);
 
         case SNUK_EXPR_SELF: {
-            SnukValue self_value = snuk_interpreter_get_env(intpret, self);
+            SnukValue self_value = snuk_interpreter_get_env(intpret, self_str);
             SNUK_ASSERT(self_value.type == SNUK_VALUE_TYPE_INST, "self error");
             return self_value;
         }
@@ -1283,13 +1252,80 @@ static SnukValue execute_assign_expr(SnukInterpreter *intpret, SnukExpr *expr, b
 static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
     SnukValue type_or_inst = interpreter_eval_expr(intpret, expr->member_access.type, weak_ref);
     SnukValue res;
-    if (type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST)
+    if (type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST) {
         res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier);
-    else res = snuk_builtin_get_member(type_or_inst, expr->member_access.field->identifier);
+    } else if (type_or_inst.type == SNUK_VALUE_NULL) {
+        res = builtin_null_get_member(intpret, expr->member_access.field->identifier);
+    } else {
+        SnukExpr inst_expr = {
+            .type = SNUK_EXPR_TYPE_INST,
+            .type_inst_expr = {
+                .type = NULL,
+                .name = (SnukStringView){0},
+                .init = snuk_darray_create(SnukExpr *, &intpret->allocator),
+            },
+        };
+
+        SnukExpr value_expr;
+
+        switch (type_or_inst.type) {
+            case SNUK_VALUE_INT:
+                inst_expr.type_inst_expr.type = &int_type;
+                value_expr = (SnukExpr){
+                    .type = SNUK_EXPR_INT,
+                    .int_literal = type_or_inst.int_value,
+                };
+                break;
+            case SNUK_VALUE_FLOAT:
+                inst_expr.type_inst_expr.type = &float_type;
+                value_expr = (SnukExpr){
+                    .type = SNUK_EXPR_FLOAT,
+                    .float_literal = type_or_inst.float_value,
+                };
+                break;
+            case SNUK_VALUE_BOOL:
+                inst_expr.type_inst_expr.type = &bool_type;
+                value_expr = (SnukExpr){
+                    .type = SNUK_EXPR_BOOL,
+                    .bool_literal = type_or_inst.bool_value,
+                };
+                break;
+            case SNUK_VALUE_STRING:
+                inst_expr.type_inst_expr.type = &str_type;
+                value_expr = (SnukExpr){
+                    .type = SNUK_EXPR_STRING,
+                    .string_literal = type_or_inst.string_value,
+                };
+                break;
+            default:
+                SNUK_SHOULD_NOT_REACH_HERE;
+                break;
+        }
+
+        SnukExpr identifier_expr = {
+            .type = SNUK_EXPR_IDENTIFIER,
+            .identifier = value_str,
+        };
+
+        SnukExpr assign_expr = {
+            .type = SNUK_EXPR_ASSIGN,
+            .assign = {.identifier = &identifier_expr, .value = &value_expr},
+        };
+
+        snuk_darray_push(&inst_expr.type_inst_expr.init, &assign_expr);
+
+        snuk_value_free(type_or_inst);
+        type_or_inst = execute_inst_creation(intpret, &inst_expr, weak_ref);
+        res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier);
+    }
 
     // insert the instance scope
-    if (type_or_inst.type == SNUK_VALUE_TYPE_INST && res.type == SNUK_VALUE_FN)
-        res.fn_value.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
+    if (type_or_inst.type == SNUK_VALUE_TYPE_INST) {
+        if (res.type == SNUK_VALUE_FN)
+            res.fn_value.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
+        else if (res.type == SNUK_VALUE_FN_BUILTIN)
+            res.builtin_fn.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
+    }
 
     SNUK_ASSERT(res.type != SNUK_VALUE_UNKOWN, "couldn't get the member");
 

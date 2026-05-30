@@ -20,3 +20,5 @@ var t: int = null.to_int()
 var u: float = null.to_float()
 var v: bool = null.to_bool()
 var w: str = null.to_str()
+var x: int = type int{value: 100}
+var y: str = x.to_str()
