@@ -113,6 +113,10 @@ void run_repl(void) {
 
 void run_file(const char *path) {
     const char *content = snuk_read_file(path);
+    if (!content) {
+        log_error("couldn't read file", NULL);
+        return;
+    }
 
     Runtime rt;
     snuk_runtime_init(&rt);
