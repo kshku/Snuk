@@ -1,4 +1,11 @@
-add_library(snuk STATIC)
+if(SNUK_BUILD_SHARED)
+    add_library(snuk SHARED)
+    target_compile_definitions(snuk PRIVATE SNUK_EXPORT)
+else()
+    add_library(snuk STATIC)
+    target_compile_definitions(snuk PRIVATE SNUK_STATIC)
+endif()
+
 target_link_libraries(snuk PUBLIC snuk_configs)
 
 set(PUBLIC_HEADERS

@@ -25,12 +25,10 @@ target_compile_definitions(snuk_configs INTERFACE
     SNUK_VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
 
+option(SNUK_BUILD_SHARED "Build shared library" OFF)
+
 add_subdirectory(external)
-
 add_subdirectory(docs)
-
 add_subdirectory(src)
-
 add_subdirectory(repl)
-
 add_subdirectory(tests)

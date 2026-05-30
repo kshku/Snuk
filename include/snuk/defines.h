@@ -1,6 +1,8 @@
 #pragma once
 
+#include "api.h"
 #include "logger.h"
+#include "platform.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -8,16 +10,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#if defined(__clang__)
-    #define SNUK_COMPILER_CLANG
-#elif defined(__GNUC__)
-    #define SNUK_COMPILER_GCC
-#elif defined(_MSC_VER)
-    #define SNUK_COMPILER_MSVC
-#else
-    #error "Don't know whether works on this compiler!"
-#endif
 
 #define SNUK_UNUSED(x) ((void)(x))
 
