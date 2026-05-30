@@ -178,14 +178,14 @@ typedef struct SnukLexer {
  * @note The source buffer is borrowed and must outlive all tokens produced by
  * the lexer.
  */
-void snuk_lexer_init(SnukLexer *lexer, const char *src);
+SNUK_API void snuk_lexer_init(SnukLexer *lexer, const char *src);
 
 /**
  * @brief Reset a lexer to an empty state.
  *
  * @param lexer Lexer state to clear, or NULL.
  */
-void snuk_lexer_deinit(SnukLexer *lexer);
+SNUK_API void snuk_lexer_deinit(SnukLexer *lexer);
 
 /**
  * @brief Scan and return the next token from the lexer.
@@ -196,7 +196,7 @@ void snuk_lexer_deinit(SnukLexer *lexer);
  *
  * @return The next token, including comments, errors, or end-of-file.
  */
-SnukToken snuk_lexer_next_token(SnukLexer *lexer);
+SNUK_API SnukToken snuk_lexer_next_token(SnukLexer *lexer);
 
 /**
  * @brief Convert a token type to a readable string.
@@ -205,11 +205,11 @@ SnukToken snuk_lexer_next_token(SnukLexer *lexer);
  *
  * @return String literal naming the token type.
  */
-const char *snuk_lexer_token_type_to_string(SnukTokenType type);
+SNUK_API const char *snuk_lexer_token_type_to_string(SnukTokenType type);
 
 /**
  * @brief Log a token for debugging.
  *
  * @param token Token to log.
  */
-void snuk_lexer_log_token(SnukToken token);
+SNUK_API void snuk_lexer_log_token(SnukToken token);

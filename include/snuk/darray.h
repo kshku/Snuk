@@ -18,23 +18,24 @@ typedef enum SnukDArrayHeader {
     SNUK_DARRAY_MAX_FIELDS,
 } SnukDArrayHeader;
 
-void *impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align, SnukAllocator *allocator);
+SNUK_API void *
+    impl_snuk_darray_create(uint64_t capacity, uint64_t stride, uint64_t align, SnukAllocator *allocator);
 
-void impl_snuk_darray_destroy(void *arr);
+SNUK_API void impl_snuk_darray_destroy(void *arr);
 
-void impl_snuk_darray_resize(void **parr, uint64_t capacity);
+SNUK_API void impl_snuk_darray_resize(void **parr, uint64_t capacity);
 
-uint64_t impl_snuk_darray_header(void *arr, SnukDArrayHeader header);
+SNUK_API uint64_t impl_snuk_darray_header(void *arr, SnukDArrayHeader header);
 
-void impl_snuk_darray_push(void **parr, void *element);
+SNUK_API void impl_snuk_darray_push(void **parr, void *element);
 
-void impl_snuk_darray_push_at(void **parr, uint64_t index, void *element);
+SNUK_API void impl_snuk_darray_push_at(void **parr, uint64_t index, void *element);
 
-void impl_snuk_darray_pop(void **parr, void *element);
+SNUK_API void impl_snuk_darray_pop(void **parr, void *element);
 
-void impl_snuk_darray_pop_at(void **parr, uint64_t index, void *element);
+SNUK_API void impl_snuk_darray_pop_at(void **parr, uint64_t index, void *element);
 
-void impl_snuk_darray_clear(void **parr);
+SNUK_API void impl_snuk_darray_clear(void **parr);
 
 /**
  * @brief Create darray with given type and capacity.

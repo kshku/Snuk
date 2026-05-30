@@ -1,11 +1,13 @@
 #pragma once
 
+#include "api.h"
+
 #include <snlogger/log_level.h>
 
-void snuk_logger_init(void);
-void snuk_logger_deinit(void);
+SNUK_API void snuk_logger_init(void);
+SNUK_API void snuk_logger_deinit(void);
 
-void snuk_log_msg(
+SNUK_API void snuk_log_msg(
     snLogLevel level, const char *file, const char *function, long line, const char *format_string, ...);
 
 #define log_trace(msg, ...)                                                            \

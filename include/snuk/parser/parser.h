@@ -50,14 +50,14 @@ typedef struct SnukParser {
  * @note The source text must remain valid for the lifetime of parsed nodes that
  * reference token text.
  */
-void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator);
+SNUK_API void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator);
 
 /**
  * @brief Deinitialize a parser context.
  *
  * @param parser Parser context to deinitialize.
  */
-void snuk_parser_deinit(SnukParser *parser);
+SNUK_API void snuk_parser_deinit(SnukParser *parser);
 
 /**
  * @brief Parse and return the next item from the source.
@@ -68,7 +68,7 @@ void snuk_parser_deinit(SnukParser *parser);
  *
  * @note Returned items are allocated with the parser allocation callback.
  */
-SnukItem *snuk_parser_next_item(SnukParser *parser);
+SNUK_API SnukItem *snuk_parser_next_item(SnukParser *parser);
 
 /**
  * @brief Report a parser error and enter panic mode.

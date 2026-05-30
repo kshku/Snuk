@@ -39,7 +39,7 @@ typedef struct SnukInterpreter {
  *
  * @param intpret Interpreter state to initialize.
  */
-void snuk_interpreter_init(SnukInterpreter *intpret);
+SNUK_API void snuk_interpreter_init(SnukInterpreter *intpret);
 
 /**
  * @brief Release the interpreter's scopes and reset the state.
@@ -49,7 +49,7 @@ void snuk_interpreter_init(SnukInterpreter *intpret);
  *
  * @param intpret Interpreter state to release, or NULL.
  */
-void snuk_interpreter_deinit(SnukInterpreter *intpret);
+SNUK_API void snuk_interpreter_deinit(SnukInterpreter *intpret);
 
 /**
  * @brief Execute a top-level parsed item.
@@ -65,7 +65,7 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret);
  * @return The value produced by the item, or a NULL/UNKOWN placeholder when
  * the item has no meaningful result.
  */
-SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item);
+SNUK_API SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item);
 
 /**
  * @brief Evaluate an expression and return its runtime value.
@@ -79,13 +79,13 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item);
  *
  * @return The value the expression evaluates to.
  */
-SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr);
+SNUK_API SnukValue snuk_interpreter_eval_expr(SnukInterpreter *intpret, SnukExpr *expr);
 
-SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name);
+SNUK_API SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name);
 
-bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value);
+SNUK_API bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value);
 
-bool snuk_interpreter_create_env(
+SNUK_API bool snuk_interpreter_create_env(
     SnukInterpreter *intpret, SnukStringView name, SnukType *type, SnukValue value, bool is_const);
 
-bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value, SnukType *type);
+SNUK_API bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value, SnukType *type);

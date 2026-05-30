@@ -1,4 +1,11 @@
-add_library(snuk STATIC)
+if(SNUK_BUILD_SHARED)
+    add_library(snuk SHARED)
+    target_compile_definitions(snuk PRIVATE SNUK_EXPORT)
+else()
+    add_library(snuk STATIC)
+    target_compile_definitions(snuk PUBLIC SNUK_STATIC)
+endif()
+
 target_link_libraries(snuk PUBLIC snuk_configs)
 
 set(PUBLIC_HEADERS
@@ -25,8 +32,6 @@ set(SRCS
 set(INCLUDE_BASE "${PROJECT_SOURCE_DIR}/include/snuk")
 
 list(TRANSFORM PUBLIC_HEADERS PREPEND "${INCLUDE_BASE}/")
-
-target_include_directories(snuk PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_sources(snuk PRIVATE ${PUBLIC_HEADERS} ${HEADERS} ${SRCS})
 

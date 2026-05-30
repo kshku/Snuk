@@ -117,7 +117,7 @@ SNUK_INLINE bool snuk_value_is_true(SnukValue value) {
  *
  * @param value Value to copy.
  */
-SnukValue snuk_value_copy(SnukValue value);
+SNUK_API SnukValue snuk_value_copy(SnukValue value);
 
 /**
  * @brief Free the value.
@@ -126,19 +126,19 @@ SnukValue snuk_value_copy(SnukValue value);
  *
  * @param value Value to free.
  */
-void snuk_value_free(SnukValue value);
+SNUK_API void snuk_value_free(SnukValue value);
 
 /**
  * @brief Log a runtime value to the trace logger for debugging.
  *
  * @param value Value to log.
  */
-void snuk_value_log(SnukValue value);
+SNUK_API void snuk_value_log(SnukValue value);
 
 /**
  * @brief Print a runtime value to standard output.
  *
  * @param value Value to print.
  */
-void snuk_value_print(SnukValue value);
+SNUK_API void snuk_value_print(SnukValue value);
 
