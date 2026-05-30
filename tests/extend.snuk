@@ -11,4 +11,11 @@ extend Point {
     }
 }
 
+extend int {
+    fn to_string() {
+        self.value.to_str()
+    }
+}
+
 print p.to_string()
+print 5.to_string()
