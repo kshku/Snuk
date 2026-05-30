@@ -17,6 +17,7 @@ typedef struct SnukVar SnukVar;
 SNUK_INLINE void parser_advance(SnukParser *parser) {
     parser->previous = parser->current;
     parser->current = parser->next;
+    if (parser->current.type == SNUK_TOKEN_ERROR) parser_error(parser, "lexer error");
     parser->next = snuk_lexer_next_token(&parser->lexer);
 }
 

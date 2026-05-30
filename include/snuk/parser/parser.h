@@ -31,7 +31,9 @@ typedef struct SnukParser {
 
     SnukAllocator *allocator;
 
-    bool had_error, panic_mode; /**< Error and recovery state flags. */
+    bool panic_mode; /**< Error and recovery state flags. */
+    const char *err_msg;
+    SnukToken err_token;
 } SnukParser;
 
 /**
@@ -48,29 +50,14 @@ typedef struct SnukParser {
  * @note The source text must remain valid for the lifetime of parsed nodes that
  * reference token text.
  */
-SNUK_INLINE void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator) {
-    *parser = (SnukParser){
-        .allocator = allocator,
-        .had_error = false,
-        .panic_mode = false,
-    };
-    snuk_lexer_init(&parser->lexer, src);
-
-    parser->previous = (SnukToken){0};
-    parser->current = snuk_lexer_next_token(&parser->lexer);
-    parser->next = snuk_lexer_next_token(&parser->lexer);
-}
+void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator);
 
 /**
  * @brief Deinitialize a parser context.
  *
  * @param parser Parser context to deinitialize.
  */
-SNUK_INLINE void snuk_parser_deinit(SnukParser *parser) {
-    if (!parser) return;
-    snuk_lexer_deinit(&parser->lexer);
-    *parser = (SnukParser){0};
-}
+void snuk_parser_deinit(SnukParser *parser);
 
 /**
  * @brief Parse and return the next item from the source.
@@ -96,4 +83,4 @@ void parser_error(SnukParser *parser, const char *err_msg);
  *
  * @param parser Parser context to operate on.
  */
-void parser_sync(SnukParser *parser);
+SnukItem *parser_sync(SnukParser *parser);

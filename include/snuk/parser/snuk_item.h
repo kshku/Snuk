@@ -29,6 +29,8 @@ typedef enum SnukItemType {
     SNUK_ITEM_EXTEND, /**< extend types */
     SNUK_ITEM_INTERFACE, /**< interface */
 
+    SNUK_ITEM_ERROR, /**< Error item */
+
     SNUK_ITEM_MAX, /**< Sentinel value for item kinds. */
 } SnukItemType;
 
@@ -53,6 +55,11 @@ struct SnukItem {
             SnukStringView name;
             SnukType *type;
         } interface_item;
+
+        struct {
+            const char *msg;
+            SnukToken token;
+        } error;
     };
 };
 
@@ -204,6 +211,27 @@ SNUK_INLINE SnukItem *build_interface_item(SnukParser *parser, SnukStringView na
     return item;
 }
 
+/*
+ * @brief Build a error item.
+ *
+ * @param parser Parser context to operate on.
+ * @param msg The message
+ * @param token The token
+ *
+ * @return Return error item.
+ */
+SNUK_INLINE SnukItem *build_error_item(SnukParser *parser, const char *msg, SnukToken token) {
+    SnukItem *item = parser_create_item(parser);
+    *item = (SnukItem){
+        .type = SNUK_ITEM_ERROR,
+        .error = {
+            .msg = msg, 
+            .token = token,
+        },
+    };
+    return item;
+}
+
 /**
  * @brief Parse the next item.
  *
@@ -228,4 +256,3 @@ const char *snuk_item_type_to_string(SnukItemType type);
  * @param item item to log.
  */
 void snuk_item_log(SnukItem *item);
-

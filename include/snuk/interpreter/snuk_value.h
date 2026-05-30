@@ -24,6 +24,7 @@ typedef enum SnukValueType {
     SNUK_VALUE_TYPE,
     SNUK_VALUE_TYPE_INST,
     SNUK_VALUE_INTERFACE,
+    SNUK_VALUE_ERROR,
 
     SNUK_VALUE_MAX,
 } SnukValueType;
@@ -74,6 +75,11 @@ struct SnukValue {
         struct {
             SnukType *type;
         } interface;
+
+        struct {
+            const char *msg;
+            SnukToken token;
+        } error;
     };
 };
 

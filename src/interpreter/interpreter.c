@@ -1064,6 +1064,10 @@ static SnukValue interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item,
         case SNUK_ITEM_INTERFACE:
             return execute_interface(intpret, item, weak_ref);
 
+        case SNUK_ITEM_ERROR:
+            log_error("Error: %s", item->error.msg);
+            return (SnukValue){.type = SNUK_VALUE_NULL};
+
         case SNUK_ITEM_MAX:
         default:
             break;
