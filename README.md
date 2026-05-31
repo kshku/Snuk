@@ -95,13 +95,15 @@ var speed: float = 2.5
 var name: str = "snuk"
 const MAX = 100
 
-// "type" keyword optional in annotations — both identical
-var x1: int = 10
-var x2: type int = 10
+// user-defined type annotation — just the name
+var p: Point        // accepts Point type or Point instances
 
-// user-defined type annotation
-var p: Point        // shorthand
-var p2: type Point  // identical
+// "type" annotation — accepts any type value, rejects instances
+var T: type = Point
+
+// interface annotation
+interface HasArea { var area: fn() -> float }
+var s: HasArea
 ```
 
 ### Blocks as expressions
@@ -207,7 +209,7 @@ type Point {
 // instantiation — four forms
 // only form 1 and type-first forms create typed variables
 // form 2 (var = type Name {}) creates an untyped (any) variable
-var s1: type Square = type Square { width: 10; height: 10 }  // typed
+var s1: Square = type Square { width: 10; height: 10 }       // typed
 var s2 = type Square { width: 10; height: 10 }               // untyped (any)
 type Square s3 = { width: 10; height: 10 }                   // typed, type-first
 type Square s4 { width: 10; height: 10 }                     // typed, compact
@@ -220,7 +222,7 @@ var p = type Point {
 
 // nested types
 type SquareWithPos {
-    var top_left: type Point = type Point { x: 0.0; y: 0.0 }
+    var top_left: Point = type Point { x: 0.0; y: 0.0 }
     var width: int = 0
     var height: int = 0
     fn area() { width * height }    // direct field access
@@ -235,14 +237,55 @@ var sq = type SquareWithPos {
 // type factory — closure scope lower priority than instance scope
 fn make_type(color) {
     type {
-        var color = color       // instance field
-        fn to_string() { color }    // resolves to instance field
+        var color = color
+        fn to_string() { color }
     }
 }
 
 p.x = 10.0
 print p.to_string()
 print sq.top_left.x    // 10.0
+```
+
+### Interfaces
+
+Named member contracts, satisfied implicitly. No `implements` needed.
+Checked at runtime when used as a type annotation.
+
+```snuk
+interface Shape {
+    var area: fn() -> float
+    var to_string: fn() -> str
+}
+
+fn describe(s: Shape) {
+    print s.to_string()
+    print s.area()
+}
+
+// inline interface annotation
+fn print_it(obj: interface { var to_string: fn() -> str }) {
+    print obj.to_string()
+}
+```
+
+### Extend
+
+Add members to existing types — built-in or user-defined — without
+modifying the original definition.
+
+```snuk
+extend int {
+    fn is_even() { self % 2 == 0 }
+}
+
+print 10.is_even()    // true
+
+extend str {
+    fn shout() { self + "!!!" }
+}
+
+print "hello".shout()    // hello!!!
 ```
 
 ### Duck typing

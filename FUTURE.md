@@ -8,7 +8,6 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 ## Language
 
 - Map type ?
-- Type casting ?
 - Arbitrary precision integers (bignum) ?
 - Pattern matching (`match` / `case`)
 - Modules and imports ?
@@ -38,38 +37,6 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 
 
 # Language additions
-
-## Interfaces
-
-Interface similar to go.
-Named method contracts, satisfied implicitly through duck typing.
-No `implements` declaration needed — if a type has the methods, it satisfies the interface.
-
-### Syntax
-
-```snuk
-interface Drawable {
-    fn draw()
-    fn update(dt)
-}
-
-// parameter annotated with interface — runtime checked
-fn render(obj: Drawable) {
-    obj.draw()
-}
-```
-
-- Interfaces provide explicit API contracts for libraries.
-- Allows extending the existing types.
-- Add `extend` keyword
-```snuk
-extend string {
-    fn shout() {
-        print string.uppercase() + '!!!'
-    }
-}
-```
-- Language syntax grows
 
 ## Operator overloading ?
 
