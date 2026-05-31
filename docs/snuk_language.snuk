@@ -75,21 +75,32 @@ var b: int = 10
 var c: any = 10
 c = "hello"       // valid — any accepts everything
 
-// type annotations use built-in names or "type TypeName"
-// "type" keyword is optional in annotations — both forms identical
+// type annotations use type names directly — built-in or user-defined
+// "type" keyword without a name means "any type value (not instance)"
 var speed: float = 2.5
 var label: str = "hi"
-var x1: int = 10
-var x2: type int = 10    // identical to x1
 
 type SomeType {
-    var x = 0
-    var y = 0
+    var sx = 0
+    var sy = 0
 }
 
-// typed variable — only SomeType instances allowed
-var pt1: SomeType = type SomeType { x: 0; y: 0 }
-var pt2: type SomeType = type SomeType { x: 0; y: 0 }    // identical to pt1
+// annotate with a type name — accepts the type itself OR its instances
+var pt1: SomeType = type SomeType { sx: 0; sy: 0 }   // instance — valid
+var pt2: SomeType = SomeType                          // the type itself — valid
+
+// "type" annotation — accepts any type value, rejects instances
+var T: type = SomeType          // valid — SomeType is a type value
+// T = type SomeType { sx: 0 }  // runtime error — that is an instance
+
+// interface annotation — checks members at runtime
+interface HasArea {
+    var area: fn() -> float
+}
+var shape: HasArea                // must have area field of type fn() -> float
+
+// inline interface annotation
+var shape2: interface { var area: fn() -> float }
 
 // assignment — var only on first declaration
 // assignment returns the assigned value
@@ -103,18 +114,26 @@ const APP = "snuk"
 
 // ── 3. BUILT-IN TYPES ────────────────────────────────────────
 
-// int       42, -7, 0          int64_t
-// float     3.14, -0.5, 0.0   double
+// All built-in types are Snuk types — they can be extended and annotated.
+//
+// int       42, -7, 0
+//             var x: int = 10
+//             var x: int = type int { value: 10 }   // explicit form
+//
+// float     3.14, -0.5, 0.0
 // bool      true, false
 // str       "hello", 'world'
-// null      null
+//
+// null      null — special value, NOT a type, cannot be extended
+//             null.to_str() etc. still work
+//
 // fn        fn(a, b) { }
-// type      type { }
-// list      [1, 2, 3]          (not yet implemented)
-
-// Note: in a future version, all built-in types (int, float, etc.)
-// will be predefined Snuk types. Literals like 10, "hello", true
-// will be sugar for type int { 10 }, type str { "hello" }, etc.
+// type      type { }        — "type" as annotation means "any type value"
+// list      [1, 2, 3]       (not yet implemented)
+//
+// Built-in types can be extended:
+//   extend int { fn is_even() { value % 2 == 0 } }
+//   10.is_even()    // true
 
 
 // ── 4. OPERATORS ─────────────────────────────────────────────
@@ -381,8 +400,8 @@ type Point {
     }
 
     fn to_string() {
-        // fields accessible directly — no self needed
-        "(" + px + ", " + py + ")"
+        // explicit conversion required — no implicit type coercion
+        "(" + px.to_str() + ", " + py.to_str() + ")"
     }
 
     fn set_px(px) {
@@ -401,9 +420,8 @@ var Point2 = type {
 // anonymous type expression
 var at = type { var z = 0 }
 
-// type annotation — "type" keyword optional
-var annpt: type Point
-// var annpt2: Point    // shorthand — identical to above
+// type annotation — just the name, no "type" keyword needed
+var annpt: Point   // accepts Point type or Point instances
 
 // type factory — types capture enclosing scope (closures)
 // closure scope is lower priority than instance scope at call time
@@ -415,7 +433,7 @@ fn make_colored_type(default_color) {
         fn to_string() {
             // color resolves to instance field (instance scope)
             // if color wasn't a field, it would resolve to closure's default_color
-            color + " at " + cx
+            color + " at " + cx.to_str()
         }
     }
 }
@@ -438,18 +456,18 @@ type Square {
     fn area() { width * height }    // fields accessed directly
 }
 
-// form 1 — typed variable, enforced at runtime (verbose)
-var s1: type Square = type Square { width: 10; height: 10 }
+// form 1 — typed variable, enforced at runtime
+var s1: Square = type Square { width: 10; height: 10 }
 // s1 = "hello"    // runtime error — s1 is typed as Square
 
 // form 2 — untyped variable holding a Square instance (most common)
 var s2 = type Square { width: 10; height: 10 }
 // s2 = "hello"    // valid — s2 is any
 
-// form 3 — type-first sugar with = (typed variable)
+// form 3 — type-first sugar with = (typed as Square)
 type Square s3 = { width: 10; height: 10 }
 
-// form 4 — type-first sugar without = (typed variable, most compact)
+// form 4 — type-first sugar without = (typed as Square, most compact)
 type Square s4 { width: 10; height: 10 }
 
 // newlines work as separators inside {} — semicolons optional
@@ -463,12 +481,11 @@ var origin = type Point {}           // px=0.0, py=0.0 from defaults
 var p = type Point { px: 3.0; py: 4.0 }
 
 // type annotation — "type" keyword optional
-var p1: Point = type Point { px: 3.0; py: 4.0 }
-var p2: type Point = type Point { px: 3.0; py: 4.0 }
+var p1: Point = type Point { px: 3.0; py: 4.0 }   // typed as Point
 
 // nested type instantiation
 type SquareWithPos {
-    var top_left: type Point = type Point { px: 0.0; py: 0.0 }
+    var top_left: Point = type Point { px: 0.0; py: 0.0 }
     var width: int = 0
     var height: int = 0
 
@@ -522,26 +539,82 @@ type Rectangle {
     var width = 0.0
     var height = 0.0
 
-    fn area() { width * height }
-    fn to_string() { "Rectangle(" + width + "x" + height + ")" }
+    fn area() -> float { width * height }
+    fn to_string() -> str { "Rectangle(" + width.to_str() + "x" + height.to_str() + ")" }
 }
 
 type Circle {
     var radius = 0.0
 
-    fn area() { 3.14159 * radius * radius }
-    fn to_string() { "Circle(r=" + radius + ")" }
+    fn area() -> float { 3.14159 * radius * radius }
+    fn to_string() -> str { "Circle(r=" + radius.to_str() + ")" }
 }
 
 // works on anything with area() and to_string() — no declaration needed
 fn print_shape(shape) {
     print shape.to_string()
-    print "area: " + shape.area()
+    print "area: " + shape.area().to_str()
 }
 
 print_shape(type Rectangle { width: 10.0; height: 5.0 })
 print_shape(type Circle { radius: 7.0 })
 
+
+
+// ── 9b. INTERFACES ───────────────────────────────────────────
+
+// Interfaces define named member contracts.
+// A type or instance satisfies an interface if it has all declared members.
+// No "implements" declaration needed — checked at runtime when annotated.
+
+interface Printable {
+    var to_string: fn() -> str
+}
+
+interface Shape {
+    var area: fn() -> float
+    var to_string: fn() -> str
+}
+
+// use interface as type annotation
+fn describe(s: Shape) {
+    print s.to_string()
+    print "area: " + s.area().to_str()
+}
+
+// Rectangle satisfies Shape — has area and to_string
+describe(type Rectangle { width: 10.0; height: 5.0 })
+describe(type Circle { radius: 7.0 })
+
+// inline interface annotation
+fn print_it(obj: interface { var to_string: fn() -> str }) {
+    print obj.to_string()
+}
+
+
+// ── 9c. EXTEND ───────────────────────────────────────────────
+
+// extend adds members to an existing type without modifying its definition
+// extend takes the same declarations as type {}
+
+extend int {
+    fn is_even() { value % 2 == 0 }
+    fn is_odd()  { not (value % 2 == 0) }
+}
+
+print 10.is_even()    // true
+print 7.is_odd()      // true
+
+extend str {
+    fn shout() { value + "!!!" }
+}
+
+print "hello".shout()    // hello!!!
+
+// extend user-defined types too
+extend Point {
+    fn magnitude() { px * px + py * py }
+}
 
 
 // ── 10. BUILT-IN METHODS ─────────────────────────────────────
@@ -646,7 +719,7 @@ type Account {
     }
 
     fn to_string() {
-        owner + ": " + balance    // direct field access
+        owner + ": " + balance.to_str()    // explicit conversion
     }
 }
 

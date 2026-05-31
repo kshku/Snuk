@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#define PAGES 1
+#define PAGES 10
 
 SNUK_INLINE void *alloc_fn(void *data, uint64_t size, uint64_t align) {
     snLinearAllocator *la = (snLinearAllocator *)data;
