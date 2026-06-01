@@ -70,14 +70,15 @@ SNUK_INLINE SnukValue snuk_builtins_create_type(SnukInterpreter *intpret, SnukVa
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 
-SNUK_INLINE void snuk_builtins_create_builtin_types(SnukInterpreter *intpret, bool weak_ref) {
+SNUK_INLINE bool snuk_builtins_create_builtin_types(SnukInterpreter *intpret, bool weak_ref) {
     for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(builtin_types); ++i) {
         SnukStringView name = snuk_string_view_create(builtin_types[i].type);
         SnukValue type = snuk_builtins_create_type(intpret, builtin_types[i].val_type, weak_ref);
-        SNUK_ASSERT(snuk_interpreter_create_env(intpret, name, &type_type, type, false),
-                    "something went wrong while creating builtin types");
+        if (type.type == SNUK_VALUE_UNKOWN) return false;
+        if (!snuk_interpreter_create_env(intpret, name, &type_type, type, false)) return false;
         snuk_value_free(type);
     }
+    return true;
 }
 
 SNUK_INLINE void add_paramters(SnukRefCounter *scope, Parameters *params, uint64_t count) {

@@ -76,10 +76,7 @@ struct SnukValue {
             SnukType *type;
         } interface;
 
-        struct {
-            const char *msg;
-            SnukToken token;
-        } error;
+        const char *err_msg;
     };
 };
 
@@ -134,11 +131,3 @@ SNUK_API void snuk_value_free(SnukValue value);
  * @param value Value to log.
  */
 SNUK_API void snuk_value_log(SnukValue value);
-
-/**
- * @brief Print a runtime value to standard output.
- *
- * @param value Value to print.
- */
-SNUK_API void snuk_value_print(SnukValue value);
-

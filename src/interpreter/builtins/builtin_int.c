@@ -27,8 +27,8 @@ SnukType int_type = {
 SnukValue builtin_int_create_type(SnukInterpreter *intpret, bool weak_ref) {
     interpreter_push_scope(intpret);
 
-    SNUK_ASSERT(snuk_interpreter_create_env(intpret, value_str, &any_type, (SnukValue){.type = SNUK_VALUE_NULL}, false),
-                "something went wrong");
+    if (!(snuk_interpreter_create_env(intpret, value_str, &any_type, (SnukValue){.type = SNUK_VALUE_NULL}, false)))
+        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 
     for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(int_members); ++i) {
         SnukStringView name = snuk_string_view_create(int_members[i].field);
@@ -43,10 +43,10 @@ SnukValue builtin_int_create_type(SnukInterpreter *intpret, bool weak_ref) {
                 SNUK_SHOULD_NOT_REACH_HERE;
                 break;
         }
-        SNUK_ASSERT(type, "something went wrong");
+        if (!(type)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 
-        SNUK_ASSERT(snuk_interpreter_create_env(intpret, name, type, member, false),
-                    "something went wrong");
+        if (!(snuk_interpreter_create_env(intpret, name, type, member, false)))
+            return (SnukValue){.type = SNUK_VALUE_UNKOWN};
         snuk_value_free(member);
     }
 
@@ -158,8 +158,9 @@ static SnukValue build_to_str(SnukInterpreter *intpret) {
 
 static SnukValue to_int(SnukInterpreter *intpret) {
     SnukEnv *value_env = interpreter_lookup(intpret, value_str);
-    SNUK_ASSERT(value_env, "something went wrong!");
-    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL, "unexpected value");
+    if (!value_env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+    if (!(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL))
+        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     if (value_env->value.type == SNUK_VALUE_NULL)
         return (SnukValue){
             .type = SNUK_VALUE_INT,
@@ -170,8 +171,9 @@ static SnukValue to_int(SnukInterpreter *intpret) {
 
 static SnukValue to_float(SnukInterpreter *intpret) {
     SnukEnv *value_env = interpreter_lookup(intpret, value_str);
-    SNUK_ASSERT(value_env, "something went wrong!");
-    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL, "unexpected value");
+    if (!value_env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+    if (!(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL))
+        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     return (SnukValue){
         .type = SNUK_VALUE_FLOAT,
         .float_value = value_env->value.type == SNUK_VALUE_NULL ? 0.0 : (double)value_env->value.int_value,
@@ -180,8 +182,9 @@ static SnukValue to_float(SnukInterpreter *intpret) {
 
 static SnukValue to_bool(SnukInterpreter *intpret) {
     SnukEnv *value_env = interpreter_lookup(intpret, value_str);
-    SNUK_ASSERT(value_env, "something went wrong!");
-    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL, "unexpected value");
+    if (!value_env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+    if (!(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL))
+        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     return (SnukValue){
         .type = SNUK_VALUE_BOOL,
         .bool_value = value_env->value.type == SNUK_VALUE_NULL ? false : (bool)value_env->value.int_value,
@@ -190,8 +193,9 @@ static SnukValue to_bool(SnukInterpreter *intpret) {
 
 static SnukValue to_str(SnukInterpreter *intpret) {
     SnukEnv *value_env = interpreter_lookup(intpret, value_str);
-    SNUK_ASSERT(value_env, "something went wrong!");
-    SNUK_ASSERT(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL, "unexpected value");
+    if (!value_env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+    if (!(value_env->value.type == SNUK_VALUE_INT || value_env->value.type == SNUK_VALUE_NULL))
+        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     if (value_env->value.type == SNUK_VALUE_NULL) {
         return (SnukValue){
             .type = SNUK_VALUE_STRING,

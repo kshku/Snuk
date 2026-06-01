@@ -5,6 +5,19 @@
 #include "snuk/defines.h"
 #include "snuk_scope.h"
 
+SNUK_INLINE SnukValue interpreter_error(SnukInterpreter *intpret, const char *err_msg) {
+    if (intpret->panic_mode) return intpret->error;
+    intpret->panic_mode = true;
+    intpret->error = (SnukValue){
+        .type = SNUK_VALUE_ERROR,
+        .err_msg = err_msg,
+    };
+    return intpret->error;
+}
+
+#define SNUK_INTERPRETER_CHECK(intpret, cond, err_msg)       \
+    if (!(cond)) return interpreter_error(intpret, err_msg);
+
 /**
  * @brief Walk the scope chain from current to global to resolve a name.
  */
