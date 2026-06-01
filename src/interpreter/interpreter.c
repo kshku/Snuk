@@ -180,8 +180,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
     if (intpret->signal != SNUK_SIGNAL_NONE) interpreter_error(intpret, "signal is not none");
     SNUK_INTERPRETER_CHECK(intpret, intpret->signal == SNUK_SIGNAL_NONE, "signal is not none");
 
-    if (intpret->panic_mode)
-        intpret->panic_mode = false;
+    if (intpret->panic_mode) intpret->panic_mode = false;
 
     return res;
 }

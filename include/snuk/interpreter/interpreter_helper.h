@@ -15,7 +15,7 @@ SNUK_INLINE SnukValue interpreter_error(SnukInterpreter *intpret, const char *er
     return intpret->error;
 }
 
-#define SNUK_INTERPRETER_CHECK(intpret, cond, err_msg)     \
+#define SNUK_INTERPRETER_CHECK(intpret, cond, err_msg)       \
     if (!(cond)) return interpreter_error(intpret, err_msg);
 
 /**
