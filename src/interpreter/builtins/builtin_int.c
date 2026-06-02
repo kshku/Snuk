@@ -102,7 +102,6 @@ end:
     return ret;
 }
 
-
 static SnukValue to_str(SnukInterpreter *intpret) {
     SnukValue value = snuk_native_lookup(intpret, "value");
     SnukValue ret;
