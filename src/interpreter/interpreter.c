@@ -71,14 +71,14 @@ void snuk_interpreter_init(SnukInterpreter *intpret) {
     intpret->current = snuk_ref_counter_retain(intpret->global);
 
     // Add builtin types
+    snuk_builtins_init(intpret);
     snuk_builtins_create_builtin_types(intpret, true);
-    builtin_null_init(intpret);
 }
 
 void snuk_interpreter_deinit(SnukInterpreter *intpret) {
     if (!intpret) return;
 
-    builtin_null_deinit(intpret);
+    snuk_builtins_deinit(intpret);
 
     interpreter_clear_trash(intpret);
     snuk_darray_destroy(intpret->trash);
@@ -124,8 +124,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
     if (type->type == TYPE_FN) {
         if (value.type == SNUK_VALUE_FN) return snuk_type_equal(value.fn_value.type, type);
-        if (value.type == SNUK_VALUE_FN_BUILTIN)
-            return snuk_type_equal(value.builtin_fn.type, type);
+        if (value.type == SNUK_VALUE_FN_NATIVE) return snuk_type_equal(value.native_fn.type, type);
         return false;
     }
 
@@ -898,18 +897,18 @@ static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr, bool 
  */
 static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
     SnukValue fn = interpreter_eval_expr(intpret, expr->call.fn, weak_ref);
-    SNUK_INTERPRETER_CHECK(intpret, fn.type == SNUK_VALUE_FN || fn.type == SNUK_VALUE_FN_BUILTIN,
+    SNUK_INTERPRETER_CHECK(intpret, fn.type == SNUK_VALUE_FN || fn.type == SNUK_VALUE_FN_NATIVE,
                            "call expression on non function");
 
     SnukRefCounter *fn_scope_rc = NULL;
     if (fn.type == SNUK_VALUE_FN) fn_scope_rc = fn.fn_value.closure;
-    else fn_scope_rc = fn.builtin_fn.closure;
+    else fn_scope_rc = fn.native_fn.closure;
 
     SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
     if (fn.type == SNUK_VALUE_FN && fn.fn_value.instance)
         intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
-    else if (fn.builtin_fn.instance)
-        intpret->instance = snuk_ref_counter_retain(fn.builtin_fn.instance);
+    else if (fn.native_fn.instance)
+        intpret->instance = snuk_ref_counter_retain(fn.native_fn.instance);
 
     interpreter_push_scope(intpret);
 
@@ -978,7 +977,7 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
     SnukValue ret;
     if (fn.type == SNUK_VALUE_FN)
         ret = execute_block_expr(intpret, fn.fn_value.body, SNUK_SIGNAL_RETURN, SNUK_SIGNAL_NONE, false);
-    else ret = fn.builtin_fn.fn(intpret);
+    else ret = fn.native_fn.fn(intpret);
 
     new_scope = snuk_ref_counter_move(&intpret->current);
     intpret->current = snuk_ref_counter_move(&temp);
@@ -1292,8 +1291,8 @@ static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bo
     if (type_or_inst.type == SNUK_VALUE_TYPE_INST) {
         if (res.type == SNUK_VALUE_FN)
             res.fn_value.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
-        else if (res.type == SNUK_VALUE_FN_BUILTIN)
-            res.builtin_fn.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
+        else if (res.type == SNUK_VALUE_FN_NATIVE)
+            res.native_fn.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
     }
 
     SNUK_INTERPRETER_CHECK(intpret, res.type != SNUK_VALUE_UNKOWN, "couldn't get the member");

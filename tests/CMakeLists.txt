@@ -13,7 +13,7 @@ add_subdirectory(unit)
 function(run_snuk_file name source)
     add_test(NAME ${name} COMMAND $<TARGET_FILE:snuk_repl> ${source})
     set_tests_properties(${name} PROPERTIES LABELS "snuk_files")
-    set_tests_properties(${name} PROPERTIES FAIL_REGULAR_EXPRESSION "[0-9]+:[0-9]+ error at '.*")
+    set_tests_properties(${name} PROPERTIES FAIL_REGULAR_EXPRESSION "SNUK_VALUE_ERROR")
 endfunction()
 
 file(GLOB files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.snuk")

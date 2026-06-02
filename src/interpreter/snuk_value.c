@@ -13,10 +13,10 @@ SnukValue snuk_value_copy(SnukValue value) {
                 value.fn_value.instance = snuk_ref_counter_retain_weak(value.fn_value.instance);
             break;
 
-        case SNUK_VALUE_FN_BUILTIN:
-            value.builtin_fn.closure = snuk_ref_counter_retain(value.builtin_fn.closure);
-            if (value.builtin_fn.instance)
-                value.builtin_fn.instance = snuk_ref_counter_retain_weak(value.builtin_fn.instance);
+        case SNUK_VALUE_FN_NATIVE:
+            value.native_fn.closure = snuk_ref_counter_retain(value.native_fn.closure);
+            if (value.native_fn.instance)
+                value.native_fn.instance = snuk_ref_counter_retain_weak(value.native_fn.instance);
 
             break;
 
@@ -52,10 +52,9 @@ void snuk_value_free(SnukValue value) {
             if (value.fn_value.instance) snuk_ref_counter_release_weak(&value.fn_value.instance);
             break;
 
-        case SNUK_VALUE_FN_BUILTIN:
-            snuk_ref_counter_release(&value.builtin_fn.closure);
-            if (value.builtin_fn.instance)
-                snuk_ref_counter_release_weak(&value.builtin_fn.instance);
+        case SNUK_VALUE_FN_NATIVE:
+            snuk_ref_counter_release(&value.native_fn.closure);
+            if (value.native_fn.instance) snuk_ref_counter_release_weak(&value.native_fn.instance);
             break;
 
         case SNUK_VALUE_TYPE:
