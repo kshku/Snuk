@@ -33,6 +33,9 @@ SnukValue builtin_float_create_type(SnukInterpreter *intpret, bool weak_ref);
 SnukValue builtin_bool_create_type(SnukInterpreter *intpret, bool weak_ref);
 SnukValue builtin_str_create_type(SnukInterpreter *intpret, bool weak_ref);
 
+void builtin_null_init(SnukInterpreter *intpret);
+void builtin_null_deinit(SnukInterpreter *intpret);
+
 SnukValue builtin_null_get_member(SnukInterpreter *intpret, SnukStringView field);
 
 static struct {
@@ -78,6 +81,7 @@ SNUK_INLINE bool snuk_builtins_create_builtin_types(SnukInterpreter *intpret, bo
         if (!snuk_interpreter_create_env(intpret, name, &type_type, type, false)) return false;
         snuk_value_free(type);
     }
+
     return true;
 }
 

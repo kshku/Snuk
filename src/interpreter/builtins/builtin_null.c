@@ -17,6 +17,53 @@ static BuiltinMember null_members[] = {
     {.field = "to_str",   .build_field = build_to_str  },
 };
 
+static SnukType to_int_type = {
+    .type = TYPE_FN,
+    .fn = {
+        .return_type = &int_type,
+    },
+};
+
+static SnukType to_float_type = {
+    .type = TYPE_FN,
+    .fn = {
+        .return_type = &float_type,
+    },
+};
+
+static SnukType to_bool_type = {
+    .type = TYPE_FN,
+    .fn = {
+        .return_type = &bool_type,
+    },
+};
+
+static SnukType to_str_type = {
+    .type = TYPE_FN,
+    .fn = {
+        .return_type = &str_type,
+    },
+};
+
+static SnukRefCounter *empty_scope;
+
+void builtin_null_init(SnukInterpreter *intpret) {
+    if (!to_int_type.fn.param_types)
+        to_int_type.fn.param_types = snuk_darray_create(SnukType *, &intpret->allocator);
+    if (!to_float_type.fn.param_types)
+        to_float_type.fn.param_types = snuk_darray_create(SnukType *, &intpret->allocator);
+    if (!to_bool_type.fn.param_types)
+        to_bool_type.fn.param_types = snuk_darray_create(SnukType *, &intpret->allocator);
+    if (!to_str_type.fn.param_types)
+        to_str_type.fn.param_types = snuk_darray_create(SnukType *, &intpret->allocator);
+    if (!empty_scope) empty_scope = snuk_scope_create(NULL, false);
+}
+
+void builtin_null_deinit(SnukInterpreter *intpret) {
+    SNUK_UNUSED(intpret);
+    snuk_ref_counter_release(&empty_scope);
+}
+
 SnukValue builtin_null_get_member(SnukInterpreter *intpret, SnukStringView field) {
     for (uint64_t i = 0; i < SNUK_ARRAY_LENGTH(null_members); ++i)
         if (snuk_string_view_equal_cstr(field, null_members[i].field))
@@ -25,89 +72,49 @@ SnukValue builtin_null_get_member(SnukInterpreter *intpret, SnukStringView field
 }
 
 static SnukValue build_to_int(SnukInterpreter *intpret) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
-
-    static SnukType type;
-    type = (SnukType){
-        .type = TYPE_FN,
-        .fn = {
-            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
-            .return_type = &int_type,
-        },
-    };
-
+    SNUK_UNUSED(intpret);
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = snuk_ref_counter_move(&scope),
+            .closure = snuk_ref_counter_retain(empty_scope),
             .fn = to_int,
-            .type = &type,
+            .type = &to_int_type,
         },
     };
 }
 
 static SnukValue build_to_float(SnukInterpreter *intpret) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
-
-    static SnukType type;
-    type = (SnukType){
-        .type = TYPE_FN,
-        .fn = {
-            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
-            .return_type = &float_type,
-        },
-    };
-
+    SNUK_UNUSED(intpret);
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = snuk_ref_counter_move(&scope),
+            .closure = snuk_ref_counter_retain(empty_scope),
             .fn = to_float,
-            .type = &type,
+            .type = &to_float_type,
         },
     };
 }
 
 static SnukValue build_to_bool(SnukInterpreter *intpret) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
-
-    static SnukType type;
-    type = (SnukType){
-        .type = TYPE_FN,
-        .fn ={
-            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
-            .return_type = &bool_type,
-        },
-    };
-
+    SNUK_UNUSED(intpret);
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = snuk_ref_counter_move(&scope),
+            .closure = snuk_ref_counter_retain(empty_scope),
             .fn = to_bool,
-            .type = &type,
+            .type = &to_bool_type,
         },
     };
 }
 
 static SnukValue build_to_str(SnukInterpreter *intpret) {
-    SnukRefCounter *scope = snuk_scope_create(NULL, false);
-
-    static SnukType type;
-    type = (SnukType){
-        .type = TYPE_FN,
-        .fn ={
-            .param_types = snuk_darray_create(SnukType *, &intpret->allocator),
-            .return_type = &str_type,
-        },
-    };
-
+    SNUK_UNUSED(intpret);
     return (SnukValue){
         .type = SNUK_VALUE_FN_BUILTIN,
         .builtin_fn = {
-            .closure = snuk_ref_counter_move(&scope),
+            .closure = snuk_ref_counter_retain(empty_scope),
             .fn = to_str,
-            .type = &type,
+            .type = &to_str_type,
         },
     };
 }
