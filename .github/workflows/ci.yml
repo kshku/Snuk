@@ -50,9 +50,9 @@ jobs:
         run: cmake --build build --config Debug
 
       - name: Run unit tests
-        run: ctest --test-dir build/tests -L unit --output-on-failure -C Debug
+        run: ctest --test-dir build/tests -L unit --output-on-failure --timeout 30 -C Debug -V
         shell: bash
 
       - name: Run .snuk files
-        run: ctest --test-dir build/tests -L snuk_files --output-on-failure -C Debug
+        run: ctest --test-dir build/tests -L snuk_files --output-on-failure --timeout 30 -C Debug -V
         shell: bash
