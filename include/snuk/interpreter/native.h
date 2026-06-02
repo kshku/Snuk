@@ -32,30 +32,25 @@ SNUK_INLINE bool snuk_native_add_value(
     return true;
 }
 
-SNUK_INLINE SnukEnv **snuk_native_get_params(SnukInterpreter *intpret) {
-    return GET_SCOPE(intpret->current)->vars;
-}
+SNUK_API SnukEnv *snuk_native_lookup(SnukInterpreter *intpret, const char *name);
 
-SNUK_INLINE SnukEnv **snuk_native_get_members(SnukInterpreter *intpret) {
-    return GET_SCOPE(intpret->current)->vars;
-}
+SNUK_API SnukValue snuk_native_create_type(
+    SnukInterpreter *intpret, SnukTypeMember *members, uint64_t count, bool weak_ref);
 
-SnukValue snuk_native_create_type(SnukInterpreter *intpret, SnukTypeMember *members, uint64_t count, bool weak_ref);
+SNUK_API SnukValue snuk_native_create_fn(SnukInterpreter *intpret, SnukParameter *params, uint64_t count,
+                                         SnukType *fn_type, native_function_t fn, bool weak_ref);
 
-SnukValue snuk_native_create_fn(SnukInterpreter *intpret, SnukParameter *params, uint64_t count,
-                                SnukType *fn_type, native_function_t fn, bool weak_ref);
-
-SnukValue snuk_native_create_inst(
+SNUK_API SnukValue snuk_native_create_inst(
     SnukInterpreter *intpret, SnukType *type, SnukTypeMember *members, uint64_t count, bool weak_ref);
 
-SnukValue snuk_native_create_int(SnukInterpreter *intpret, int64_t value, bool weak_ref);
+SNUK_API SnukValue snuk_native_create_int(SnukInterpreter *intpret, int64_t value, bool weak_ref);
 
-SnukValue snuk_native_create_float(SnukInterpreter *intpret, double value, bool weak_ref);
+SNUK_API SnukValue snuk_native_create_float(SnukInterpreter *intpret, double value, bool weak_ref);
 
-SnukValue snuk_native_create_bool(SnukInterpreter *intpret, bool value, bool weak_ref);
+SNUK_API SnukValue snuk_native_create_bool(SnukInterpreter *intpret, bool value, bool weak_ref);
 
-SnukValue snuk_native_create_string(SnukInterpreter *intpret, const char *str, bool weak_ref);
+SNUK_API SnukValue snuk_native_create_string(SnukInterpreter *intpret, const char *str, bool weak_ref);
 
-SnukValue snuk_native_create_null(SnukInterpreter *intpret, bool weak_ref);
+SNUK_API SnukValue snuk_native_create_null(SnukInterpreter *intpret, bool weak_ref);
 
-SnukValue snuk_native_create_interface(SnukInterpreter *intpret, SnukType *interface, bool weak_ref);
+SNUK_API SnukValue snuk_native_create_interface(SnukInterpreter *intpret, SnukType *interface, bool weak_ref);

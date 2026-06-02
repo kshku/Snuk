@@ -3,10 +3,7 @@
 #include "snuk/darray.h"
 #include "snuk/defines.h"
 #include "snuk/interpreter/builtins/snuk_builtins.h"
-#include "snuk/interpreter/interpreter.h"
-#include "snuk/interpreter/interpreter_helper.h"
 #include "snuk/interpreter/native.h"
-#include "snuk/interpreter/snuk_scope.h"
 #include "snuk/parser/snuk_type.h"
 #include "snuk/refcount.h"
 

@@ -45,7 +45,7 @@ static SnukValue build_to_str(SnukInterpreter *intpret, bool weak_ref) {
 }
 
 static SnukValue to_int(SnukInterpreter *intpret) {
-    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
     if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
         return (SnukValue){.type = SNUK_VALUE_UNKOWN};
@@ -56,7 +56,7 @@ static SnukValue to_int(SnukInterpreter *intpret) {
 }
 
 static SnukValue to_float(SnukInterpreter *intpret) {
-    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
     if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
         return (SnukValue){.type = SNUK_VALUE_UNKOWN};
@@ -67,7 +67,7 @@ static SnukValue to_float(SnukInterpreter *intpret) {
 }
 
 static SnukValue to_bool(SnukInterpreter *intpret) {
-    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
     if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
         return (SnukValue){.type = SNUK_VALUE_UNKOWN};
@@ -80,7 +80,7 @@ static SnukValue to_bool(SnukInterpreter *intpret) {
 }
 
 static SnukValue to_str(SnukInterpreter *intpret) {
-    SnukEnv *value_env = interpreter_lookup(intpret, value_str);
+    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
     if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
         return (SnukValue){.type = SNUK_VALUE_UNKOWN};

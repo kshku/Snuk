@@ -4,6 +4,10 @@
 #include "snuk/interpreter/builtins/snuk_builtins.h"
 #include "snuk/interpreter/interpreter_helper.h"
 
+SnukEnv *snuk_native_lookup(SnukInterpreter *intpret, const char *name) {
+    return interpreter_lookup(intpret, snuk_string_view_create(name));
+}
+
 SnukValue snuk_native_create_type(SnukInterpreter *intpret, SnukTypeMember *members, uint64_t count, bool weak_ref) {
     interpreter_push_scope(intpret);
 
@@ -140,7 +144,7 @@ SnukValue snuk_native_create_null(SnukInterpreter *intpret, bool weak_ref) {
     SNUK_UNUSED(intpret);
     SNUK_UNUSED(weak_ref);
     return (SnukValue){
-        .type = SNUK_VALUE_STRING,
+        .type = SNUK_VALUE_NULL,
     };
 }
 
