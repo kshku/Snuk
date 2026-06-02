@@ -47,57 +47,90 @@ static SnukValue build_to_str(SnukInterpreter *intpret, bool weak_ref) {
 }
 
 static SnukValue to_int(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_FLOAT || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    return (SnukValue){
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_FLOAT || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
+    ret = (SnukValue){
         .type = SNUK_VALUE_INT,
-        .int_value = value_env->value.type == SNUK_VALUE_NULL ? 0 : (int64_t)value_env->value.float_value,
+        .int_value = value.type == SNUK_VALUE_NULL ? 0 : (int64_t)value.float_value,
     };
+
+end:
+    snuk_value_free(value);
+    return ret;
 }
 
 static SnukValue to_float(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_FLOAT || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (value_env->value.type == SNUK_VALUE_NULL)
-        return (SnukValue){
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_FLOAT || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
+    if (value.type == SNUK_VALUE_NULL) {
+        ret = (SnukValue){
             .type = SNUK_VALUE_FLOAT,
             .float_value = 0.0,
         };
-    return snuk_value_copy(value_env->value);
+        goto end;
+    }
+
+    ret = snuk_value_copy(value);
+
+end:
+    snuk_value_free(value);
+    return ret;
 }
 
 static SnukValue to_bool(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_FLOAT || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    return (SnukValue){
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_FLOAT || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
+    ret = (SnukValue){
         .type = SNUK_VALUE_BOOL,
-        .bool_value = value_env->value.type == SNUK_VALUE_NULL ? false : (bool)value_env->value.float_value,
+        .bool_value = value.type == SNUK_VALUE_NULL ? false : (bool)value.float_value,
     };
+
+end:
+    snuk_value_free(value);
+    return ret;
 }
 
 static SnukValue to_str(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_FLOAT || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (value_env->value.type == SNUK_VALUE_NULL) {
-        return (SnukValue){
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_FLOAT || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
+    if (value.type == SNUK_VALUE_NULL) {
+        ret = (SnukValue){
             .type = SNUK_VALUE_STRING,
             .string_value = snuk_string_view_create_with_len("\"null\"", 6),
         };
+        goto end;
     }
+
     char *buf = (char *)snuk_alloc(25 * sizeof(char), alignof(char));
     uint64_t len = 0;
-    len = snprintf(buf, 25, "\"%lf\"", value_env->value.float_value);
+    len = snprintf(buf, 25, "\"%lf\"", value.float_value);
     buf[len] = 0;
-    return (SnukValue){
+    ret = (SnukValue){
         .type = SNUK_VALUE_STRING,
         .string_value = snuk_string_view_create_with_len(buf, len),
     };
+
+end:
+    snuk_value_free(value);
+    return ret;
 }

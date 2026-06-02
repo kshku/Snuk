@@ -45,52 +45,83 @@ static SnukValue build_to_str(SnukInterpreter *intpret, bool weak_ref) {
 }
 
 static SnukValue to_int(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    return (SnukValue){
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_BOOL || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
+    ret = (SnukValue){
         .type = SNUK_VALUE_INT,
-        .int_value = value_env->value.type == SNUK_VALUE_NULL ? 0 : (int64_t)(value_env->value.bool_value == true),
+        .int_value = value.type == SNUK_VALUE_NULL ? 0 : (int64_t)(value.bool_value == true),
     };
+
+end:
+    snuk_value_free(value);
+    return ret;
 }
 
 static SnukValue to_float(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    return (SnukValue){
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_BOOL || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
+    ret = (SnukValue){
         .type = SNUK_VALUE_FLOAT,
-        .float_value = value_env->value.type == SNUK_VALUE_NULL ? 0.0 : (double)(value_env->value.bool_value == true),
+        .float_value = value.type == SNUK_VALUE_NULL ? 0.0 : (double)(value.bool_value == true),
     };
+
+end:
+    snuk_value_free(value);
+    return ret;
 }
 
 static SnukValue to_bool(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (value_env->value.type == SNUK_VALUE_NULL)
-        return (SnukValue){
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_BOOL || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
+    if (value.type == SNUK_VALUE_NULL) {
+        ret = (SnukValue){
             .type = SNUK_VALUE_BOOL,
             .bool_value = false,
         };
-    return snuk_value_copy(value_env->value);
+        goto end;
+    }
+
+    ret = snuk_value_copy(value);
+
+end:
+    snuk_value_free(value);
+    return ret;
 }
 
 static SnukValue to_str(SnukInterpreter *intpret) {
-    SnukEnv *value_env = snuk_native_lookup(intpret, "value");
-    if (!(value_env)) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    if (!(value_env->value.type == SNUK_VALUE_BOOL || value_env->value.type == SNUK_VALUE_NULL))
-        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+    SnukValue value = snuk_native_lookup(intpret, "value");
+    SnukValue ret;
+    if (!(value.type == SNUK_VALUE_BOOL || value.type == SNUK_VALUE_NULL)) {
+        ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        goto end;
+    }
+
     SnukStringView str;
-    if (value_env->value.type == SNUK_VALUE_NULL) snuk_string_view_create_with_len("\"null\"", 6);
+    if (value.type == SNUK_VALUE_NULL) snuk_string_view_create_with_len("\"null\"", 6);
     else
-        str = value_env->value.bool_value ? snuk_string_view_create_with_len("\"true\"", 6)
-                                          : snuk_string_view_create_with_len("\"false\"", 7);
-    return (SnukValue){
+        str = value.bool_value ? snuk_string_view_create_with_len("\"true\"", 6)
+                               : snuk_string_view_create_with_len("\"false\"", 7);
+    ret = (SnukValue){
         .type = SNUK_VALUE_STRING,
         .string_value = str,
     };
+
+end:
+    snuk_value_free(value);
+    return ret;
 }

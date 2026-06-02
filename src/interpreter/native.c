@@ -4,12 +4,126 @@
 #include "snuk/interpreter/builtins/snuk_builtins.h"
 #include "snuk/interpreter/interpreter_helper.h"
 
-SnukEnv *snuk_native_lookup(SnukInterpreter *intpret, const char *name) {
-    return interpreter_lookup(intpret, snuk_string_view_create(name));
+SnukValue snuk_native_lookup(SnukInterpreter *intpret, const char *name) {
+    return snuk_interpreter_get_env(intpret, snuk_string_view_create(name));
 }
 
-SNUK_API SnukEnv *snuk_native_get_member(SnukInterpreter *intpret, SnukValue type_or_inst, const char *name) {
-    return interpreter_get_member_env(intpret, type_or_inst, snuk_string_view_create(name));
+SnukValue snuk_native_get_member(SnukInterpreter *intpret, SnukValue type_or_inst, const char *name) {
+    SnukStringView name_sv = snuk_string_view_create(name);
+    SnukValue res;
+    bool should_trash = false;
+    if (type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST) {
+        res = interpreter_get_member(intpret, type_or_inst, name_sv);
+    } else if (type_or_inst.type == SNUK_VALUE_NULL) {
+        res = builtin_null_get_member(intpret, name_sv);
+    } else {
+        SnukTypeMember members[] = {
+            {.name = "value", .value = snuk_value_copy(type_or_inst)},
+        };
+        switch (type_or_inst.type) {
+            case SNUK_VALUE_INT:
+                members[0].type = &int_type;
+                break;
+            case SNUK_VALUE_FLOAT:
+                members[0].type = &float_type;
+                break;
+            case SNUK_VALUE_BOOL:
+                members[0].type = &bool_type;
+                break;
+            case SNUK_VALUE_STRING:
+                members[0].type = &str_type;
+                break;
+            default:
+                SNUK_SHOULD_NOT_REACH_HERE;
+                break;
+        }
+
+        type_or_inst = snuk_native_create_inst(intpret, members[0].type, members, 1, true);
+        should_trash = true;
+
+        res = interpreter_get_member(intpret, type_or_inst, name_sv);
+    }
+
+    // insert the instance scope
+    if (type_or_inst.type == SNUK_VALUE_TYPE_INST) {
+        if (res.type == SNUK_VALUE_FN)
+            res.fn_value.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
+        else if (res.type == SNUK_VALUE_FN_NATIVE)
+            res.native_fn.instance = snuk_ref_counter_retain_weak(type_or_inst.type_value.closure);
+    }
+
+    if (should_trash) interpreter_trash(intpret, type_or_inst);
+
+    return res;
+}
+
+SnukValue snuk_native_call_function(SnukInterpreter *intpret, SnukValue fn, SnukParameter *params, uint64_t count) {
+    if (fn.type != SNUK_VALUE_FN && fn.type != SNUK_VALUE_FN_NATIVE)
+        return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+
+    SnukRefCounter *fn_scope_rc = NULL;
+    if (fn.type == SNUK_VALUE_FN) fn_scope_rc = fn.fn_value.closure;
+    else fn_scope_rc = fn.native_fn.closure;
+
+    SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
+    if (fn.type == SNUK_VALUE_FN) {
+        if (fn.fn_value.instance) intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
+    } else if (fn.native_fn.instance) {
+        intpret->instance = snuk_ref_counter_retain(fn.native_fn.instance);
+    }
+
+    interpreter_push_scope(intpret);
+
+    SnukScope *fn_scope = GET_SCOPE(fn_scope_rc);
+    uint64_t fn_param_count = snuk_darray_get_length(fn_scope->vars);
+
+    if (fn_param_count < count) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+    for (uint64_t i = 0; i < count; ++i) {
+        SnukStringView name = snuk_string_view_create(params[i].name);
+        SnukEnv *fn_env = snuk_scope_lookup(fn_scope_rc, name);
+        if (!fn_env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        SnukValue value;
+        if (params[i].build_value) value = params[i].build_value(intpret, true);
+        else value = params[i].value;
+        if (!snuk_interpreter_create_env(intpret, name, fn_env->type, value, false))
+            return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        snuk_value_free(value);
+    }
+
+    for (uint64_t i = 0; i < fn_param_count; ++i) {
+        SnukEnv *fn_env = fn_scope->vars[i];
+        SnukEnv *env = snuk_scope_lookup(intpret->current, fn_env->name);
+        if (!env) {
+            if (fn_env->value.type == SNUK_VALUE_UNKOWN)
+                return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+            if (!snuk_interpreter_create_env(intpret, fn_env->name, fn_env->type, fn_env->value, false))
+                return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        }
+    }
+
+    SnukRefCounter *new_scope = snuk_ref_counter_retain(intpret->current);
+
+    interpreter_pop_scope(intpret);
+
+    snuk_scope_set_parent(new_scope, snuk_ref_counter_retain(fn_scope_rc), false);
+
+    SnukRefCounter *temp = snuk_ref_counter_move(&intpret->current);
+    intpret->current = snuk_ref_counter_move(&new_scope);
+
+    SnukValue ret;
+    if (fn.type == SNUK_VALUE_FN)
+        ret = execute_block_expr(intpret, fn.fn_value.body, SNUK_SIGNAL_RETURN, SNUK_SIGNAL_NONE, false);
+    else ret = fn.native_fn.fn(intpret);
+
+    new_scope = snuk_ref_counter_move(&intpret->current);
+    intpret->current = snuk_ref_counter_move(&temp);
+
+    snuk_ref_counter_release(&new_scope);
+
+    if (intpret->instance) snuk_ref_counter_release(&intpret->instance);
+    intpret->instance = snuk_ref_counter_move(&prev_instance);
+
+    return ret;
 }
 
 SnukValue snuk_native_create_type(SnukInterpreter *intpret, SnukTypeMember *members, uint64_t count, bool weak_ref) {
