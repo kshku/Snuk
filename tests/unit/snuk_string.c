@@ -230,4 +230,4 @@ ADD_TEST(test_string_concat) {
     TEST_PASSED;
 }
 
-RUN_ALL_TESTS();
+RUN_ALL_TESTS()

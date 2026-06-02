@@ -79,4 +79,4 @@ ADD_TEST(test_string_view_equal) {
     TEST_PASSED;
 }
 
-RUN_ALL_TESTS();
+RUN_ALL_TESTS()
