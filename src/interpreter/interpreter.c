@@ -72,10 +72,13 @@ void snuk_interpreter_init(SnukInterpreter *intpret) {
 
     // Add builtin types
     snuk_builtins_create_builtin_types(intpret, true);
+    builtin_null_init(intpret);
 }
 
 void snuk_interpreter_deinit(SnukInterpreter *intpret) {
     if (!intpret) return;
+
+    builtin_null_deinit(intpret);
 
     interpreter_clear_trash(intpret);
     snuk_darray_destroy(intpret->trash);
