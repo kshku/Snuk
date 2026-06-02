@@ -8,6 +8,10 @@ SnukEnv *snuk_native_lookup(SnukInterpreter *intpret, const char *name) {
     return interpreter_lookup(intpret, snuk_string_view_create(name));
 }
 
+SNUK_API SnukEnv *snuk_native_get_member(SnukInterpreter *intpret, SnukValue type_or_inst, const char *name) {
+    return interpreter_get_member_env(intpret, type_or_inst, snuk_string_view_create(name));
+}
+
 SnukValue snuk_native_create_type(SnukInterpreter *intpret, SnukTypeMember *members, uint64_t count, bool weak_ref) {
     interpreter_push_scope(intpret);
 
