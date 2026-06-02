@@ -1,12 +1,8 @@
 function(add_snuk_test name source)
-    add_executable(${name}
-        ${source}
-        ${PROJECT_SOURCE_DIR}/src/logger.c
-        ${PROJECT_SOURCE_DIR}/src/memory.c
-    )
+    add_executable(${name} ${source})
     add_dependencies(run_tests ${name})
     target_include_directories(${name} PRIVATE ${PROJECT_SOURCE_DIR}/include)
-    target_link_libraries(${name} PRIVATE snlogger snmemory snfile)
+    target_link_libraries(${name} PRIVATE snlogger snmemory snfile snuk)
     add_test(NAME ${name} COMMAND ${name})
     set_tests_properties(${name} PROPERTIES LABELS "unit")
 endfunction()

@@ -9,6 +9,7 @@ endif()
 target_link_libraries(snuk PUBLIC snuk_configs)
 
 set(PUBLIC_HEADERS
+    api.h
     defines.h
     logger.h
     memory.h
