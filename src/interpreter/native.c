@@ -209,10 +209,10 @@ SnukValue snuk_native_create_inst(
         SnukValue value;
         if (members[i].build_value) value = members[i].build_value(intpret, true);
         else value = members[i].value;
-        SnukValueType val_type = snuk_builtins_get_value_type(value.type_value.type->name);
+        SnukValueType val_type = snuk_builtins_get_value_type(inst.type_value.type->name);
         if (val_type != SNUK_VALUE_UNKOWN && snuk_string_view_equal(name, value_str) && value.type != val_type)
             return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-        if (!interpreter_set_member(intpret, value, name, value))
+        if (!interpreter_set_member(intpret, inst, name, value))
             return (SnukValue){.type = SNUK_VALUE_UNKOWN};
         snuk_value_free(value);
     }
