@@ -17,11 +17,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            binary: build/snuk
+            binary: build/repl/snuk
           - os: macos-latest
-            binary: build/snuk
+            binary: build/repl/snuk
           - os: windows-latest
-            binary: build/Release/snuk.exe
+            binary: build/repl/Release/snuk.exe
 
     steps:
       - name: Checkout
@@ -99,7 +99,9 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           NOTES=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
           if [ -z "$NOTES" ]; then
-            NOTES="See CHANGELOG.md for details."
+            echo "ERROR: No changelog entry found for version ${VERSION}"
+            echo "Add a '## [${VERSION}] - YYYY-MM-DD' section to CHANGELOG.md"
+            exit 1
           fi
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$NOTES" >> $GITHUB_OUTPUT
