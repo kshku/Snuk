@@ -34,6 +34,8 @@ SNUK_INLINE bool snuk_native_add_value(
 
 SNUK_API SnukEnv *snuk_native_lookup(SnukInterpreter *intpret, const char *name);
 
+SNUK_API SnukEnv *snuk_native_get_member(SnukInterpreter *intpret, SnukValue type_or_inst, const char *name);
+
 SNUK_API SnukValue snuk_native_create_type(
     SnukInterpreter *intpret, SnukTypeMember *members, uint64_t count, bool weak_ref);
 
