@@ -9,7 +9,7 @@ type Point {
     }
 
     fn to_string() -> str {
-        "(" + self.px + ", " + self.py + ")"
+        "(" + self.px.to_str() + ", " + self.py.to_str() + ")"
     }
 }
 
