@@ -55,7 +55,8 @@ SNUK_INLINE void interpreter_pop_scope(SnukInterpreter *intpret) {
 SNUK_INLINE SnukEnv *
     interpreter_get_member_env(SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field) {
     SNUK_UNUSED(intpret);
-    SNUK_ASSERT(type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST, "something is wrong");
+    if (type_or_inst.type != SNUK_VALUE_TYPE && type_or_inst.type != SNUK_VALUE_TYPE_INST)
+        return NULL;
 
     // Do not lookup recursively
     SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field);
@@ -72,7 +73,8 @@ SNUK_INLINE SnukValue interpreter_get_member(SnukInterpreter *intpret, SnukValue
 
 SNUK_INLINE bool interpreter_set_member(
     SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field, SnukValue value) {
-    SNUK_ASSERT(type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST, "something is wrong");
+    if (type_or_inst.type != SNUK_VALUE_TYPE && type_or_inst.type != SNUK_VALUE_TYPE_INST)
+        return false;
 
     // Do not lookup recursively
     SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field);

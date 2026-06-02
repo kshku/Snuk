@@ -4,6 +4,7 @@ set(PUBLIC_HEADERS
     snuk_value.h
     snuk_scope.h
     snuk_env.h
+    native.h
 )
 
 set(HEADERS
@@ -12,6 +13,7 @@ set(HEADERS
 set(SRCS
     interpreter.c
     snuk_value.c
+    native.c
 )
 
 set(INCLUDE_BASE "${PROJECT_SOURCE_DIR}/include/snuk/interpreter")

@@ -2,6 +2,7 @@ set(PUBLIC_HEADERS
     snuk_builtins.h
 )
 set(HEADERS
+    builtin_common.h
 )
 
 set(SRCS
@@ -10,6 +11,7 @@ set(SRCS
     builtin_bool.c
     builtin_str.c
     builtin_null.c
+    builtin_common.c
 )
 
 set(INCLUDE_BASE "${PROJECT_SOURCE_DIR}/include/snuk/interpreter/builtins")

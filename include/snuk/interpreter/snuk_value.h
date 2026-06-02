@@ -10,7 +10,7 @@
 typedef struct SnukValue SnukValue;
 typedef struct SnukInterpreter SnukInterpreter;
 
-typedef SnukValue (*builtin_function)(SnukInterpreter *intpret);
+typedef SnukValue (*native_function_t)(SnukInterpreter *intpret);
 
 typedef enum SnukValueType {
     SNUK_VALUE_UNKOWN,
@@ -20,7 +20,7 @@ typedef enum SnukValueType {
     SNUK_VALUE_STRING,
     SNUK_VALUE_NULL,
     SNUK_VALUE_FN,
-    SNUK_VALUE_FN_BUILTIN,
+    SNUK_VALUE_FN_NATIVE,
     SNUK_VALUE_TYPE,
     SNUK_VALUE_TYPE_INST,
     SNUK_VALUE_INTERFACE,
@@ -61,9 +61,9 @@ struct SnukValue {
         struct {
             SnukRefCounter *instance;
             SnukRefCounter *closure;
-            builtin_function fn;
+            native_function_t fn;
             SnukType *type;
-        } builtin_fn;
+        } native_fn;
 
         struct {
             SnukRefCounter *type_scope;
