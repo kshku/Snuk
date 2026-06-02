@@ -65,13 +65,6 @@ SnukValue snuk_native_call_function(SnukInterpreter *intpret, SnukValue fn, Snuk
     if (fn.type == SNUK_VALUE_FN) fn_scope_rc = fn.fn_value.closure;
     else fn_scope_rc = fn.native_fn.closure;
 
-    SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
-    if (fn.type == SNUK_VALUE_FN) {
-        if (fn.fn_value.instance) intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
-    } else if (fn.native_fn.instance) {
-        intpret->instance = snuk_ref_counter_retain(fn.native_fn.instance);
-    }
-
     interpreter_push_scope(intpret);
 
     SnukScope *fn_scope = GET_SCOPE(fn_scope_rc);
@@ -106,6 +99,13 @@ SnukValue snuk_native_call_function(SnukInterpreter *intpret, SnukValue fn, Snuk
     interpreter_pop_scope(intpret);
 
     snuk_scope_set_parent(new_scope, snuk_ref_counter_retain(fn_scope_rc), false);
+
+    SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
+    if (fn.type == SNUK_VALUE_FN) {
+        if (fn.fn_value.instance) intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
+    } else if (fn.native_fn.instance) {
+        intpret->instance = snuk_ref_counter_retain(fn.native_fn.instance);
+    }
 
     SnukRefCounter *temp = snuk_ref_counter_move(&intpret->current);
     intpret->current = snuk_ref_counter_move(&new_scope);
