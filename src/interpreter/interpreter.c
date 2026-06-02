@@ -32,8 +32,6 @@ SnukStringView self_str = {.str = "self", .len = 4};
 SnukStringView value_str = {.str = "value", .len = 5};
 
 static void execute_print_item(SnukInterpreter *intpret, SnukExpr **exprs, bool weak_ref);
-static SnukValue execute_block_expr(
-    SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref);
 static SnukValue execute_if_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref);
 static SnukValue execute_while_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref);
 static SnukValue execute_for_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref);
@@ -532,7 +530,7 @@ static void execute_print_item(SnukInterpreter *intpret, SnukExpr **exprs, bool 
  * @brief Execute a block in a fresh scope, capturing signals in the capture
  * mask and propagating those in the propagate mask.
  */
-static SnukValue execute_block_expr(
+SnukValue execute_block_expr(
     SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref) {
     interpreter_push_scope(intpret);
 
@@ -905,10 +903,11 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
     else fn_scope_rc = fn.native_fn.closure;
 
     SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
-    if (fn.type == SNUK_VALUE_FN && fn.fn_value.instance)
-        intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
-    else if (fn.native_fn.instance)
+    if (fn.type == SNUK_VALUE_FN) {
+        if (fn.fn_value.instance) intpret->instance = snuk_ref_counter_retain(fn.fn_value.instance);
+    } else if (fn.native_fn.instance) {
         intpret->instance = snuk_ref_counter_retain(fn.native_fn.instance);
+    }
 
     interpreter_push_scope(intpret);
 

@@ -105,3 +105,5 @@ SNUK_INLINE void interpreter_clear_trash(SnukInterpreter *intpret) {
     snuk_darray_clear(&intpret->trash);
 }
 
+SnukValue execute_block_expr(
+    SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref);
