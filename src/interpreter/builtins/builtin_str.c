@@ -73,7 +73,7 @@ static SnukValue build_get(SnukInterpreter *intpret, bool weak_ref) {
 static SnukValue to_int(SnukInterpreter *intpret) {
     SnukValue value = snuk_native_lookup(intpret, "value");
     SnukValue ret;
-    if (!(value.type == SNUK_VALUE_INT || value.type == SNUK_VALUE_NULL)) {
+    if (!(value.type == SNUK_VALUE_STRING || value.type == SNUK_VALUE_NULL)) {
         ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
         goto end;
     }
@@ -106,7 +106,7 @@ end:
 static SnukValue to_float(SnukInterpreter *intpret) {
     SnukValue value = snuk_native_lookup(intpret, "value");
     SnukValue ret;
-    if (!(value.type == SNUK_VALUE_INT || value.type == SNUK_VALUE_NULL)) {
+    if (!(value.type == SNUK_VALUE_STRING || value.type == SNUK_VALUE_NULL)) {
         ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
         goto end;
     }
@@ -137,7 +137,7 @@ end:
 static SnukValue to_bool(SnukInterpreter *intpret) {
     SnukValue value = snuk_native_lookup(intpret, "value");
     SnukValue ret;
-    if (!(value.type == SNUK_VALUE_INT || value.type == SNUK_VALUE_NULL)) {
+    if (!(value.type == SNUK_VALUE_STRING || value.type == SNUK_VALUE_NULL)) {
         ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
         goto end;
     }
@@ -156,7 +156,7 @@ end:
 static SnukValue to_str(SnukInterpreter *intpret) {
     SnukValue value = snuk_native_lookup(intpret, "value");
     SnukValue ret;
-    if (!(value.type == SNUK_VALUE_INT || value.type == SNUK_VALUE_NULL)) {
+    if (!(value.type == SNUK_VALUE_STRING || value.type == SNUK_VALUE_NULL)) {
         ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
         goto end;
     }
@@ -179,7 +179,7 @@ end:
 static SnukValue length(SnukInterpreter *intpret) {
     SnukValue value = snuk_native_lookup(intpret, "value");
     SnukValue ret;
-    if (!(value.type == SNUK_VALUE_INT || value.type == SNUK_VALUE_NULL)) {
+    if (!(value.type == SNUK_VALUE_STRING || value.type == SNUK_VALUE_NULL)) {
         ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
         goto end;
     }
@@ -198,7 +198,7 @@ static SnukValue get(SnukInterpreter *intpret) {
     SnukValue value = snuk_native_lookup(intpret, "value");
     SnukValue start_value, len_value;
     SnukValue ret;
-    if (!(value.type == SNUK_VALUE_INT || value.type == SNUK_VALUE_NULL)) {
+    if (!(value.type == SNUK_VALUE_STRING || value.type == SNUK_VALUE_NULL)) {
         ret = (SnukValue){.type = SNUK_VALUE_UNKOWN};
         goto end;
     }
