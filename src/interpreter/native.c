@@ -36,6 +36,7 @@ SnukValue snuk_native_create_type(SnukInterpreter *intpret, SnukTypeMember *memb
 
     return type;
 }
+
 SnukValue snuk_native_create_fn(SnukInterpreter *intpret, SnukParameter *params, uint64_t count,
                                 SnukType *fn_type, native_function_t fn, bool weak_ref) {
     interpreter_push_scope(intpret);
@@ -140,6 +141,7 @@ SnukValue snuk_native_create_bool(SnukInterpreter *intpret, bool value, bool wea
         .bool_value = value,
     };
 }
+
 SnukValue snuk_native_create_null(SnukInterpreter *intpret, bool weak_ref) {
     SNUK_UNUSED(intpret);
     SNUK_UNUSED(weak_ref);

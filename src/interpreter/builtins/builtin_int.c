@@ -24,6 +24,7 @@ SnukTypeMember int_members[] = {
 SnukValue builtin_int_create_type(SnukInterpreter *intpret, bool weak_ref) {
     return snuk_native_create_type(intpret, int_members, SNUK_ARRAY_LENGTH(int_members), weak_ref);
 }
+
 SnukType int_type = {
     .type = TYPE_NAMED,
     .name = {.str = "int", .len = 3}
