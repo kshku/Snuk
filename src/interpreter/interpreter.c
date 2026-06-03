@@ -244,6 +244,17 @@ static SnukValue execute_unary_op(SnukInterpreter *intpret, SnukExpr *expr, bool
 
 static SnukValue
     perform_binary_op(SnukInterpreter *intpret, SnukValue left, SnukValue right, SnukTokenType op) {
+    // TODO: Comparision with NULL
+    if (op == SNUK_TOKEN_EQUAL || op == SNUK_TOKEN_BANG_EQUAL) {
+        if ((left.type == SNUK_VALUE_NULL && right.type != SNUK_VALUE_NULL)
+            || (right.type == SNUK_VALUE_NULL && left.type != SNUK_VALUE_NULL)) {
+            return (SnukValue){
+                .type = SNUK_VALUE_BOOL,
+                .bool_value = op == SNUK_TOKEN_BANG_EQUAL,
+            };
+        }
+    }
+
     if (left.type != right.type) goto fail;
 
     SnukValue res = {.type = SNUK_VALUE_UNKOWN};
@@ -387,6 +398,7 @@ static SnukValue
     }
 
 fail:
+    interpreter_error(intpret, SNUK_ERROR_TYPE_MISMATCH);
     return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 }
 

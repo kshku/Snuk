@@ -1,0 +1,20 @@
+type SomeType {
+    var x: int
+
+    fn something() {
+        x = 5
+    }
+}
+
+type SomeType a = {}
+a.something()
+print a.x
+
+type SomeType b = {}
+print b.x
+
+print if b.x != null {
+    "error: Modified the TYPE!!"
+} else {
+    "Things are working fine"
+}
