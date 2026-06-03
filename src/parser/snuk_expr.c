@@ -430,7 +430,7 @@ static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
 }
 
 static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left) {
-    if (left->type != SNUK_EXPR_IDENTIFIER) {
+    if (left->type != SNUK_EXPR_IDENTIFIER && left->type != SNUK_EXPR_MEMBER) {
         parser_error(parser, "invalid assignment target");
         return NULL;
     }
