@@ -36,6 +36,10 @@ void snuk_logger_init(void) {
     sn_static_logger_init(&sl, log_buffer, LOGGER_BUFFER_SIZE, sinks, SNUK_ARRAY_LENGTH(sinks));
 }
 
+void snuk_set_log_level(snLogLevel level) {
+    sn_static_logger_set_level(&sl, level);
+}
+
 void snuk_logger_deinit(void) {
     sn_static_logger_deinit(&sl);
 }
