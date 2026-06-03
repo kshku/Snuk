@@ -43,6 +43,7 @@ typedef enum SnukValueType {
  */
 struct SnukValue {
     SnukValueType type;
+    SnukErrorCode err_code;
 
     union {
         int64_t int_value;
@@ -75,8 +76,6 @@ struct SnukValue {
         struct {
             SnukType *type;
         } interface;
-
-        SnukErrorCode err_code;
     };
 };
 

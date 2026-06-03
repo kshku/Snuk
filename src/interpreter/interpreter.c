@@ -63,6 +63,7 @@ void snuk_interpreter_init(SnukInterpreter *intpret) {
             .realloc = realloc_fn,
             .free = free_fn,
         },
+        .err_code = SNUK_ERROR_NONE,
     };
     sn_linear_allocator_init(&intpret->la, intpret->mem, PAGES * snuk_page_size());
     intpret->current = snuk_ref_counter_retain(intpret->global);
@@ -915,7 +916,7 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
     uint64_t fn_param_count = snuk_darray_get_length(fn_scope->vars);
     uint64_t param_count = snuk_darray_get_length(expr->call.params);
 
-    if (fn_param_count >= param_count) interpreter_error(intpret, SNUK_ERROR_PARAM_COUNT);
+    if (fn_param_count < param_count) interpreter_error(intpret, SNUK_ERROR_PARAM_COUNT);
 
     bool named_params = false;
     for (uint64_t i = 0; i < param_count; ++i) {
