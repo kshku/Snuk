@@ -113,10 +113,6 @@ void snuk_value_log(SnukValue value) {
         case SNUK_VALUE_INTERFACE:
             log_trace("type %s", SNUK_STRINGIFY(SNUK_VALUE_INTERFACE));
             break;
-        case SNUK_VALUE_ERROR:
-            log_trace("error %s", SNUK_STRINGIFY(SNUK_VALUE_ERROR));
-            log_trace("%s", value.err_msg);
-            break;
         default:
             SNUK_SHOULD_NOT_REACH_HERE;
             break;

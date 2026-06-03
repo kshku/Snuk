@@ -29,9 +29,7 @@ typedef struct SnukInterpreter {
     void *mem;
     SnukAllocator allocator;
     snLinearAllocator la;
-
-    bool panic_mode;
-    SnukValue error;
+    SnukErrorCode err_code;
 } SnukInterpreter;
 
 /**
