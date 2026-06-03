@@ -1246,7 +1246,7 @@ static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bo
             .type_inst_expr = {
                 .type = NULL,
                 .name = (SnukStringView){0},
-                .init = snuk_darray_create(SnukExpr *, &intpret->allocator),
+                .init = snuk_darray_create(SnukExpr *, NULL),
             },
         };
 
@@ -1300,6 +1300,7 @@ static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bo
 
         snuk_value_free(type_or_inst);
         type_or_inst = execute_inst_creation(intpret, &inst_expr, weak_ref);
+        snuk_darray_destroy(inst_expr.type_inst_expr.init);
         res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier);
     }
 
