@@ -1,5 +1,6 @@
 #pragma once
 
+#include "error_code.h"
 #include "snuk/defines.h"
 #include "snuk/parser/snuk_expr.h"
 #include "snuk/parser/snuk_type.h"
@@ -24,7 +25,6 @@ typedef enum SnukValueType {
     SNUK_VALUE_TYPE,
     SNUK_VALUE_TYPE_INST,
     SNUK_VALUE_INTERFACE,
-    SNUK_VALUE_ERROR,
 
     SNUK_VALUE_MAX,
 } SnukValueType;
@@ -76,7 +76,7 @@ struct SnukValue {
             SnukType *type;
         } interface;
 
-        const char *err_msg;
+        SnukErrorCode err_code;
     };
 };
 
