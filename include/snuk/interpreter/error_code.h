@@ -23,6 +23,7 @@ typedef enum SnukErrorCode {
     SNUK_ERROR_SET_ENV_FAIL,
     SNUK_ERROR_MEMBER,
     SNUK_ERROR_INTERFACE,
+    SNUK_ERROR_TYPE_MISMATCH,
 
     SNUK_ERROR_MAX,
 } SnukErrorCode;

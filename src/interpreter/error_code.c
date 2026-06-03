@@ -21,6 +21,7 @@ static const char *error_messages[] = {
     [SNUK_ERROR_SET_ENV_FAIL] = "failed to set env value",
     [SNUK_ERROR_MEMBER] = "couldn't find the member",
     [SNUK_ERROR_INTERFACE] = "failed to create interface",
+    [SNUK_ERROR_TYPE_MISMATCH] = "types are not same",
 };
 
 const char *snuk_error_code_get_text(SnukErrorCode code) {
