@@ -12,19 +12,6 @@ SNUK_INLINE void interpreter_error(SnukInterpreter *intpret, SnukErrorCode err_c
 }
 
 /**
- * @brief Walk the scope chain from current to global to resolve a name.
- */
-SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView name) {
-    SnukEnv *env = NULL;
-    if (intpret->instance) {
-        env = snuk_scope_lookup(intpret->current, name);
-        if (!env) env = snuk_scope_lookup(intpret->instance, name);
-    }
-    if (!env) env = snuk_scope_lookup_recursive(intpret->current, name);
-    return env;
-}
-
-/**
  * @brief Push a new child scope and make it the interpreter's current scope.
  */
 SNUK_INLINE void interpreter_push_scope(SnukInterpreter *intpret) {
@@ -86,6 +73,23 @@ SNUK_INLINE bool interpreter_set_member(
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
     snuk_env_assign_value(env, value);
     return true;
+}
+
+/**
+ * @brief Walk the scope chain from current to global to resolve a name.
+ *
+ * Do not use the returned env to set value
+ */
+SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView name) {
+    SnukEnv *env = NULL;
+    if (intpret->instance) {
+        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str);
+        if (!self_env) return NULL;
+        env = interpreter_get_member_env(intpret, self_env->value, name);
+        if (env) return env;
+    }
+    if (!env) env = snuk_scope_lookup_recursive(intpret->current, name);
+    return env;
 }
 
 SNUK_INLINE void interpreter_trash(SnukInterpreter *intpret, SnukValue value) {

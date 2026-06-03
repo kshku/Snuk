@@ -157,7 +157,18 @@ SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name
 }
 
 bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value) {
-    SnukEnv *env = interpreter_lookup(intpret, name);
+    // We might be setting value of instance
+    SnukEnv *env = NULL;
+    if (intpret->instance) {
+        // try to set the member
+        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str);
+        if (!self_env) return false;
+        if (interpreter_set_member(intpret, self_env->value, name, value)) return true;
+        // env doesn't belong to the type or type's instance
+    }
+
+    env = interpreter_lookup(intpret, name);
+
     if (!env) return false;
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
     snuk_env_assign_value(env, value);
