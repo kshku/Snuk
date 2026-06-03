@@ -1,6 +1,11 @@
 var Point = type { // type definition
     var x: int
     var y: int
+
+    fn add(other: Point) {
+        self.x += other.x
+        self.y += other.y
+    }
 }
 
 type Square { // type definition syntax sugar
@@ -15,6 +20,8 @@ type Square { // type definition syntax sugar
 }
 
 var x: Point = Point
+x = type Point{x: 0; y: 0}
+x.add(type Point{x: 3; y: 4})
 type int y = {value: 100}
 
 // type instance
