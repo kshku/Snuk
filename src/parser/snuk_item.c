@@ -120,14 +120,14 @@ static SnukItem *parse_extend_item(SnukParser *parser) {
     SnukItem *extend_item = build_extend_item(parser, NULL, NULL, NULL);
 
     parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected type name to extend");
-    build_extend_item(parser, extend_item, build_identifier_expr(parser), NULL);
+    extend_item = build_extend_item(parser, extend_item, build_identifier_expr(parser), NULL);
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
     while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
         if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)
             || parser_check(parser, SNUK_TOKEN_FN) || parser_check(parser, SNUK_TOKEN_TYPE)) {
             SnukItem *item = snuk_item_parse(parser);
-            build_extend_item(parser, extend_item, NULL, item);
+            extend_item = build_extend_item(parser, extend_item, NULL, item);
         } else {
             parser_error(parser, "unexpected token");
         }
