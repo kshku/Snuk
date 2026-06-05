@@ -19,8 +19,7 @@ type Square { // type definition syntax sugar
     
 }
 
-var x: Point = Point
-x = type Point{x: 0; y: 0}
+var x = type Point{x: 0; y: 0}
 x.add(type Point{x: 3; y: 4})
 type int y = {value: 100}
 
