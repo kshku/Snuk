@@ -52,7 +52,7 @@ static SnukValue execute_interface(SnukInterpreter *intpret, SnukItem *item, boo
 
 void snuk_interpreter_init(SnukInterpreter *intpret) {
     *intpret = (SnukInterpreter){
-        .global = snuk_scope_create(NULL, false),
+        .global = snuk_scope_create(NULL, false, false),
         .signal = SNUK_SIGNAL_NONE,
         .instance = NULL,
         .trash = snuk_darray_create(SnukValue, NULL),
@@ -105,7 +105,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
         if (value.type == snuk_builtins_get_value_type(type->name)) return true;
         if (value.type != SNUK_VALUE_TYPE && value.type != SNUK_VALUE_TYPE_INST) return false;
 
-        SnukEnv *env = interpreter_lookup(intpret, type->name);
+        SnukEnv *env = interpreter_lookup(intpret, type->name, NULL);
         if (!env) return false;
 
         if (env->type->type == TYPE_INTERFACE)
@@ -133,9 +133,9 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
             SnukVar **members = type->members;
             uint64_t count = snuk_darray_get_length(members);
             for (uint64_t i = 0; i < count; ++i) {
-                SnukEnv *member = snuk_scope_lookup(value.type_value.closure, members[i]->name);
+                SnukEnv *member = snuk_scope_lookup(value.type_value.closure, members[i]->name, NULL);
                 if (!member && value.type_value.type_scope)
-                    member = snuk_scope_lookup(value.type_value.type_scope, members[i]->name);
+                    member = snuk_scope_lookup(value.type_value.type_scope, members[i]->name, NULL);
                 if (!member) return false;
                 if (!snuk_interpreter_value_is_of_type(intpret, member->value, members[i]->type)) {
                     return false;
@@ -151,7 +151,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 }
 
 SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name) {
-    SnukEnv *env = interpreter_lookup(intpret, name);
+    SnukEnv *env = interpreter_lookup(intpret, name, NULL);
     if (!env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     return snuk_value_copy(env->value);
 }
@@ -159,17 +159,18 @@ SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name
 bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value) {
     // We might be setting value of instance
     SnukEnv *env = NULL;
+    bool locked;
     if (intpret->instance) {
         // try to set the member
-        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str);
+        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str, NULL);
         if (!self_env) return false;
         if (interpreter_set_member(intpret, self_env->value, name, value)) return true;
         // env doesn't belong to the type or type's instance
     }
 
-    env = interpreter_lookup(intpret, name);
-
+    env = interpreter_lookup(intpret, name, &locked);
     if (!env) return false;
+    if (locked) return false;
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
     return snuk_env_assign_value(env, value);
 }
@@ -739,6 +740,8 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
             .weak_ref = false,
         },
     };
+    // lock type's scope
+    GET_SCOPE(value.type_value.closure)->locked = true;
 
     interpreter_pop_scope(intpret);
 
@@ -951,7 +954,7 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
         if (param->type == SNUK_EXPR_ASSIGN) {
             named_params = true;
             name = param->assign.identifier->identifier;
-            fn_env = snuk_scope_lookup(fn_scope_rc, name);
+            fn_env = snuk_scope_lookup(fn_scope_rc, name, NULL);
             if (!fn_env) {
                 interpreter_error(intpret, SNUK_ERROR_NO_PARAM);
                 break;
@@ -977,7 +980,7 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
     // throw error
     for (uint64_t i = 0; i < fn_param_count; ++i) {
         SnukEnv *fn_env = fn_scope->vars[i];
-        SnukEnv *env = snuk_scope_lookup(intpret->current, fn_env->name);
+        SnukEnv *env = snuk_scope_lookup(intpret->current, fn_env->name, NULL);
         if (!env) {
             if (fn_env->value.type == SNUK_VALUE_UNKOWN)
                 interpreter_error(intpret, SNUK_ERROR_PARAM_REQUIRED);
@@ -1257,7 +1260,7 @@ static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bo
     SnukValue type_or_inst = interpreter_eval_expr(intpret, expr->member_access.type, weak_ref);
     SnukValue res;
     if (type_or_inst.type == SNUK_VALUE_TYPE || type_or_inst.type == SNUK_VALUE_TYPE_INST) {
-        res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier);
+        res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier, NULL);
     } else if (type_or_inst.type == SNUK_VALUE_NULL) {
         res = builtin_null_get_member(intpret, expr->member_access.field->identifier);
     } else {
@@ -1321,7 +1324,7 @@ static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bo
         snuk_value_free(type_or_inst);
         type_or_inst = execute_inst_creation(intpret, &inst_expr, weak_ref);
         snuk_darray_destroy(inst_expr.type_inst_expr.init);
-        res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier);
+        res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier, NULL);
     }
 
     // insert the instance scope
