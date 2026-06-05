@@ -24,6 +24,6 @@ static const char *error_messages[] = {
     [SNUK_ERROR_TYPE_MISMATCH] = "types are not same",
 };
 
-const char *snuk_error_code_get_text(SnukErrorCode code) {
+const char *snuk_error_code_get_msg(SnukErrorCode code) {
     return error_messages[code];
 }

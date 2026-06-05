@@ -28,4 +28,4 @@ typedef enum SnukErrorCode {
     SNUK_ERROR_MAX,
 } SnukErrorCode;
 
-SNUK_API const char *snuk_error_code_get_text(SnukErrorCode code);
+SNUK_API const char *snuk_error_code_get_msg(SnukErrorCode code);

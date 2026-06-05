@@ -53,7 +53,7 @@ var x = "Hello, World"
 x
 
 var i = 25.5
-i * 255
+i * 255.0
 
 print "Hello, World!", i, x
 
