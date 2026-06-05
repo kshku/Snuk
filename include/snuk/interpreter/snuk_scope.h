@@ -19,6 +19,7 @@ struct SnukScope {
     SnukEnv **vars;  // darray
     SnukRefCounter *parent;
     bool weak_ref;
+    bool locked;
 };
 
 SNUK_INLINE void snuk_scope_destroy_envs(SnukScope *scope) {
@@ -63,12 +64,13 @@ SNUK_INLINE void snuk_scope_destroy(void *data, void *ptr) {
  * @return Refcounted handle to the new scope, with snuk_scope_free as the
  * finalizer.
  */
-SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent, bool weak_ref) {
+SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent, bool weak_ref, bool locked) {
     SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
     *scope = (SnukScope){
         .vars = snuk_darray_create(SnukEnv *, NULL),
         .parent = snuk_ref_counter_move(&parent),
         .weak_ref = weak_ref,
+        .locked = locked,
     };
     return snuk_ref_counter_create(scope, NULL, snuk_scope_destroy);
 }
@@ -101,8 +103,9 @@ SNUK_INLINE void snuk_scope_set_parent(SnukRefCounter *scope_rc, SnukRefCounter 
 /**
  * @brief Find a binding by name within a single scope, without walking parents.
  */
-SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView name) {
+SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView name, bool *locked) {
     SnukScope *scope = GET_SCOPE(scope_rc);
+    if (locked) *locked = scope->locked;
     uint64_t count = snuk_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i)
         if (snuk_string_view_equal(scope->vars[i]->name, name)) return scope->vars[i];
@@ -110,10 +113,10 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView 
     return NULL;
 }
 
-SNUK_INLINE SnukEnv *snuk_scope_lookup_recursive(SnukRefCounter *scope_rc, SnukStringView name) {
+SNUK_INLINE SnukEnv *snuk_scope_lookup_recursive(SnukRefCounter *scope_rc, SnukStringView name, bool *locked) {
     SnukEnv *env;
     while (scope_rc) {
-        if ((env = snuk_scope_lookup(scope_rc, name))) return env;
+        if ((env = snuk_scope_lookup(scope_rc, name, locked))) return env;
         scope_rc = SCOPE_PARENT(scope_rc);
     }
     return NULL;
@@ -125,7 +128,7 @@ SNUK_INLINE SnukEnv *snuk_scope_lookup_recursive(SnukRefCounter *scope_rc, SnukS
  */
 SNUK_INLINE bool snuk_scope_add_env(SnukRefCounter *scope_rc, SnukEnv *env) {
     SnukScope *scope = GET_SCOPE(scope_rc);
-    if (snuk_scope_lookup(scope_rc, env->name)) {
+    if (snuk_scope_lookup(scope_rc, env->name, NULL)) {
         snuk_env_free(env);
         return false;
     }

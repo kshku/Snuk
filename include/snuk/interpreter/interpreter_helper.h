@@ -15,7 +15,7 @@ SNUK_INLINE void interpreter_error(SnukInterpreter *intpret, SnukErrorCode err_c
  * @brief Push a new child scope and make it the interpreter's current scope.
  */
 SNUK_INLINE void interpreter_push_scope(SnukInterpreter *intpret) {
-    intpret->current = snuk_scope_create(snuk_ref_counter_move(&intpret->current), false);
+    intpret->current = snuk_scope_create(snuk_ref_counter_move(&intpret->current), false, false);
 }
 
 /**
@@ -32,43 +32,47 @@ SNUK_INLINE void interpreter_pop_scope(SnukInterpreter *intpret) {
     intpret->current = snuk_ref_counter_move(&parent);
 }
 
-SNUK_INLINE SnukEnv *
-    interpreter_get_member_env(SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field) {
+SNUK_INLINE SnukEnv *interpreter_get_member_env(
+    SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field, bool *locked) {
     SNUK_UNUSED(intpret);
     if (type_or_inst.type != SNUK_VALUE_TYPE && type_or_inst.type != SNUK_VALUE_TYPE_INST)
         return NULL;
 
     // Do not lookup recursively
-    SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field);
+    SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field, locked);
     if (!env && type_or_inst.type_value.type_scope)
-        env = snuk_scope_lookup(type_or_inst.type_value.type_scope, field);
+        env = snuk_scope_lookup(type_or_inst.type_value.type_scope, field, locked);
     return env;
 }
 
-SNUK_INLINE SnukValue interpreter_get_member(SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field) {
-    SnukEnv *env = interpreter_get_member_env(intpret, type_or_inst, field);
+SNUK_INLINE SnukValue interpreter_get_member(
+    SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field, bool *locked) {
+    SnukEnv *env = interpreter_get_member_env(intpret, type_or_inst, field, locked);
     if (!env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     return snuk_value_copy(env->value);
 }
 
 SNUK_INLINE bool interpreter_set_member(
-    SnukInterpreter *intpret, SnukValue type_or_inst, SnukStringView field, SnukValue value) {
-    if (type_or_inst.type != SNUK_VALUE_TYPE && type_or_inst.type != SNUK_VALUE_TYPE_INST)
-        return false;
+    SnukInterpreter *intpret, SnukValue inst, SnukStringView field, SnukValue value) {
+    if (inst.type != SNUK_VALUE_TYPE_INST) return false;
 
     // Do not lookup recursively
-    SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field);
-    if (!env && type_or_inst.type_value.type_scope) {
-        env = snuk_scope_lookup(type_or_inst.type_value.type_scope, field);
+    bool locked;
+    SnukEnv *env = snuk_scope_lookup(inst.type_value.closure, field, &locked);
+    if (!env && inst.type_value.type_scope) {
+        env = snuk_scope_lookup(inst.type_value.type_scope, field, &locked);
+        // type scope must be locked
+        SNUK_ASSERT(locked, "type scope isn't locked");
         // Add the new member to instance
         if (env) {
             if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
             SnukEnv *inst_env = snuk_env_create(env->name, env->type, value, env->is_const);
-            if (!snuk_scope_add_env(type_or_inst.type_value.closure, inst_env)) return false;
+            if (!snuk_scope_add_env(inst.type_value.closure, inst_env)) return false;
             return true;
         }
     }
     if (!env) return false;
+    SNUK_ASSERT(!locked, "instance scope is locked");
 
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
     return snuk_env_assign_value(env, value);
@@ -79,15 +83,15 @@ SNUK_INLINE bool interpreter_set_member(
  *
  * Do not use the returned env to set value
  */
-SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView name) {
+SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView name, bool *locked) {
     SnukEnv *env = NULL;
     if (intpret->instance) {
-        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str);
+        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str, locked);
         if (!self_env) return NULL;
-        env = interpreter_get_member_env(intpret, self_env->value, name);
+        env = interpreter_get_member_env(intpret, self_env->value, name, locked);
         if (env) return env;
     }
-    if (!env) env = snuk_scope_lookup_recursive(intpret->current, name);
+    if (!env) env = snuk_scope_lookup_recursive(intpret->current, name, locked);
     return env;
 }
 
