@@ -72,7 +72,7 @@ SNUK_INLINE bool interpreter_set_member(
         }
     }
     if (!env) return false;
-    SNUK_ASSERT(!locked, "instance scope is locked");
+    if (locked) return false;
 
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
     return snuk_env_assign_value(env, value);
