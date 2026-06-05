@@ -103,17 +103,17 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
     if (type->type == TYPE_NAMED) {
         if (value.type == snuk_builtins_get_value_type(type->name)) return true;
-        if (value.type != SNUK_VALUE_TYPE && value.type != SNUK_VALUE_TYPE_INST) return false;
+        if (value.type != SNUK_VALUE_TYPE_INST) return false;
 
         SnukEnv *env = interpreter_lookup(intpret, type->name, NULL);
         if (!env) return false;
 
-        if (env->type->type == TYPE_INTERFACE)
+        if (env->value.type == SNUK_VALUE_INTERFACE)
             return snuk_interpreter_value_is_of_type(intpret, value, env->type);
 
         if (value.type == SNUK_VALUE_TYPE_INST) return snuk_type_equal(type, value.type_value.type);
 
-        if (env->type->type == TYPE_TYPE || env->value.type == SNUK_VALUE_TYPE)
+        if (env->value.type == SNUK_VALUE_TYPE)
             // Must be having same closure
             return env->value.type_value.closure == value.type_value.closure;
 
@@ -144,7 +144,19 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
             return true;
         }
 
-        return false;
+        SnukVar **members = type->members;
+        uint64_t count = snuk_darray_get_length(members);
+        for (uint64_t i = 0; i < count; ++i) {
+            SnukEnv *member = snuk_scope_lookup(value.type_value.closure, members[i]->name, NULL);
+            if (!member && value.type_value.type_scope)
+                member = snuk_scope_lookup(value.type_value.type_scope, members[i]->name, NULL);
+
+            if (!member) return false;
+
+            if (!snuk_interpreter_value_is_of_type(intpret, member->value, members[i]->type))
+                return false;
+        }
+        return true;
     }
 
     return false;
@@ -516,12 +528,11 @@ static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
             for (uint64_t i = 0; i < len; ++i) {
                 SnukEnv *env = scope->vars[i];
                 if (snuk_string_view_equal_cstr(env->name, "self")) continue;
-                if (i != 0) snuk_print(" ", NULL);
+                if (i != 0) snuk_print("; ", NULL);
                 snuk_print(SNUK_STRING_VIEW_FORMAT ": ", SNUK_STRING_VIEW_ARG(env->name));
                 interpreter_print_type(intpret, env->type);
                 snuk_print(" = ", NULL);
                 interpreter_print_value(intpret, env->value);
-                snuk_print(";", NULL);
             }
             snuk_print("}");
             break;

@@ -32,4 +32,4 @@ type Square {
     }
 }
 
-print_object(Square)
+print_object(type Square{})
