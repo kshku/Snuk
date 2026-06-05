@@ -735,14 +735,6 @@ end:
 static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
     interpreter_push_scope(intpret);
 
-    uint64_t count = snuk_darray_get_length(expr->type_expr.members);
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukValue val = interpreter_exec_item(intpret, expr->type_expr.members[i], true);
-        snuk_value_free(val);
-        if (intpret->signal != SNUK_SIGNAL_NONE)
-            interpreter_error(intpret, SNUK_ERROR_CONTROL_FLOW);
-    }
-
     SnukValue value = {
         .type = SNUK_VALUE_TYPE,
         .type_value = {
@@ -753,6 +745,14 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
     };
     // lock type's scope
     GET_SCOPE(value.type_value.closure)->locked = true;
+
+    uint64_t count = snuk_darray_get_length(expr->type_expr.members);
+    for (uint64_t i = 0; i < count; ++i) {
+        SnukValue val = interpreter_exec_item(intpret, expr->type_expr.members[i], true);
+        snuk_value_free(val);
+        if (intpret->signal != SNUK_SIGNAL_NONE)
+            interpreter_error(intpret, SNUK_ERROR_CONTROL_FLOW);
+    }
 
     interpreter_pop_scope(intpret);
 
@@ -824,6 +824,9 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
     interpreter_pop_scope(intpret);
 
     if (weak_ref) snuk_scope_downgrade_parent(value.type_value.closure);
+
+    // lock scope if parent scope is locked
+    GET_SCOPE(value.type_value.closure)->locked = GET_SCOPE(intpret->current)->locked;
 
     // Syntax sugar
     if (expr->type_inst_expr.name.len

@@ -232,6 +232,9 @@ SnukValue snuk_native_create_inst(
 
     if (weak_ref) snuk_scope_downgrade_parent(inst.type_value.closure);
 
+    // lock scope if parent scope is locked
+    GET_SCOPE(inst.type_value.closure)->locked = GET_SCOPE(intpret->current)->locked;
+
     return inst;
 }
 
