@@ -171,16 +171,13 @@ bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, Snu
 
     if (!env) return false;
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
-    snuk_env_assign_value(env, value);
-    return true;
+    return snuk_env_assign_value(env, value);
 }
 
 bool snuk_interpreter_create_env(
     SnukInterpreter *intpret, SnukStringView name, SnukType *type, SnukValue value, bool is_const) {
-    // TODO: constant
-    SNUK_UNUSED(is_const);
     if (!snuk_interpreter_value_is_of_type(intpret, value, type)) return false;
-    SnukEnv *env = snuk_env_create(name, type, value);
+    SnukEnv *env = snuk_env_create(name, type, value, is_const);
     if (!snuk_scope_add_env(intpret->current, env)) return false;
     return true;
 }

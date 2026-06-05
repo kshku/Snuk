@@ -63,7 +63,7 @@ SNUK_INLINE bool interpreter_set_member(
         // Add the new member to instance
         if (env) {
             if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
-            SnukEnv *inst_env = snuk_env_create(env->name, env->type, value);
+            SnukEnv *inst_env = snuk_env_create(env->name, env->type, value, env->is_const);
             if (!snuk_scope_add_env(type_or_inst.type_value.closure, inst_env)) return false;
             return true;
         }
@@ -71,8 +71,7 @@ SNUK_INLINE bool interpreter_set_member(
     if (!env) return false;
 
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;
-    snuk_env_assign_value(env, value);
-    return true;
+    return snuk_env_assign_value(env, value);
 }
 
 /**
