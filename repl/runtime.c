@@ -1,5 +1,6 @@
 #include "runtime.h"
 
+#include <snuk/interpreter/error_code.h>
 #include <snuk/logger.h>
 #include <snuk/parser/parser.h>
 
@@ -14,6 +15,9 @@ void snuk_runtime_execute(Runtime *rt, const char *src) {
         // snuk_item_log(item);
         // log_trace("", NULL);
         SnukValue value = snuk_interpreter_exec_item(&rt->interpreter, item);
+        if (value.err_code) {
+            log_error("%s", snuk_error_code_get_msg(value.err_code));
+        }
         snuk_value_log(value);
         log_trace("", NULL);
         snuk_value_free(value);
