@@ -23,17 +23,33 @@ print if SomeType.x != null {
 
 type OneMore {
     var x: SomeType = type SomeType{x: 10}
+
+    fn update() {
+        x.x = 30
+    }
 }
 
 type OneMore oa = {}
 type OneMore ob = {}
 
+ob.update()
+print OneMore
+print oa
+print ob
+
+print if oa.x.x == 30 {
+    "error: Things aren't working"
+} else {
+    "Works"
+}
+
 oa.x.x = 20
+print OneMore
+print oa
+print ob
 
 print if ob.x.x == 20 {
     "error: Oh shit, we need to copy..."
 } else {
     "It is working"
 }
-
-print ob.x.x

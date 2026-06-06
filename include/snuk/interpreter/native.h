@@ -28,8 +28,7 @@ typedef struct SnukTypeMember {
 SNUK_INLINE bool snuk_native_add_value(
     SnukInterpreter *intpret, const char *name, SnukType *type, SnukValue value, bool is_const) {
     SnukStringView name_sv = snuk_string_view_create(name);
-    if (!snuk_interpreter_create_env(intpret, name_sv, type, value, is_const)) return false;
-    return true;
+    return snuk_interpreter_create_env(intpret, name_sv, type, value, is_const);
 }
 
 SNUK_API SnukValue snuk_native_lookup(SnukInterpreter *intpret, const char *name);
