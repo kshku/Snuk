@@ -775,7 +775,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
 
     // We will copy the values from type to instance only when it is assigned.
     // If instance doesn't have a value, but type has:
-    // - interpreter_get_member fetches member directly from type.
+    // - interpreter_get_member fetches member directly from type (or copies if member is instance)
     // - interpreter_set_member will create a new env in instance scope to put new value.
 
     interpreter_push_scope(intpret);
@@ -1389,5 +1389,53 @@ static SnukValue execute_interface(SnukInterpreter *intpret, SnukItem *item, boo
     };
     if (!snuk_interpreter_create_env(intpret, item->interface_item.name, item->interface_item.type, value, false))
         interpreter_error(intpret, SNUK_ERROR_INTERFACE);
+    return value;
+}
+
+SnukValue interpreter_copy_inst(SnukInterpreter *intpret, SnukValue inst) {
+    interpreter_push_scope(intpret);
+
+    SnukValue value = {
+        .type = SNUK_VALUE_TYPE_INST,
+        .type_value = {
+            .type = inst.type_value.type,
+            .closure = snuk_ref_counter_retain(intpret->current),
+            .weak_ref = false,
+            .type_scope = snuk_ref_counter_retain(inst.type_value.type_scope),
+        },
+    };
+
+    SnukScope *scope = GET_SCOPE(inst.type_value.closure);
+
+    uint64_t init_count = snuk_darray_get_length(scope->vars);
+    for (uint64_t i = 0; i < init_count; ++i) {
+        if (snuk_string_view_equal(scope->vars[i]->name, self_str)) continue;
+        SnukValue val;
+        if (scope->vars[i]->value.type == SNUK_VALUE_TYPE_INST)
+            val = interpreter_copy_inst(intpret, scope->vars[i]->value);
+        else val = snuk_value_copy(scope->vars[i]->value);
+        if (!snuk_interpreter_create_env(
+                intpret, scope->vars[i]->name, scope->vars[i]->type, val, scope->vars[i]->is_const))
+            interpreter_error(intpret, SNUK_ERROR_MEMBER_INITIALIZE);
+        snuk_value_free(val);
+    }
+
+    SnukValue self_value = snuk_value_copy(value);
+    snuk_ref_counter_downgrade(self_value.type_value.closure);
+    self_value.type_value.weak_ref = true;
+
+    if (!snuk_interpreter_create_env(intpret, self_str, self_value.type_value.type, self_value, true))
+        interpreter_error(intpret, SNUK_ERROR_SELF_CREATION);
+
+    snuk_value_free(self_value);
+
+    interpreter_pop_scope(intpret);
+
+    SnukRefCounter *parent = scope->weak_ref ? snuk_ref_counter_retain_weak(scope->parent)
+                                             : snuk_ref_counter_retain(scope->parent);
+    snuk_scope_set_parent(value.type_value.closure, snuk_ref_counter_move(&parent), scope->weak_ref);
+
+    GET_SCOPE(value.type_value.closure)->locked = GET_SCOPE(intpret->current)->locked;
+
     return value;
 }

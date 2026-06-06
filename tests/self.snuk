@@ -12,9 +12,28 @@ print a.x
 
 type SomeType b = {}
 print b.x
+b.something()
+print b.x
 
-print if b.x != null {
+print if SomeType.x != null {
     "error: Modified the TYPE!!"
 } else {
     "Things are working fine"
 }
+
+type OneMore {
+    var x: SomeType = type SomeType{x: 10}
+}
+
+type OneMore oa = {}
+type OneMore ob = {}
+
+oa.x.x = 20
+
+print if ob.x.x == 20 {
+    "error: Oh shit, we need to copy..."
+} else {
+    "It is working"
+}
+
+print ob.x.x
