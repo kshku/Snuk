@@ -129,15 +129,6 @@ SnukValue snuk_native_call_function(SnukInterpreter *intpret, SnukValue fn, Snuk
 SnukValue snuk_native_create_type(SnukInterpreter *intpret, SnukTypeMember *members, uint64_t count, bool weak_ref) {
     interpreter_push_scope(intpret);
 
-    for (uint64_t i = 0; i < count; ++i) {
-        SnukValue value;
-        if (members[i].build_value) value = members[i].build_value(intpret, true);
-        else value = members[i].value;
-        if (!snuk_native_add_value(intpret, members[i].name, members[i].type, value, members[i].is_const))
-            return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-        snuk_value_free(value);
-    }
-
     SnukValue type = {
         .type = SNUK_VALUE_TYPE,
         .type_value = {
@@ -149,6 +140,15 @@ SnukValue snuk_native_create_type(SnukInterpreter *intpret, SnukTypeMember *memb
     };
     // lock type scope
     GET_SCOPE(type.type_value.closure)->locked = true;
+
+    for (uint64_t i = 0; i < count; ++i) {
+        SnukValue value;
+        if (members[i].build_value) value = members[i].build_value(intpret, true);
+        else value = members[i].value;
+        if (!snuk_native_add_value(intpret, members[i].name, members[i].type, value, members[i].is_const))
+            return (SnukValue){.type = SNUK_VALUE_UNKOWN};
+        snuk_value_free(value);
+    }
 
     interpreter_pop_scope(intpret);
 

@@ -466,6 +466,7 @@ static void interpreter_print_type(SnukInterpreter *intpret, SnukType *type) {
 static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
     uint64_t len;
     SnukScope *scope;
+    bool skipped = false;
     switch (value.type) {
         case SNUK_VALUE_UNKOWN:
             snuk_print("Something went wrong, value was UNKNOWN!");
@@ -515,11 +516,14 @@ static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
                 SnukEnv *env = scope->vars[i];
                 snuk_print(SNUK_STRING_VIEW_FORMAT ": ", SNUK_STRING_VIEW_ARG(env->name));
                 interpreter_print_type(intpret, env->type);
+                snuk_print(" = ", NULL);
+                interpreter_print_value(intpret, env->value);
             }
             snuk_print("}", NULL);
             break;
 
         case SNUK_VALUE_TYPE_INST:
+            skipped = false;
             snuk_print("type ", NULL);
             interpreter_print_type(intpret, value.type_value.type);
             snuk_print(" {", NULL);
@@ -527,8 +531,11 @@ static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
             len = snuk_darray_get_length(scope->vars);
             for (uint64_t i = 0; i < len; ++i) {
                 SnukEnv *env = scope->vars[i];
-                if (snuk_string_view_equal_cstr(env->name, "self")) continue;
-                if (i != 0) snuk_print("; ", NULL);
+                if (snuk_string_view_equal_cstr(env->name, "self")) {
+                    skipped = true;
+                    continue;
+                }
+                if ((i != 0) && (!skipped || i - 1 != 0)) snuk_print("; ", NULL);
                 snuk_print(SNUK_STRING_VIEW_FORMAT ": ", SNUK_STRING_VIEW_ARG(env->name));
                 interpreter_print_type(intpret, env->type);
                 snuk_print(" = ", NULL);
