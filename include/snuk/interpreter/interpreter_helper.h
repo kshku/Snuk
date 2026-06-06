@@ -6,6 +6,11 @@
 #include "snuk/defines.h"
 #include "snuk_scope.h"
 
+SnukValue execute_block_expr(
+    SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref);
+
+SnukValue interpreter_copy_inst(SnukInterpreter *intpret, SnukValue inst);
+
 SNUK_INLINE void interpreter_error(SnukInterpreter *intpret, SnukErrorCode err_code) {
     if (intpret->err_code != SNUK_ERROR_NONE) return;
     intpret->err_code = err_code;
@@ -40,8 +45,17 @@ SNUK_INLINE SnukEnv *interpreter_get_member_env(
 
     // Do not lookup recursively
     SnukEnv *env = snuk_scope_lookup(type_or_inst.type_value.closure, field, locked);
-    if (!env && type_or_inst.type_value.type_scope)
+    if (!env && type_or_inst.type_value.type_scope) {
         env = snuk_scope_lookup(type_or_inst.type_value.type_scope, field, locked);
+        // type_scope is only there for instances
+        if (env && env->value.type == SNUK_VALUE_TYPE_INST) {
+            SnukValue value = interpreter_copy_inst(intpret, env->value);
+            SnukEnv *inst_env = snuk_env_create(env->name, env->type, value, env->is_const);
+            snuk_value_free(value);
+            if (!snuk_scope_add_env(type_or_inst.type_value.closure, inst_env)) return NULL;
+            env = inst_env;
+        }
+    }
     return env;
 }
 
@@ -104,6 +118,3 @@ SNUK_INLINE void interpreter_clear_trash(SnukInterpreter *intpret) {
     for (uint64_t i = 0; i < count; ++i) snuk_value_free(intpret->trash[i]);
     snuk_darray_clear(&intpret->trash);
 }
-
-SnukValue execute_block_expr(
-    SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref);
