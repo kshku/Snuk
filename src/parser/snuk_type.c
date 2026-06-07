@@ -97,6 +97,7 @@ void snuk_type_log(SnukType *type) {
 }
 
 bool snuk_type_equal(SnukType *type1, SnukType *type2) {
+    if (type1->type == TYPE_ANY || type2->type == TYPE_ANY) return true;
     if (type1->type != type2->type) return false;
 
     uint64_t count1;
