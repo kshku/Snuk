@@ -96,7 +96,7 @@ var name: str = "snuk"
 const MAX = 100
 
 // user-defined type annotation — just the name
-var p: Point        // accepts Point type or Point instances
+var p: Point        // accepts Point instances only, not the type itself
 
 // "type" annotation — accepts any type value, rejects instances
 var T: type = Point
