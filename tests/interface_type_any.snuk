@@ -1,0 +1,29 @@
+// Test: interface satisfaction with untyped methods (any return type)
+// This was broken before fix/interface-type-any-compatibility
+interface HasArea {
+    var area: fn() -> float
+}
+
+type Rect {
+    var w: float = 0.0
+    var h: float = 0.0
+    // no return type annotation — return type is `any`
+    fn area() { w * h }
+}
+
+fn print_area(s: HasArea) {
+    print s.area()
+}
+
+// typed instantiation
+type Rect r = { w: 10.0; h: 20.0 }
+print_area(r)
+
+// untyped method matched against interface fn() -> float
+type Square {
+    var side: float = 5.0
+    fn area() { side * side }
+    fn describe() { "Square" }
+}
+
+print_area(type Square { side: 4.0 })
