@@ -134,6 +134,9 @@ const APP = "snuk"
 // Built-in types can be extended:
 //   extend int { fn is_even() { value % 2 == 0 } }
 //   10.is_even()    // true
+//
+// `nan` and `inf` literal tokens exist in the lexer but are
+// not yet functional — they will produce a parse error.
 
 
 // ── 4. OPERATORS ─────────────────────────────────────────────
@@ -619,7 +622,19 @@ extend Point {
 
 // ── 10. BUILT-IN METHODS ─────────────────────────────────────
 
-// All primitive types (int, float, bool, str) have:
+// All primitive types (int, float, bool, str) expose a mutable
+// `.value` member of type `any` that holds the underlying value:
+//
+//   type int n = { value: 42 }
+//   n.value       // 42 (any)
+//
+// This is useful when extending a type:
+//
+//   extend int {
+//       fn is_even() { value % 2 == 0 }
+//   }
+//
+// Conversion methods:
 //
 //   .to_int()    → int    — converts to int,   null on failure
 //   .to_float()  → float  — converts to float, null on failure
@@ -669,12 +684,16 @@ var ss6: str = sv.get(start=1)         // "ello"
 
 // ── 11. PRINT ────────────────────────────────────────────────
 
+// `print` is a built-in keyword that outputs values.
+// It accepts any number of arguments separated by commas.
+
 print "hello"           // hello
 print 42                // 42
 print true              // true
 print null              // null
 print add               // fn(a, b)
 print Point             // type { px, py }
+print "x =", x          // x = 10
 
 
 // ── 12. COMPLETE EXAMPLES ────────────────────────────────────

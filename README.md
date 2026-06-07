@@ -317,15 +317,26 @@ print_area(type Circle { radius: 7.0 })
 | `float` | `3.14`, `-0.5` |
 | `bool` | `true`, `false` |
 | `str` | `"hello"`, `'world'` |
-| `null` | `null` |
 | `fn` | `fn(a, b) { }` |
 | `type` | `type { }` |
-| `list` | `[1, 2, 3]` *(not yet implemented)* |
+| `list` | `[1, 2, 3]` *(parsed, runtime returns `null`)* |
+
+`null` is a special value — **not a type**. It cannot be extended.
+Falsy values: `0`, `0.0`, `false`, `""`, `null` — everything else is truthy.
 
 ### Built-in methods
 
-All primitive types have conversion methods callable directly on literals.
-Falsy values: `0`, `0.0`, `false`, `""`, `null` — everything else is truthy.
+All primitive types (`int`, `float`, `bool`, `str`) expose a mutable
+`.value` field of type `any` that holds the underlying value. This is
+accessible when extending a type:
+
+```snuk
+extend int {
+    fn is_even() { value % 2 == 0 }
+}
+```
+
+Conversion methods are callable directly on literals:
 
 ```snuk
 100.to_float()          // 100.0
@@ -341,6 +352,17 @@ Falsy values: `0`, `0.0`, `false`, `""`, `null` — everything else is truthy.
 "hello".get(start=1, len=3)   // "ell"
 "hello".get(len=3)            // "hel"
 // returns null on out of bounds
+```
+
+### Print
+
+`print` is a built-in keyword that outputs values. It accepts any
+number of arguments separated by commas:
+
+```snuk
+print "hello"              // hello
+print 1 + 2                // 3
+print "x =", x             // x = 10
 ```
 
 ### Operators

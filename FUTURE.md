@@ -31,7 +31,6 @@ Nothing here is guaranteed — this is a thinking space, not a roadmap.
 
 ## Platform
 
-- Windows, Linux, macOS build verification
 - Pre-built binaries for major platforms
 - Package manager integration
 
