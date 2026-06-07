@@ -191,7 +191,7 @@ SnukValue snuk_native_create_fn(SnukInterpreter *intpret, SnukParameter *params,
 
 SnukValue snuk_native_create_inst(
     SnukInterpreter *intpret, SnukType *type, SnukTypeMember *members, uint64_t count, bool weak_ref) {
-    SnukEnv *env = interpreter_lookup(intpret, type->name, NULL);
+    SnukEnv *env = interpreter_lookup(intpret, type->name, NULL, NULL);
     if (env->value.type != SNUK_VALUE_TYPE) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 
     interpreter_push_scope(intpret);

@@ -1,0 +1,178 @@
+//
+// Snuk Text Adventure
+// A simple text adventure game with rooms, items, and locked doors.
+// Snuk limitation: print on instances with circular references crashes,
+// so we access specific fields rather than printing instances directly.
+//
+
+
+// ── Room type ──
+
+type Room {
+    var name: str = ""
+    var description: str = ""
+    var north = null
+    var south = null
+    var east = null
+    var west = null
+    var has_key = false
+    var has_lantern = false
+    var has_treasure = false
+    var locked = false
+}
+
+
+// ── Player type ──
+
+type Player {
+    var current_room = null
+    var has_key = false
+    var has_lantern = false
+    var has_treasure = false
+    var moves = 0
+    var won = false
+
+    fn look() {
+        print ""
+        print "== " + current_room.name + " =="
+        print current_room.description
+
+        if current_room.has_key and not has_key {
+            print "  * a rusty key"
+        }
+        if current_room.has_lantern and not has_lantern {
+            print "  * a lantern"
+        }
+        if current_room.has_treasure and not has_treasure {
+            print "  * a treasure chest!"
+        }
+
+        var exits = ""
+        if current_room.north != null { exits = exits + "north " }
+        if current_room.south != null { exits = exits + "south " }
+        if current_room.east  != null { exits = exits + "east " }
+        if current_room.west  != null { exits = exits + "west " }
+        if exits != "" { print "Exits: " + exits }
+    }
+
+    fn go(dir) {
+        var next = null
+        if dir == "n" { next = current_room.north }
+        if dir == "s" { next = current_room.south }
+        if dir == "e" { next = current_room.east }
+        if dir == "w" { next = current_room.west }
+
+        if next == null {
+            print "You can't go that way."
+            return false
+        }
+
+        if next.locked {
+            if has_key {
+                print "You unlock the door with the rusty key."
+                next.locked = false
+            } else {
+                print "The door is locked. You need a key."
+                return false
+            }
+        }
+
+        self.current_room = next
+        self.moves = moves + 1
+        look()
+        true
+    }
+
+    fn take(item) {
+        if item == "key" and current_room.has_key and not has_key {
+            self.has_key = true
+            print "You pick up the rusty key."
+            return true
+        }
+
+        if item == "lantern" and current_room.has_lantern and not has_lantern {
+            self.has_lantern = true
+            print "You take the lantern."
+            return true
+        }
+
+        if item == "treasure" and current_room.has_treasure and not has_treasure {
+            self.has_treasure = true
+            self.won = true
+            print ""
+            print "********************************"
+            print "  YOU FOUND THE TREASURE!"
+            print "  Completed in " + moves.to_str() + " moves!"
+            print "********************************"
+            print ""
+            return true
+        }
+
+        print "There's no " + item + " here."
+        false
+    }
+
+    fn inventory() {
+        print ""
+        print "You are carrying:"
+        if has_key     { print "  - a rusty key" }
+        if has_lantern { print "  - a lantern" }
+        if not has_key and not has_lantern { print "  (nothing)" }
+    }
+}
+
+
+// ── Build the world ──
+
+var hall    = type Room { name: "Entrance Hall"; description: "A dusty hall with old portraits on the walls." }
+var garden  = type Room { name: "Garden";         description: "A peaceful garden with overgrown paths." }
+var kitchen = type Room { name: "Kitchen";        description: "A cold, dark kitchen. Something smells odd." }
+var library = type Room { name: "Library";        description: "Bookshelves line every wall." }
+var dungeon = type Room { name: "Dungeon";        description: "A damp stone corridor. Torches flicker."; locked: true }
+var treasure_room = type Room { name: "Treasure Room"; description: "Gold and jewels glitter in the torchlight!" }
+
+hall.north = garden
+hall.south = kitchen
+hall.east  = library
+garden.south = hall
+kitchen.north = hall
+library.west = hall
+
+kitchen.south = dungeon
+dungeon.north = kitchen
+dungeon.south = treasure_room
+treasure_room.north = dungeon
+
+hall.has_lantern = true
+kitchen.has_key = true
+treasure_room.has_treasure = true
+
+
+// ── Scripted play-through ──
+
+fn play_through() {
+    var player = type Player { current_room: hall }
+
+    player.look()
+    print ""
+    print "--- The adventure begins! ---"
+
+    player.go("n")
+    player.go("s")
+    player.go("e")
+    player.go("w")
+    player.go("s")
+    print "--- A key catches your eye. ---"
+    player.take("key")
+    player.go("s")
+    player.go("s")
+    player.inventory()
+    player.take("treasure")
+
+    print ""
+    print "Final stats:"
+    print "  Moves: " + player.moves.to_str()
+    print "  Treasure: " + player.won.to_str()
+}
+
+play_through()
