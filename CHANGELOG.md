@@ -53,6 +53,7 @@ Snuk uses [Semantic Versioning](https://semver.org/).
 - `extend` — add members to existing types without modifying definition
   - Works on built-in types (`int`, `float`, `bool`, `str`) and user types
   - Takes same declarations as `type {}` body
+- `print` keyword — outputs values, accepts multiple arguments with commas
 - Comment trivia — leading and trailing comments attached to tokens
 - Optional semicolons — newlines work as separators inside `{}`
 
