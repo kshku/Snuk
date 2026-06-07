@@ -105,7 +105,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
         if (value.type == snuk_builtins_get_value_type(type->name)) return true;
         if (value.type != SNUK_VALUE_TYPE_INST) return false;
 
-        SnukEnv *env = interpreter_lookup(intpret, type->name, NULL);
+        SnukEnv *env = interpreter_lookup(intpret, type->name, NULL, NULL);
         if (!env) return false;
 
         if (env->value.type == SNUK_VALUE_INTERFACE)
@@ -163,9 +163,14 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 }
 
 SnukValue snuk_interpreter_get_env(SnukInterpreter *intpret, SnukStringView name) {
-    SnukEnv *env = interpreter_lookup(intpret, name, NULL);
+    bool found_in_instance = false;
+    SnukEnv *env = interpreter_lookup(intpret, name, NULL, &found_in_instance);
     if (!env) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
-    return snuk_value_copy(env->value);
+    SnukValue value = snuk_value_copy(env->value);
+    if (found_in_instance && value.type == SNUK_VALUE_FN && !value.fn_value.instance && intpret->instance) {
+        value.fn_value.instance = snuk_ref_counter_retain_weak(intpret->instance);
+    }
+    return value;
 }
 
 bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, SnukValue value) {
@@ -180,7 +185,7 @@ bool snuk_interpreter_set_env(SnukInterpreter *intpret, SnukStringView name, Snu
         // env doesn't belong to the type or type's instance
     }
 
-    env = interpreter_lookup(intpret, name, &locked);
+    env = interpreter_lookup(intpret, name, &locked, NULL);
     if (!env) return false;
     if (locked) return false;
     if (!snuk_interpreter_value_is_of_type(intpret, value, env->type)) return false;

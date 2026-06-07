@@ -97,16 +97,42 @@ SNUK_INLINE bool interpreter_set_member(
  *
  * Do not use the returned env to set value
  */
-SNUK_INLINE SnukEnv *interpreter_lookup(SnukInterpreter *intpret, SnukStringView name, bool *locked) {
+SNUK_INLINE SnukEnv *interpreter_lookup(
+    SnukInterpreter *intpret, SnukStringView name, bool *locked, bool *found_in_instance) {
     SnukEnv *env = NULL;
-    if (intpret->instance) {
-        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str, locked);
-        if (!self_env) return NULL;
-        env = interpreter_get_member_env(intpret, self_env->value, name, locked);
-        if (env) return env;
+    bool is_locked = false;
+
+    // Walk scope chain: locals and params (non-locked) take priority over instance fields.
+    // If found in a locked scope (type scope), defer to instance path for possible
+    // shadow copy, then fall back to the type scope default.
+    env = snuk_scope_lookup_recursive(intpret->current, name, &is_locked);
+
+    if (env && !is_locked) {
+        // Found in a non-locked scope — local, param, or global
+        if (found_in_instance) *found_in_instance = false;
+        return env;
     }
-    if (!env) env = snuk_scope_lookup_recursive(intpret->current, name, locked);
-    return env;
+
+    // Check instance fields (instance closure first, then type scope defaults)
+    if (intpret->instance) {
+        SnukEnv *self_env = snuk_scope_lookup(intpret->instance, self_str, NULL);
+        if (!self_env) return NULL;
+        SnukEnv *member_env = interpreter_get_member_env(intpret, self_env->value, name, locked);
+        if (member_env) {
+            if (found_in_instance) *found_in_instance = true;
+            return member_env;
+        }
+    }
+
+    // Return the type scope value as fallback (for fields defined in type but not
+    // yet shadow-copied to the instance closure)
+    if (env) {
+        if (locked) *locked = is_locked;
+        if (found_in_instance) *found_in_instance = intpret->instance != NULL;
+        return env;
+    }
+
+    return NULL;
 }
 
 SNUK_INLINE void interpreter_trash(SnukInterpreter *intpret, SnukValue value) {
