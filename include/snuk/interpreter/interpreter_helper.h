@@ -110,6 +110,7 @@ SNUK_INLINE SnukEnv *interpreter_lookup(
     if (env && !is_locked) {
         // Found in a non-locked scope — local, param, or global
         if (found_in_instance) *found_in_instance = false;
+        if (locked) *locked = false;
         return env;
     }
 
