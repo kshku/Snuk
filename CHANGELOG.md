@@ -38,7 +38,7 @@ Snuk uses [Semantic Versioning](https://semver.org/).
 - `type Name {}` as syntax sugar for `var Name = type {}`
 - Four type instantiation forms
 - Type annotation using type name directly — `var x: Point`
-- Annotating with a type name accepts the type itself OR its instances
+- Annotating with a type name accepts instances only, not the type itself
 - Nested type instantiation
 - Methods with direct field access via instance scope resolution
 - `self` available in methods for explicit instance reference

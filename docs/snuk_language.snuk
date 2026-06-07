@@ -85,9 +85,9 @@ type SomeType {
     var sy = 0
 }
 
-// annotate with a type name — accepts the type itself OR its instances
+// annotate with a type name — accepts instances only, not the type itself
 var pt1: SomeType = type SomeType { sx: 0; sy: 0 }   // instance — valid
-var pt2: SomeType = SomeType                          // the type itself — valid
+// var pt2: SomeType = SomeType                       // runtime error — type annotation rejects type values
 
 // "type" annotation — accepts any type value, rejects instances
 var T: type = SomeType          // valid — SomeType is a type value
@@ -424,7 +424,7 @@ var Point2 = type {
 var at = type { var z = 0 }
 
 // type annotation — just the name, no "type" keyword needed
-var annpt: Point   // accepts Point type or Point instances
+var annpt: Point   // accepts Point instances only, not the type itself
 
 // type factory — types capture enclosing scope (closures)
 // closure scope is lower priority than instance scope at call time
