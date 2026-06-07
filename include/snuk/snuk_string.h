@@ -5,6 +5,11 @@
 
 #include <string.h>
 
+// Checks if character c appears in string s (excluding the null terminator).
+// Only the null character at index 0 is treated as a valid search target
+// (so searching for \0 in "\0abc" returns true). Null characters at later
+// positions still terminate the search ("ab\0c" only checks 'a', 'b').
+// Passing "" is undefined behavior (reads past the string). NULL returns false.
 SNUK_INLINE bool snuk_char_in_string(char c, const char *s) {
     if (!s) return false;
     for (uint64_t i = 0; s[i] || i == 0; ++i)

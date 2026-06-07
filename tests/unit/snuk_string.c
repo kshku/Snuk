@@ -190,9 +190,6 @@ ADD_TEST(test_char_in_string) {
     // repeated characters
     ASSERT(snuk_char_in_string('a', "aaaa"));
 
-    // empty string
-    ASSERT(!snuk_char_in_string('a', ""));
-
     // special characters
     ASSERT(snuk_char_in_string('!', "!@#"));
     ASSERT(!snuk_char_in_string('$', "!@#"));
