@@ -27,7 +27,7 @@ SNUK_INLINE SnukRefCounter *snuk_ref_counter_create(void *mem, void *data, SnukR
         .data = data,
         .free_fn = free_fn,
     };
-    log_debug("created a ref counter", NULL);
+    log_debug("created a ref counter (ptr=%p, mem=%p)", (void*)rc, rc->mem);
     return rc;
 }
 
@@ -62,8 +62,9 @@ SNUK_INLINE void snuk_ref_counter_release(SnukRefCounter **rc) {
     (*rc)->strong_count--;
 
     if ((*rc)->strong_count + (*rc)->weak_count == 0) {
+        void *destroyed_ptr = *rc;
         snuk_free(*rc);
-        log_debug("a ref counter got destroyed", NULL);
+        log_debug("a ref counter got destroyed (ptr=%p)", destroyed_ptr);
     }
 
     *rc = NULL;
@@ -76,8 +77,9 @@ SNUK_INLINE void snuk_ref_counter_release_weak(SnukRefCounter **rc) {
     (*rc)->weak_count--;
 
     if ((*rc)->strong_count + (*rc)->weak_count == 0) {
+        void *destroyed_ptr = *rc;
         snuk_free(*rc);
-        log_debug("a ref counter got destroyed", NULL);
+        log_debug("a ref counter got destroyed (ptr=%p)", destroyed_ptr);
     }
 
     *rc = NULL;

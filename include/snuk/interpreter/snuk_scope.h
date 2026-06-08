@@ -4,6 +4,7 @@
 #include "snuk/refcount.h"
 #include "snuk_env.h"
 
+extern uint64_t snuk_scope_seq;
 #define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))
 #define SCOPE_PARENT(rc) (GET_SCOPE(rc)->parent)
 
@@ -43,6 +44,7 @@ SNUK_INLINE void snuk_scope_destroy(void *data, void *ptr) {
     SNUK_UNUSED(data);
     SnukScope *scope = (SnukScope *)ptr;
 
+    log_debug("scope destroyed (scope=%p)", ptr);
     snuk_scope_destroy_envs(scope);
 
     snuk_darray_destroy(scope->vars);
@@ -64,15 +66,20 @@ SNUK_INLINE void snuk_scope_destroy(void *data, void *ptr) {
  * @return Refcounted handle to the new scope, with snuk_scope_free as the
  * finalizer.
  */
+extern uint64_t snuk_scope_seq;
+
 SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent, bool weak_ref, bool locked) {
     SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
+    uint64_t seq = ++snuk_scope_seq;
     *scope = (SnukScope){
         .vars = snuk_darray_create(SnukEnv *, NULL),
         .parent = snuk_ref_counter_move(&parent),
         .weak_ref = weak_ref,
         .locked = locked,
     };
-    return snuk_ref_counter_create(scope, NULL, snuk_scope_destroy);
+    SnukRefCounter *rc = snuk_ref_counter_create(scope, NULL, snuk_scope_destroy);
+    log_debug("scope #%lu created (scope=%p, rc=%p)", seq, (void*)scope, (void*)rc);
+    return rc;
 }
 
 SNUK_INLINE void snuk_scope_downgrade_parent(SnukRefCounter *scope_rc) {

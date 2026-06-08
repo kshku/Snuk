@@ -31,6 +31,8 @@ SnukStringView self_str = {.str = "self", .len = 4};
 
 SnukStringView value_str = {.str = "value", .len = 5};
 
+uint64_t snuk_scope_seq = 0;
+
 static void execute_print_item(SnukInterpreter *intpret, SnukExpr **exprs, bool weak_ref);
 static SnukValue execute_if_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref);
 static SnukValue execute_while_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref);
@@ -745,6 +747,7 @@ end:
 }
 
 static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
+    SNUK_UNUSED(weak_ref);
     interpreter_push_scope(intpret);
 
     SnukValue value = {
@@ -779,6 +782,7 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
 }
 
 static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
+    SNUK_UNUSED(weak_ref);
     SnukValue type = snuk_interpreter_get_env(intpret, expr->type_inst_expr.type->name);
     if (type.type != SNUK_VALUE_TYPE) {
         interpreter_error(intpret, SNUK_ERROR_NON_TYPE);
@@ -835,7 +839,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
 
     interpreter_pop_scope(intpret);
 
-    if (weak_ref) snuk_scope_downgrade_parent(value.type_value.closure);
+    snuk_scope_downgrade_parent(value.type_value.closure);
 
     // lock scope if parent scope is locked
     GET_SCOPE(value.type_value.closure)->locked = GET_SCOPE(intpret->current)->locked;
@@ -1028,7 +1032,7 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
     }
 
     // Release parent and hold the closure
-    snuk_scope_set_parent(new_scope, snuk_ref_counter_retain(fn_scope_rc), false);
+    snuk_scope_set_parent(new_scope, snuk_ref_counter_retain_weak(fn_scope_rc), true);
 
     SnukRefCounter *prev_instance = snuk_ref_counter_move(&intpret->instance);
     if (fn.type == SNUK_VALUE_FN) {
