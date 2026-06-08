@@ -3,7 +3,7 @@
 #include "snuk/defines.h"
 
 typedef enum SnukErrorCode {
-    SNUK_ERROR_NONE = 0,
+    SNUK_ERROR_CODE_NONE = 0,
     SNUK_ERROR_SHOULD_NOT_REACH_HERE,
     SNUK_ERROR_SOMETHING_WENT_WRONG,
     SNUK_ERROR_CONTROL_FLOW,

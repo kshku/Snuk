@@ -12,7 +12,7 @@ SnukValue execute_block_expr(
 SnukValue interpreter_copy_inst(SnukInterpreter *intpret, SnukValue inst);
 
 SNUK_INLINE void interpreter_error(SnukInterpreter *intpret, SnukErrorCode err_code) {
-    if (intpret->err_code != SNUK_ERROR_NONE) return;
+    if (intpret->err_code != SNUK_ERROR_CODE_NONE) return;
     intpret->err_code = err_code;
 }
 

@@ -65,7 +65,7 @@ void snuk_interpreter_init(SnukInterpreter *intpret) {
             .realloc = realloc_fn,
             .free = free_fn,
         },
-        .err_code = SNUK_ERROR_NONE,
+        .err_code = SNUK_ERROR_CODE_NONE,
     };
     sn_linear_allocator_init(&intpret->la, intpret->mem, PAGES * snuk_page_size());
     intpret->current = snuk_ref_counter_retain(intpret->global);
@@ -209,7 +209,7 @@ SnukValue snuk_interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item) {
     if (intpret->signal != SNUK_SIGNAL_NONE) interpreter_error(intpret, SNUK_ERROR_CONTROL_FLOW);
 
     res.err_code = intpret->err_code;
-    intpret->err_code = SNUK_ERROR_NONE;
+    intpret->err_code = SNUK_ERROR_CODE_NONE;
 
     return res;
 }
@@ -1148,7 +1148,7 @@ static SnukValue interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item,
             return execute_interface(intpret, item, weak_ref);
 
         case SNUK_ITEM_ERROR:
-            log_error("Error: %s", item->error.msg);
+            log_error("Error: %s", item->error.error.msg);
             return (SnukValue){.type = SNUK_VALUE_NULL};
 
         case SNUK_ITEM_MAX:

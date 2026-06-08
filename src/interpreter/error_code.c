@@ -1,7 +1,7 @@
 #include "snuk/interpreter/error_code.h"
 
 static const char *error_messages[] = {
-    [SNUK_ERROR_NONE] = "All is well",
+    [SNUK_ERROR_CODE_NONE] = "All is well",
     [SNUK_ERROR_SHOULD_NOT_REACH_HERE] = "Shouldn't reach here",
     [SNUK_ERROR_SOMETHING_WENT_WRONG] = "Something went wrong",
     [SNUK_ERROR_CONTROL_FLOW] = "control flow item outside scope",
