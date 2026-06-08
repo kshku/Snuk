@@ -1156,7 +1156,10 @@ static SnukValue interpreter_exec_item(SnukInterpreter *intpret, SnukItem *item,
             return execute_interface(intpret, item, weak_ref);
 
         case SNUK_ITEM_ERROR:
-            log_error("Error: %s", item->error.error.msg);
+            if (intpret->err.kind == SNUK_ERROR_KIND_NONE) {
+                intpret->err = item->error.error;
+            }
+            return (SnukValue){.type = SNUK_VALUE_NULL};
             return (SnukValue){.type = SNUK_VALUE_NULL};
 
         case SNUK_ITEM_MAX:
