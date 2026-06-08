@@ -20,6 +20,9 @@
  * and for loops push and pop scopes. global is retained for the lifetime of
  * the interpreter so identifiers can fall through to the root. signal carries
  * the most recent control-flow signal raised during evaluation.
+ *
+ * err holds the first error encountered during item execution. The consumer
+ * reads it via snuk_interpreter_clear_error() after each exec_item call.
  */
 typedef struct SnukInterpreter {
     SnukRefCounter *current;
