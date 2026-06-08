@@ -5,7 +5,6 @@ set(PUBLIC_HEADERS
     snuk_scope.h
     snuk_env.h
     native.h
-    error_code.h
 )
 
 set(HEADERS
@@ -14,7 +13,6 @@ set(HEADERS
 set(SRCS
     interpreter.c
     snuk_value.c
-    error_code.c
     native.c
 )
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "error_code.h"
 #include "snuk/defines.h"
 #include "snuk/parser/snuk_expr.h"
 #include "snuk/parser/snuk_type.h"
@@ -43,7 +42,6 @@ typedef enum SnukValueType {
  */
 struct SnukValue {
     SnukValueType type;
-    SnukErrorCode err_code;
 
     union {
         int64_t int_value;

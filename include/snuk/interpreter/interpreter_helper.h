@@ -1,7 +1,7 @@
 #pragma once
 
-#include "error_code.h"
 #include "interpreter.h"
+#include "snuk/snuk_error.h"
 #include "snuk/darray.h"
 #include "snuk/defines.h"
 #include "snuk_scope.h"
@@ -11,9 +11,19 @@ SnukValue execute_block_expr(
 
 SnukValue interpreter_copy_inst(SnukInterpreter *intpret, SnukValue inst);
 
-SNUK_INLINE void interpreter_error(SnukInterpreter *intpret, SnukErrorCode err_code) {
-    if (intpret->err_code != SNUK_ERROR_CODE_NONE) return;
-    intpret->err_code = err_code;
+SNUK_INLINE void interpreter_error(SnukInterpreter *intpret, SnukInterpError code, const char *msg) {
+    if (intpret->err.kind != SNUK_ERROR_KIND_NONE) return;
+    intpret->err = (SnukError){
+        .kind = SNUK_ERROR_KIND_INTERP,
+        .code = (uint32_t)code,
+        .msg = msg,
+        .loc = intpret->cur_loc,
+    };
+}
+
+SNUK_INLINE void interpreter_set_loc(SnukInterpreter *intpret, uint32_t line, uint32_t col) {
+    intpret->cur_loc.line = line;
+    intpret->cur_loc.col = col;
 }
 
 /**
