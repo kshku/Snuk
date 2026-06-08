@@ -27,7 +27,7 @@ SNUK_INLINE SnukRefCounter *snuk_ref_counter_create(void *mem, void *data, SnukR
         .data = data,
         .free_fn = free_fn,
     };
-    log_debug("created a ref counter (ptr=%p, mem=%p)", (void*)rc, rc->mem);
+    log_debug("created a ref counter (ptr=%p, mem=%p)", (void *)rc, rc->mem);
     return rc;
 }
 

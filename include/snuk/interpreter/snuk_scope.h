@@ -78,7 +78,7 @@ SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent, bool weak_
         .locked = locked,
     };
     SnukRefCounter *rc = snuk_ref_counter_create(scope, NULL, snuk_scope_destroy);
-    log_debug("scope #%lu created (scope=%p, rc=%p)", seq, (void*)scope, (void*)rc);
+    log_debug("scope #%lu created (scope=%p, rc=%p)", seq, (void *)scope, (void *)rc);
     return rc;
 }
 
