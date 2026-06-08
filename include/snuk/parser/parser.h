@@ -2,6 +2,7 @@
 
 #include "snuk/defines.h"
 #include "snuk/lexer.h"
+#include "snuk/snuk_error.h"
 
 /*
  * We will have items similar to rust.
@@ -32,8 +33,7 @@ typedef struct SnukParser {
     SnukAllocator *allocator;
 
     bool panic_mode; /**< Error and recovery state flags. */
-    const char *err_msg;
-    SnukToken err_token;
+    SnukError err;
 } SnukParser;
 
 /**
@@ -74,9 +74,19 @@ SNUK_API SnukItem *snuk_parser_next_item(SnukParser *parser);
  * @brief Report a parser error and enter panic mode.
  *
  * @param parser Parser context to operate on.
- * @param err_msg Error message to print.
+ * @param code Parse error code.
+ * @param msg Error message to print.
  */
-void parser_error(SnukParser *parser, const char *err_msg);
+void parser_error(SnukParser *parser, SnukParseError code, const char *msg);
+
+/**
+ * @brief Clear the parser error state.
+ *
+ * @param parser Parser context to operate on.
+ *
+ * @return Previous error value.
+ */
+SnukError snuk_parser_clear_error(SnukParser *parser);
 
 /**
  * @brief Recover parser state after an error.

@@ -360,7 +360,7 @@ static SnukExpr *parse_precedence(SnukParser *parser, Precedence precedence) {
     parser_advance(parser);
     prefix_fn pfn = get_rule(parser->previous.type)->pfn;
     if (!pfn) {
-        parser_error(parser, "expected expression");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected expression");
         return NULL;
     }
 
@@ -398,7 +398,7 @@ static SnukExpr *parse_primary(SnukParser *parser) {
             break;
         default:
             // TODO:
-            parser_error(parser, "unexpected expression");
+            parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "unexpected expression");
             break;
     }
 
@@ -431,7 +431,7 @@ static SnukExpr *parse_assignment(SnukParser *parser, SnukExpr *left) {
 
 static SnukExpr *parse_compound_assignment(SnukParser *parser, SnukExpr *left) {
     if (left->type != SNUK_EXPR_IDENTIFIER && left->type != SNUK_EXPR_MEMBER) {
-        parser_error(parser, "invalid assignment target");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "invalid assignment target");
         return NULL;
     }
     SnukTokenType op = parser->previous.type;
@@ -568,7 +568,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
     }
 
     if (parser->previous.type != SNUK_TOKEN_RPAREN) {
-        parser_error(parser, "expected ')'");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected ')'");
         return NULL;
     }
 
@@ -594,7 +594,7 @@ static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
     }
 
     if (parser->previous.type != SNUK_TOKEN_RPAREN) {
-        parser_error(parser, "expected ')'");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected ')'");
         return NULL;
     }
     return build_call_expr(parser, left, params);
@@ -625,7 +625,7 @@ static SnukExpr *parse_list(SnukParser *parser) {
     }
 
     if (parser->previous.type != SNUK_TOKEN_RBRACKET) {
-        parser_error(parser, "expected ']' after list elements");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected ']' after list elements");
         return NULL;
     }
 
@@ -644,12 +644,12 @@ static SnukExpr *parse_type(SnukParser *parser, SnukStringView name) {
             SnukItem *item = snuk_item_parse(parser);
             snuk_darray_push(&members, item);
         } else {
-            parser_error(parser, "unexpected token");
+            parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "unexpected token");
         }
     }
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "expected '}'");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected '}'");
         return NULL;
     }
 
@@ -677,7 +677,7 @@ static SnukExpr *parse_type_inst(SnukParser *parser, SnukType *type) {
     }
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "expected '}'");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected '}'");
         return NULL;
     }
 
@@ -706,7 +706,7 @@ static SnukExpr *parse_block(SnukParser *parser) {
         block_expr = build_block_expr(parser, block_expr, snuk_item_parse(parser));
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "block was not closed");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "block was not closed");
         return NULL;
     }
 
