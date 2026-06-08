@@ -884,6 +884,7 @@ static SnukValue execute_compound_binary_op(SnukInterpreter *intpret, SnukExpr *
             op = SNUK_TOKEN_RSHIFT;
             break;
         default:
+            op = SNUK_TOKEN_EOF;
             break;
     }
 
