@@ -16,18 +16,19 @@ SnukType *snuk_type_parse_interface(SnukParser *parser) {
 
     while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
         if (!parser_match(parser, SNUK_TOKEN_VAR) && !parser_match(parser, SNUK_TOKEN_CONST)) {
-            parser_error(parser, "expected var or const");
+            parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected var or const");
             return NULL;
         }
 
         SnukVar *var = snuk_var_parse(parser, false);
         parser_expect_item_end(parser);
-        if (var->value) parser_error(parser, "interface members should not have values");
+        if (var->value)
+            parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "interface members should not have values");
         type = build_interface_type(parser, type, var);
     }
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "expected '}'");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected '}'");
         return NULL;
     }
 
@@ -46,7 +47,7 @@ SnukType *snuk_type_parse(SnukParser *parser) {
         }
 
         if (parser->previous.type != SNUK_TOKEN_RPAREN) {
-            parser_error(parser, "expected ')'");
+            parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected ')'");
             return NULL;
         }
 

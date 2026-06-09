@@ -17,7 +17,8 @@ typedef struct SnukVar SnukVar;
 SNUK_INLINE void parser_advance(SnukParser *parser) {
     parser->previous = parser->current;
     parser->current = parser->next;
-    if (parser->current.type == SNUK_TOKEN_ERROR) parser_error(parser, "lexer error");
+    if (parser->current.type == SNUK_TOKEN_ERROR)
+        parser_error(parser, SNUK_PARSE_ERR_LEXER_ERROR, "lexer error");
     parser->next = snuk_lexer_next_token(&parser->lexer);
 }
 
@@ -68,8 +69,12 @@ SNUK_INLINE bool parser_match(SnukParser *parser, SnukTokenType expected) {
  * @param expected Expected token type.
  * @param err_msg Error message to report if the token does not match.
  */
-SNUK_INLINE void parser_expect(SnukParser *parser, SnukTokenType expected, const char *err_msg) {
-    if (!parser_match(parser, expected)) parser_error(parser, err_msg);
+SNUK_INLINE bool parser_expect(SnukParser *parser, SnukTokenType expected, const char *err_msg) {
+    if (!parser_match(parser, expected)) {
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, err_msg);
+        return false;
+    }
+    return true;
 }
 
 SNUK_INLINE bool parser_check_item_end(SnukParser *parser) {
@@ -97,7 +102,8 @@ SNUK_INLINE bool parser_match_item_end(SnukParser *parser) {
  * @param parser Parser context to operate on.
  */
 SNUK_INLINE void parser_expect_item_end(SnukParser *parser) {
-    if (!parser_match_item_end(parser)) parser_error(parser, "expected a new line or a semicolon");
+    if (!parser_match_item_end(parser))
+        parser_error(parser, SNUK_PARSE_ERR_EXPECTED_SEMICOLON_OR_NEWLINE, "expected a new line or a semicolon");
 }
 
 SNUK_INLINE SnukStringView parser_copy_string_view(SnukParser *parser, SnukStringView sv) {

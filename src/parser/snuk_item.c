@@ -129,12 +129,12 @@ static SnukItem *parse_extend_item(SnukParser *parser) {
             SnukItem *item = snuk_item_parse(parser);
             extend_item = build_extend_item(parser, extend_item, NULL, item);
         } else {
-            parser_error(parser, "unexpected token");
+            parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "unexpected token");
         }
     }
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
-        parser_error(parser, "expected '}'");
+        parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "expected '}'");
         return NULL;
     }
 

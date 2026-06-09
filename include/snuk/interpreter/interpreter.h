@@ -5,6 +5,7 @@
 #include "snuk/parser/snuk_expr.h"
 #include "snuk/parser/snuk_item.h"
 #include "snuk/refcount.h"
+#include "snuk/snuk_error.h"
 #include "snuk/string_view.h"
 #include "snuk_env.h"
 #include "snuk_signal.h"
@@ -19,6 +20,9 @@
  * and for loops push and pop scopes. global is retained for the lifetime of
  * the interpreter so identifiers can fall through to the root. signal carries
  * the most recent control-flow signal raised during evaluation.
+ *
+ * err holds the first error encountered during item execution. The consumer
+ * reads it via snuk_interpreter_clear_error() after each exec_item call.
  */
 typedef struct SnukInterpreter {
     SnukRefCounter *current;
@@ -29,7 +33,9 @@ typedef struct SnukInterpreter {
     void *mem;
     SnukAllocator allocator;
     snLinearAllocator la;
-    SnukErrorCode err_code;
+    SnukError err;
+    SnukSrcLoc cur_loc;
+    char err_msg_buf[256];
 } SnukInterpreter;
 
 /**
@@ -90,3 +96,7 @@ SNUK_API bool snuk_interpreter_create_env(
     SnukInterpreter *intpret, SnukStringView name, SnukType *type, SnukValue value, bool is_const);
 
 SNUK_API bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value, SnukType *type);
+
+SNUK_API SnukError snuk_interpreter_clear_error(SnukInterpreter *intpret);
+
+SNUK_API void snuk_interpreter_set_loc(SnukInterpreter *intpret, uint32_t line, uint32_t col);

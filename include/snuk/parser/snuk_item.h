@@ -3,6 +3,7 @@
 #include "parser_common.h"
 #include "snuk/darray.h"
 #include "snuk/defines.h"
+#include "snuk/snuk_error.h"
 #include "snuk/string_view.h"
 #include "snuk_type.h"
 
@@ -57,8 +58,7 @@ struct SnukItem {
         } interface_item;
 
         struct {
-            const char *msg;
-            SnukToken token;
+            SnukError error;
         } error;
     };
 };
@@ -215,18 +215,16 @@ SNUK_INLINE SnukItem *build_interface_item(SnukParser *parser, SnukStringView na
  * @brief Build a error item.
  *
  * @param parser Parser context to operate on.
- * @param msg The message
- * @param token The token
+ * @param error The error
  *
  * @return Return error item.
  */
-SNUK_INLINE SnukItem *build_error_item(SnukParser *parser, const char *msg, SnukToken token) {
+SNUK_INLINE SnukItem *build_error_item(SnukParser *parser, SnukError error) {
     SnukItem *item = parser_create_item(parser);
     *item = (SnukItem){
         .type = SNUK_ITEM_ERROR,
         .error = {
-            .msg = msg, 
-            .token = token,
+            .error = error,
         },
     };
     return item;
