@@ -11,12 +11,12 @@
 #define PAGES 10
 
 SNUK_INLINE void *alloc_fn(void *data, uint64_t size, uint64_t align) {
-    snLinearAllocator *la = (snLinearAllocator *)data;
+    SnLinearAllocator *la = (SnLinearAllocator *)data;
     return sn_linear_allocator_allocate(la, size, align);
 }
 
 SNUK_INLINE void *realloc_fn(void *data, void *ptr, uint64_t new_size, uint64_t align) {
-    snLinearAllocator *la = (snLinearAllocator *)data;
+    SnLinearAllocator *la = (SnLinearAllocator *)data;
     void *new = sn_linear_allocator_allocate(la, new_size, align);
     memcpy(new, ptr, new_size);
     return new;

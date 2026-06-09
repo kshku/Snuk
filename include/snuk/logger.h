@@ -8,8 +8,8 @@ SNUK_API void snuk_logger_init(void);
 SNUK_API void snuk_logger_deinit(void);
 
 SNUK_API void snuk_log_msg(
-    snLogLevel level, const char *file, const char *function, long line, const char *format_string, ...);
-SNUK_API void snuk_set_log_level(snLogLevel level);
+    SnLogLevel level, const char *file, const char *function, long line, const char *format_string, ...);
+SNUK_API void snuk_set_log_level(SnLogLevel level);
 
 #define log_trace(msg, ...)                                                            \
     snuk_log_msg(SN_LOG_LEVEL_TRACE, __FILE__, __func__, __LINE__, msg, ##__VA_ARGS__)

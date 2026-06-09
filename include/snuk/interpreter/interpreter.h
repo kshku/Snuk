@@ -32,7 +32,7 @@ typedef struct SnukInterpreter {
     SnukSignal signal;
     void *mem;
     SnukAllocator allocator;
-    snLinearAllocator la;
+    SnLinearAllocator la;
     SnukError err;
     SnukSrcLoc cur_loc;
     char err_msg_buf[256];

@@ -20,7 +20,7 @@ static void reverse_decommit_pages(SnukPageAllocator *allocator, void *base, uin
 static void try_increasing_allocator_size(void);
 
 static SnukPageAllocator page_allocator;
-static snFreeListAllocator galloc;
+static SnFreeListAllocator galloc;
 
 bool snuk_memory_init(uint64_t reserve_size) {
     uint64_t page_size = sn_vm_get_page_size();
