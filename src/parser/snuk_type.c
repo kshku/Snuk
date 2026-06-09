@@ -22,7 +22,8 @@ SnukType *snuk_type_parse_interface(SnukParser *parser) {
 
         SnukVar *var = snuk_var_parse(parser, false);
         parser_expect_item_end(parser);
-        if (var->value) parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "interface members should not have values");
+        if (var->value)
+            parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "interface members should not have values");
         type = build_interface_type(parser, type, var);
     }
 

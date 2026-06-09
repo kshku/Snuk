@@ -17,7 +17,8 @@ typedef struct SnukVar SnukVar;
 SNUK_INLINE void parser_advance(SnukParser *parser) {
     parser->previous = parser->current;
     parser->current = parser->next;
-    if (parser->current.type == SNUK_TOKEN_ERROR) parser_error(parser, SNUK_PARSE_ERR_LEXER_ERROR, "lexer error");
+    if (parser->current.type == SNUK_TOKEN_ERROR)
+        parser_error(parser, SNUK_PARSE_ERR_LEXER_ERROR, "lexer error");
     parser->next = snuk_lexer_next_token(&parser->lexer);
 }
 
@@ -101,7 +102,8 @@ SNUK_INLINE bool parser_match_item_end(SnukParser *parser) {
  * @param parser Parser context to operate on.
  */
 SNUK_INLINE void parser_expect_item_end(SnukParser *parser) {
-    if (!parser_match_item_end(parser)) parser_error(parser, SNUK_PARSE_ERR_EXPECTED_SEMICOLON_OR_NEWLINE, "expected a new line or a semicolon");
+    if (!parser_match_item_end(parser))
+        parser_error(parser, SNUK_PARSE_ERR_EXPECTED_SEMICOLON_OR_NEWLINE, "expected a new line or a semicolon");
 }
 
 SNUK_INLINE SnukStringView parser_copy_string_view(SnukParser *parser, SnukStringView sv) {

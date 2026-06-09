@@ -1,9 +1,9 @@
 #pragma once
 
 #include "parser_common.h"
-#include "snuk/snuk_error.h"
 #include "snuk/darray.h"
 #include "snuk/defines.h"
+#include "snuk/snuk_error.h"
 #include "snuk/string_view.h"
 #include "snuk_type.h"
 

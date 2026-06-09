@@ -12,7 +12,8 @@ void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *alloca
 
     parser->previous = (SnukToken){0};
     parser->current = snuk_lexer_next_token(&parser->lexer);
-    if (parser->current.type == SNUK_TOKEN_ERROR) parser_error(parser, SNUK_PARSE_ERR_LEXER_ERROR, "lexer error");
+    if (parser->current.type == SNUK_TOKEN_ERROR)
+        parser_error(parser, SNUK_PARSE_ERR_LEXER_ERROR, "lexer error");
     parser->next = snuk_lexer_next_token(&parser->lexer);
 }
 
@@ -45,8 +46,7 @@ void parser_error(SnukParser *parser, SnukParseError code, const char *msg) {
 }
 
 SnukItem *parser_sync(SnukParser *parser) {
-    while (parser->current.type != SNUK_TOKEN_EOF
-           && parser->current.type != SNUK_TOKEN_SEMICOLON
+    while (parser->current.type != SNUK_TOKEN_EOF && parser->current.type != SNUK_TOKEN_SEMICOLON
            && parser->current.type != SNUK_TOKEN_VSEMICOLON) {
         parser_advance(parser);
     }

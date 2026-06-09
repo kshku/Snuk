@@ -1,13 +1,13 @@
 #pragma once
 
 #include "interpreter.h"
-#include "snuk/snuk_error.h"
 #include "snuk/darray.h"
 #include "snuk/defines.h"
+#include "snuk/snuk_error.h"
 #include "snuk_scope.h"
 
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 SnukValue execute_block_expr(
     SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref);
