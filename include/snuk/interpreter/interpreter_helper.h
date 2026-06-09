@@ -6,6 +6,9 @@
 #include "snuk/defines.h"
 #include "snuk_scope.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+
 SnukValue execute_block_expr(
     SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref);
 
@@ -17,6 +20,20 @@ SNUK_INLINE void interpreter_error(SnukInterpreter *intpret, SnukInterpError cod
         .kind = SNUK_ERROR_KIND_INTERP,
         .code = (uint32_t)code,
         .msg = msg,
+        .loc = intpret->cur_loc,
+    };
+}
+
+SNUK_INLINE void interpreter_error_fmt(SnukInterpreter *intpret, SnukInterpError code, const char *fmt, ...) {
+    if (intpret->err.kind != SNUK_ERROR_KIND_NONE) return;
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(intpret->err_msg_buf, sizeof(intpret->err_msg_buf), fmt, args);
+    va_end(args);
+    intpret->err = (SnukError){
+        .kind = SNUK_ERROR_KIND_INTERP,
+        .code = (uint32_t)code,
+        .msg = intpret->err_msg_buf,
         .loc = intpret->cur_loc,
     };
 }

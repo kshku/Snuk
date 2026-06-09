@@ -35,6 +35,7 @@ typedef struct SnukInterpreter {
     snLinearAllocator la;
     SnukError err;
     SnukSrcLoc cur_loc;
+    char err_msg_buf[256];
 } SnukInterpreter;
 
 /**
