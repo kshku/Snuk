@@ -21,14 +21,14 @@ typedef struct stdout_stderr_sink {
     bool colored_enabled[2];
 } stdout_stderr_sink;
 
-static void stdout_stderr_sink_write(const char *msg, size_t len, snLogLevel level, void *data);
+static void stdout_stderr_sink_write(const char *msg, size_t len, SnLogLevel level, void *data);
 static void stdout_stderr_sink_open(void *data);
 static void stdout_stderr_sink_flush(void *data);
 
-static snStaticLogger sl;
+static SnStaticLogger sl;
 static char log_buffer[LOGGER_BUFFER_SIZE];
 static stdout_stderr_sink sink_data;
-static snSink sinks[] = {
+static SnSink sinks[] = {
     {.open = stdout_stderr_sink_open, .flush = stdout_stderr_sink_flush, .write = stdout_stderr_sink_write, .data = &sink_data}
 };
 
@@ -36,7 +36,7 @@ void snuk_logger_init(void) {
     sn_static_logger_init(&sl, log_buffer, LOGGER_BUFFER_SIZE, sinks, SNUK_ARRAY_LENGTH(sinks));
 }
 
-void snuk_set_log_level(snLogLevel level) {
+void snuk_set_log_level(SnLogLevel level) {
     sn_static_logger_set_level(&sl, level);
 }
 
@@ -45,7 +45,7 @@ void snuk_logger_deinit(void) {
 }
 
 void snuk_log_msg(
-    snLogLevel level, const char *file, const char *function, long line, const char *format_string, ...) {
+    SnLogLevel level, const char *file, const char *function, long line, const char *format_string, ...) {
     if (level < sl.level) return;
 
     const char *level_string = NULL;
@@ -79,7 +79,7 @@ void snuk_log_msg(
     va_end(args);
 }
 
-static void stdout_stderr_sink_write(const char *msg, size_t len, snLogLevel level, void *data) {
+static void stdout_stderr_sink_write(const char *msg, size_t len, SnLogLevel level, void *data) {
     stdout_stderr_sink *sink = (stdout_stderr_sink *)data;
 
     bool error = level > SN_LOG_LEVEL_WARN;

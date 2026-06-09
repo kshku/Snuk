@@ -15,7 +15,7 @@ char *snuk_read_line(char *buffer, uint64_t size) {
 
 // reads entire file, caller should free
 char *snuk_read_file(const char *path) {
-    snFile file;
+    SnFile file;
     if (!sn_file_open(path, SN_FILE_OPEN_FLAG_READ, &file)) return NULL;
 
     uint64_t file_size = sn_file_size(&file);
