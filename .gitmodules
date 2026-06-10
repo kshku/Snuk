@@ -1,9 +1,0 @@
-[submodule "external/SnLogger"]
-	path = external/SnLogger
-	url = https://github.com/kshku/SnLogger.git
-[submodule "external/SnMemory"]
-	path = external/SnMemory
-	url = https://github.com/kshku/SnMemory.git
-[submodule "external/SnFile"]
-	path = external/SnFile
-	url = https://github.com/kshku/SnFile.git
