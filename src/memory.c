@@ -74,7 +74,7 @@ void snuk_free(void *ptr) {
 
 static bool create_allocator(SnukPageAllocator *allocator, uint32_t pages) {
     *allocator = (SnukPageAllocator){
-        .base = sn_vm_reserve(pages),
+        .base = sn_vm_reserve(NULL, pages),
         .total_pages = pages,
         .committed_pages = 0,
         .reverse_committed_pages = 0,
