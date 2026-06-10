@@ -28,7 +28,30 @@ target_compile_definitions(snuk_configs INTERFACE
 
 option(SNUK_BUILD_SHARED "Build shared library" OFF)
 
-add_subdirectory(external)
+include(FetchContent)
+
+FetchContent_Declare(
+    snlogger
+    GIT_REPOSITORY https://github.com/kshku/SnLogger.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(snlogger)
+
+FetchContent_Declare(
+    snfile
+    GIT_REPOSITORY https://github.com/kshku/SnFile.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(snfile)
+
+FetchContent_Declare(
+    snmemory
+    GIT_REPOSITORY https://github.com/kshku/SnMemory.git
+    GIT_TAG main
+)
+
+target_link_libraries(snuk_configs INTERFACE snlogger snfile snmemory)
+
 add_subdirectory(docs)
 add_subdirectory(src)
 add_subdirectory(repl)
