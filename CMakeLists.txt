@@ -33,21 +33,21 @@ include(FetchContent)
 FetchContent_Declare(
     snlogger
     GIT_REPOSITORY https://github.com/kshku/SnLogger.git
-    GIT_TAG main
+    GIT_TAG v0.1.0
 )
 FetchContent_MakeAvailable(snlogger)
 
 FetchContent_Declare(
     snfile
     GIT_REPOSITORY https://github.com/kshku/SnFile.git
-    GIT_TAG main
+    GIT_TAG v0.1.0
 )
 FetchContent_MakeAvailable(snfile)
 
 FetchContent_Declare(
     snmemory
     GIT_REPOSITORY https://github.com/kshku/SnMemory.git
-    GIT_TAG main
+    GIT_TAG v0.1.0
 )
 
 target_link_libraries(snuk_configs INTERFACE snlogger snfile snmemory)
