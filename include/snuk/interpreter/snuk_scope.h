@@ -1,8 +1,11 @@
 #pragma once
 
 #include "snuk/defines.h"
+#include "snuk/memory.h"
 #include "snuk/refcount.h"
 #include "snuk_env.h"
+
+#include <sncontainer/darray.h>
 
 extern uint64_t snuk_scope_seq;
 #define GET_SCOPE(rc) ((SnukScope *)snuk_ref_counter_get(rc))
@@ -24,9 +27,9 @@ struct SnukScope {
 };
 
 SNUK_INLINE void snuk_scope_destroy_envs(SnukScope *scope) {
-    uint64_t count = snuk_darray_get_length(scope->vars);
+    uint64_t count = sn_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i) snuk_env_free(scope->vars[i]);
-    snuk_darray_clear(&scope->vars);
+    sn_darray_clear(&scope->vars);
 }
 
 /**
@@ -47,7 +50,7 @@ SNUK_INLINE void snuk_scope_destroy(void *data, void *ptr) {
     log_debug("scope destroyed (scope=%p)", ptr);
     snuk_scope_destroy_envs(scope);
 
-    snuk_darray_destroy(scope->vars);
+    sn_darray_destroy(scope->vars);
 
     if (scope->parent) {
         if (scope->weak_ref) snuk_ref_counter_release_weak(&scope->parent);
@@ -72,7 +75,7 @@ SNUK_INLINE SnukRefCounter *snuk_scope_create(SnukRefCounter *parent, bool weak_
     SnukScope *scope = (SnukScope *)snuk_alloc(sizeof(SnukScope), alignof(SnukScope));
     uint64_t seq = ++snuk_scope_seq;
     *scope = (SnukScope){
-        .vars = snuk_darray_create(SnukEnv *, NULL),
+        .vars = sn_darray_create(SnukEnv *, &snuk_global_allocator),
         .parent = snuk_ref_counter_move(&parent),
         .weak_ref = weak_ref,
         .locked = locked,
@@ -113,7 +116,7 @@ SNUK_INLINE void snuk_scope_set_parent(SnukRefCounter *scope_rc, SnukRefCounter 
 SNUK_INLINE SnukEnv *snuk_scope_lookup(SnukRefCounter *scope_rc, SnukStringView name, bool *locked) {
     SnukScope *scope = GET_SCOPE(scope_rc);
     if (locked) *locked = scope->locked;
-    uint64_t count = snuk_darray_get_length(scope->vars);
+    uint64_t count = sn_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i)
         if (snuk_string_view_equal(scope->vars[i]->name, name)) return scope->vars[i];
 
@@ -139,17 +142,17 @@ SNUK_INLINE bool snuk_scope_add_env(SnukRefCounter *scope_rc, SnukEnv *env) {
         snuk_env_free(env);
         return false;
     }
-    snuk_darray_push(&scope->vars, env);
+    sn_darray_push(&scope->vars, env);
     return true;
 }
 
 SNUK_INLINE void snuk_scope_remove_env(SnukRefCounter *scope_rc, SnukStringView name) {
     SnukScope *scope = GET_SCOPE(scope_rc);
-    uint64_t count = snuk_darray_get_length(scope->vars);
+    uint64_t count = sn_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < count; ++i) {
         if (snuk_string_view_equal(scope->vars[i]->name, name)) {
             SnukEnv *env = NULL;
-            snuk_darray_pop_at(&scope->vars, i, &env);
+            sn_darray_pop_at(&scope->vars, i, &env);
             snuk_env_free(env);
             return;
         }

@@ -3,7 +3,7 @@
 #include "snuk/parser/parser_common.h"
 #include "snuk/parser/snuk_item.h"
 
-void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator) {
+void snuk_parser_init(SnukParser *parser, const char *src, SnMemoryAllocator *allocator) {
     *parser = (SnukParser){
         .allocator = allocator,
         .panic_mode = false,

@@ -4,6 +4,7 @@
 #include "snuk/interpreter/interpreter_helper.h"
 #include "snuk/interpreter/snuk_scope.h"
 #include "snuk/io.h"
+#include "snuk/memory.h"
 #include "snuk/parser/snuk_var.h"
 
 #include <stdio.h>
@@ -57,7 +58,7 @@ void snuk_interpreter_init(SnukInterpreter *intpret) {
         .global = snuk_scope_create(NULL, false, false),
         .signal = SNUK_SIGNAL_NONE,
         .instance = NULL,
-        .trash = snuk_darray_create(SnukValue, NULL),
+        .trash = sn_darray_create(SnukValue, &snuk_global_allocator),
         .mem = snuk_allocate_pages(PAGES),
         .allocator = {
             .data = (void *)&intpret->la,
@@ -82,7 +83,7 @@ void snuk_interpreter_deinit(SnukInterpreter *intpret) {
     snuk_builtins_deinit(intpret);
 
     interpreter_clear_trash(intpret);
-    snuk_darray_destroy(intpret->trash);
+    sn_darray_destroy(intpret->trash);
 
     SNUK_ASSERT(!intpret->instance, "something went wrong");
 
@@ -134,7 +135,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
 
         if (value.type == SNUK_VALUE_TYPE || value.type == SNUK_VALUE_TYPE_INST) {
             SnukVar **members = type->members;
-            uint64_t count = snuk_darray_get_length(members);
+            uint64_t count = sn_darray_get_length(members);
             for (uint64_t i = 0; i < count; ++i) {
                 SnukEnv *member = snuk_scope_lookup(value.type_value.closure, members[i]->name, NULL);
                 if (!member && value.type_value.type_scope)
@@ -148,7 +149,7 @@ bool snuk_interpreter_value_is_of_type(SnukInterpreter *intpret, SnukValue value
         }
 
         SnukVar **members = type->members;
-        uint64_t count = snuk_darray_get_length(members);
+        uint64_t count = sn_darray_get_length(members);
         for (uint64_t i = 0; i < count; ++i) {
             SnukEnv *member = snuk_scope_lookup(value.type_value.closure, members[i]->name, NULL);
             if (!member && value.type_value.type_scope)
@@ -455,7 +456,7 @@ static void interpreter_print_type(SnukInterpreter *intpret, SnukType *type) {
 
         case TYPE_FN:
             snuk_print("fn(", NULL);
-            count = snuk_darray_get_length(type->fn.param_types);
+            count = sn_darray_get_length(type->fn.param_types);
             for (uint64_t i = 0; i < count; ++i) {
                 if (i != 0) snuk_print(", ", NULL);
                 interpreter_print_type(intpret, type->fn.param_types[i]);
@@ -466,7 +467,7 @@ static void interpreter_print_type(SnukInterpreter *intpret, SnukType *type) {
 
         case TYPE_INTERFACE:
             snuk_print("interface", NULL);
-            count = snuk_darray_get_length(type->members);
+            count = sn_darray_get_length(type->members);
             for (uint64_t i = 0; i < count; ++i) {
                 if (i != 0) snuk_print("; ", NULL);
                 snuk_print(SNUK_STRING_VIEW_FORMAT ": ", SNUK_STRING_VIEW_ARG(type->members[i]->name));
@@ -513,7 +514,7 @@ static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
         case SNUK_VALUE_FN:
             snuk_print("fn(", NULL);
             scope = GET_SCOPE(value.fn_value.closure);
-            len = snuk_darray_get_length(scope->vars);
+            len = sn_darray_get_length(scope->vars);
             for (uint64_t i = 0; i < len; ++i) {
                 if (i != 0) snuk_print(", ", NULL);
                 snuk_print(SNUK_STRING_VIEW_FORMAT ": ", SNUK_STRING_VIEW_ARG(scope->vars[i]->name));
@@ -526,7 +527,7 @@ static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
         case SNUK_VALUE_TYPE:
             snuk_print("type {", NULL);
             scope = GET_SCOPE(value.type_value.closure);
-            len = snuk_darray_get_length(scope->vars);
+            len = sn_darray_get_length(scope->vars);
             for (uint64_t i = 0; i < len; ++i) {
                 if (i != 0) snuk_print("; ", NULL);
                 SnukEnv *env = scope->vars[i];
@@ -544,7 +545,7 @@ static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
             interpreter_print_type(intpret, value.type_value.type);
             snuk_print(" {", NULL);
             scope = GET_SCOPE(value.type_value.closure);
-            len = snuk_darray_get_length(scope->vars);
+            len = sn_darray_get_length(scope->vars);
             for (uint64_t i = 0; i < len; ++i) {
                 SnukEnv *env = scope->vars[i];
                 if (snuk_string_view_equal_cstr(env->name, "self")) {
@@ -572,7 +573,7 @@ static void interpreter_print_value(SnukInterpreter *intpret, SnukValue value) {
 static void execute_print_item(SnukInterpreter *intpret, SnukExpr **exprs, bool weak_ref) {
     if (!exprs) return;
 
-    uint64_t count = snuk_darray_get_length(exprs);
+    uint64_t count = sn_darray_get_length(exprs);
     for (uint64_t i = 0; i < count; ++i) {
         SnukValue value = interpreter_eval_expr(intpret, exprs[i], weak_ref);
         interpreter_print_value(intpret, value);
@@ -591,7 +592,7 @@ SnukValue execute_block_expr(
     SnukInterpreter *intpret, SnukExpr *block, int capture_signals, int propogate_signals, bool weak_ref) {
     interpreter_push_scope(intpret);
 
-    uint64_t count = snuk_darray_get_length(block->block_items);
+    uint64_t count = sn_darray_get_length(block->block_items);
     SnukValue value = {.type = SNUK_VALUE_NULL};
 
     for (uint64_t j = 0; j < count; ++j) {
@@ -771,7 +772,7 @@ static SnukValue execute_type_declaration(SnukInterpreter *intpret, SnukExpr *ex
     // lock type's scope
     GET_SCOPE(value.type_value.closure)->locked = true;
 
-    uint64_t count = snuk_darray_get_length(expr->type_expr.members);
+    uint64_t count = sn_darray_get_length(expr->type_expr.members);
     for (uint64_t i = 0; i < count; ++i) {
         SnukValue val = interpreter_exec_item(intpret, expr->type_expr.members[i], true);
         snuk_value_free(val);
@@ -818,7 +819,7 @@ static SnukValue execute_inst_creation(SnukInterpreter *intpret, SnukExpr *expr,
         },
     };
 
-    uint64_t init_count = snuk_darray_get_length(expr->type_inst_expr.init);
+    uint64_t init_count = sn_darray_get_length(expr->type_inst_expr.init);
     for (uint64_t i = 0; i < init_count; ++i) {
         SnukExpr *assign = expr->type_inst_expr.init[i];
         if (assign->type != SNUK_EXPR_ASSIGN) {
@@ -932,7 +933,7 @@ static SnukValue execute_compound_binary_op(SnukInterpreter *intpret, SnukExpr *
 static SnukValue execute_fn_expr(SnukInterpreter *intpret, SnukExpr *expr, bool weak_ref) {
     interpreter_push_scope(intpret);
 
-    uint64_t param_count = snuk_darray_get_length(expr->fn_expr.params);
+    uint64_t param_count = sn_darray_get_length(expr->fn_expr.params);
     for (uint64_t i = 0; i < param_count; ++i) {
         SnukVar *param = expr->fn_expr.params[i];
         SnukValue value = (SnukValue){.type = SNUK_VALUE_UNKOWN};
@@ -986,8 +987,8 @@ static SnukValue execute_call_expr(SnukInterpreter *intpret, SnukExpr *expr, boo
 
     SnukScope *fn_scope = GET_SCOPE(fn_scope_rc);
 
-    uint64_t fn_param_count = snuk_darray_get_length(fn_scope->vars);
-    uint64_t param_count = snuk_darray_get_length(expr->call.params);
+    uint64_t fn_param_count = sn_darray_get_length(fn_scope->vars);
+    uint64_t param_count = sn_darray_get_length(expr->call.params);
 
     if (fn_param_count < param_count)
         interpreter_error_fmt(intpret, SNUK_INTERP_ERR_FUNCALL, "function expects %llu argument(s) but %llu provided",
@@ -1330,7 +1331,7 @@ static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bo
             .type_inst_expr = {
                 .type = NULL,
                 .name = (SnukStringView){0},
-                .init = snuk_darray_create(SnukExpr *, NULL),
+                .init = sn_darray_create(SnukExpr *, &snuk_global_allocator),
             },
         };
 
@@ -1380,11 +1381,11 @@ static SnukValue execute_member_get(SnukInterpreter *intpret, SnukExpr *expr, bo
             .assign = {.identifier = &identifier_expr, .value = &value_expr},
         };
 
-        snuk_darray_push(&inst_expr.type_inst_expr.init, &assign_expr);
+        sn_darray_push(&inst_expr.type_inst_expr.init, &assign_expr);
 
         snuk_value_free(type_or_inst);
         type_or_inst = execute_inst_creation(intpret, &inst_expr, weak_ref);
-        snuk_darray_destroy(inst_expr.type_inst_expr.init);
+        sn_darray_destroy(inst_expr.type_inst_expr.init);
         res = interpreter_get_member(intpret, type_or_inst, expr->member_access.field->identifier, NULL);
     }
 
@@ -1415,7 +1416,7 @@ static SnukValue execute_extend(SnukInterpreter *intpret, SnukItem *item, bool w
     SnukRefCounter *temp = snuk_ref_counter_move(&intpret->current);
     intpret->current = snuk_ref_counter_move(&type.type_value.closure);
 
-    uint64_t count = snuk_darray_get_length(item->extend_item.members);
+    uint64_t count = sn_darray_get_length(item->extend_item.members);
     for (uint64_t i = 0; i < count; ++i) {
         SnukValue val = interpreter_exec_item(intpret, item->extend_item.members[i], true);
         snuk_value_free(val);
@@ -1458,7 +1459,7 @@ SnukValue interpreter_copy_inst(SnukInterpreter *intpret, SnukValue inst) {
 
     SnukScope *scope = GET_SCOPE(inst.type_value.closure);
 
-    uint64_t init_count = snuk_darray_get_length(scope->vars);
+    uint64_t init_count = sn_darray_get_length(scope->vars);
     for (uint64_t i = 0; i < init_count; ++i) {
         if (snuk_string_view_equal(scope->vars[i]->name, self_str)) continue;
         SnukValue val;

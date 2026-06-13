@@ -1,10 +1,11 @@
 #include "snuk/lexer.h"
 
-#include "snuk/darray.h"
 #include "snuk/logger.h"
+#include "snuk/memory.h"
 #include "snuk/snuk_string.h"
 
 #include <errno.h>
+#include <sncontainer/darray.h>
 #include <stdlib.h>
 
 struct ScopeDepth {
@@ -13,38 +14,38 @@ struct ScopeDepth {
 };
 
 SNUK_INLINE bool scope_depth_zero(ScopeDepth *sd) {
-    uint64_t last = snuk_darray_get_length(sd) - 1;
+    uint64_t last = sn_darray_get_length(sd) - 1;
     return sd[last].paren == sd[last].bracket && sd[last].paren == 0;
 }
 
 SNUK_INLINE void scope_depth_push(ScopeDepth **sd) {
-    snuk_darray_push(sd, (ScopeDepth){0});
+    sn_darray_push(sd, (ScopeDepth){0});
 }
 
 SNUK_INLINE void scope_depth_pop(ScopeDepth **sd) {
     ScopeDepth depth;
     SNUK_ASSERT(scope_depth_zero(*sd), "scope mismatch");
-    snuk_darray_pop(sd, &depth);
+    sn_darray_pop(sd, &depth);
 }
 
 SNUK_INLINE void scope_depth_add_paren(ScopeDepth *sd) {
-    uint64_t last = snuk_darray_get_length(sd) - 1;
+    uint64_t last = sn_darray_get_length(sd) - 1;
     sd[last].paren++;
 }
 
 SNUK_INLINE void scope_depth_remove_paren(ScopeDepth *sd) {
-    uint64_t last = snuk_darray_get_length(sd) - 1;
+    uint64_t last = sn_darray_get_length(sd) - 1;
     SNUK_ASSERT(sd[last].paren > 0, "scope mismatch");
     sd[last].paren--;
 }
 
 SNUK_INLINE void scope_depth_add_bracket(ScopeDepth *sd) {
-    uint64_t last = snuk_darray_get_length(sd) - 1;
+    uint64_t last = sn_darray_get_length(sd) - 1;
     sd[last].bracket++;
 }
 
 SNUK_INLINE void scope_depth_remove_bracket(ScopeDepth *sd) {
-    uint64_t last = snuk_darray_get_length(sd) - 1;
+    uint64_t last = sn_darray_get_length(sd) - 1;
     SNUK_ASSERT(sd[last].bracket > 0, "scope mismatch");
     sd[last].bracket--;
 }
@@ -629,14 +630,14 @@ void snuk_lexer_init(SnukLexer *lexer, const char *src) {
         .line = 0,
         .col = 0,
         .previous_token_type = SNUK_TOKEN_MAX,
-        .sd = snuk_darray_create(ScopeDepth, NULL),
+        .sd = sn_darray_create(ScopeDepth, &snuk_global_allocator),
     };
     scope_depth_push(&lexer->sd);
 }
 
 void snuk_lexer_deinit(SnukLexer *lexer) {
     if (!lexer) return;
-    snuk_darray_destroy(lexer->sd);
+    sn_darray_destroy(lexer->sd);
     *lexer = (SnukLexer){0};
 }
 

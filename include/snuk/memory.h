@@ -8,13 +8,6 @@
 #define MIB(x) (KIB((x) * 1024))
 #define GIB(x) (MIB((x) * 1024))
 
-typedef struct SnukAllocator {
-    void *data;
-    void *(*alloc)(void *data, uint64_t size, uint64_t align);
-    void *(*realloc)(void *data, void *ptr, uint64_t new_size, uint64_t align);
-    void (*free)(void *data, void *ptr);
-} SnukAllocator;
-
 /**
  * @brief Retrieves the system page size.
  *
@@ -98,4 +91,4 @@ SNUK_API void *snuk_realloc(void *ptr, uint64_t new_size, uint64_t align);
  */
 SNUK_API void snuk_free(void *ptr);
 
-extern SnukAllocator snuk_global_allocator;
+extern SnMemoryAllocator snuk_global_allocator;

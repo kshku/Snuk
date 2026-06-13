@@ -1,11 +1,12 @@
 #pragma once
 
 #include "parser_common.h"
-#include "snuk/darray.h"
 #include "snuk/defines.h"
 #include "snuk/snuk_error.h"
 #include "snuk/string_view.h"
 #include "snuk_type.h"
+
+#include <sncontainer/darray.h>
 
 /**
  * @brief Parser items kinds.
@@ -161,10 +162,10 @@ SNUK_INLINE SnukItem *build_print_item(SnukParser *parser, SnukItem *item, SnukE
         item = parser_create_item(parser);
         *item = (SnukItem){
             .type = SNUK_ITEM_PRINT,
-            .print_exprs = snuk_darray_create(SnukExpr *, parser->allocator),
+            .print_exprs = sn_darray_create(SnukExpr *, parser->allocator),
         };
     }
-    if (expr) snuk_darray_push(&item->print_exprs, expr);
+    if (expr) sn_darray_push(&item->print_exprs, expr);
     return item;
 }
 
@@ -182,12 +183,12 @@ SNUK_INLINE SnukItem *build_extend_item(SnukParser *parser, SnukItem *item, Snuk
         *item = (SnukItem){
             .type = SNUK_ITEM_EXTEND,
             .extend_item = {
-                .members = snuk_darray_create(SnukItem *, parser->allocator),
+                .members = sn_darray_create(SnukItem *, parser->allocator),
             },
         };
     }
     if (type) item->extend_item.type = type;
-    if (member) snuk_darray_push(&item->extend_item.members, member);
+    if (member) sn_darray_push(&item->extend_item.members, member);
     return item;
 }
 

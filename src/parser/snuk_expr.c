@@ -1,6 +1,5 @@
 #include "snuk/parser/snuk_expr.h"
 
-#include "snuk/darray.h"
 #include "snuk/parser/snuk_item.h"
 #include "snuk/parser/snuk_type.h"
 #include "snuk/parser/snuk_var.h"
@@ -553,7 +552,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
     SnukStringView name = {0};
     if (parser_match(parser, SNUK_TOKEN_IDENTIFIER)) name = parser->previous.string_literal;
 
-    SnukVar **params = snuk_darray_create(SnukVar *, parser->allocator);
+    SnukVar **params = sn_darray_create(SnukVar *, parser->allocator);
     SnukType *fn_type = build_fn_type(parser, NULL, NULL, NULL);
 
     parser_expect(parser, SNUK_TOKEN_LPAREN, "expected '('");
@@ -561,7 +560,7 @@ static SnukExpr *parse_fn(SnukParser *parser) {
         SnukVar *var = snuk_var_parse(parser, false);
 
         fn_type = build_fn_type(parser, fn_type, var->type, NULL);
-        snuk_darray_push(&params, var);
+        sn_darray_push(&params, var);
 
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
@@ -585,10 +584,10 @@ static SnukExpr *parse_fn(SnukParser *parser) {
 }
 
 static SnukExpr *parse_call(SnukParser *parser, SnukExpr *left) {
-    SnukExpr **params = snuk_darray_create(SnukExpr *, parser->allocator);
+    SnukExpr **params = sn_darray_create(SnukExpr *, parser->allocator);
     while (!parser_match(parser, SNUK_TOKEN_RPAREN) && parser->current.type != SNUK_TOKEN_EOF) {
         SnukExpr *expr = snuk_expr_parse(parser);
-        snuk_darray_push(&params, expr);
+        sn_darray_push(&params, expr);
         if (!parser_check(parser, SNUK_TOKEN_RPAREN))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected comma");
     }
@@ -616,10 +615,10 @@ static SnukExpr *parse_comment(SnukParser *parser) {
 }
 
 static SnukExpr *parse_list(SnukParser *parser) {
-    SnukExpr **elements = snuk_darray_create(SnukExpr *, parser->allocator);
+    SnukExpr **elements = sn_darray_create(SnukExpr *, parser->allocator);
     while (!parser_match(parser, SNUK_TOKEN_RBRACKET) && parser->current.type != SNUK_TOKEN_EOF) {
         SnukExpr *expr = snuk_expr_parse(parser);
-        snuk_darray_push(&elements, expr);
+        sn_darray_push(&elements, expr);
         if (!parser_check(parser, SNUK_TOKEN_RBRACKET))
             parser_expect(parser, SNUK_TOKEN_COMMA, "expected ',' or ']' after list element");
     }
@@ -635,14 +634,14 @@ static SnukExpr *parse_list(SnukParser *parser) {
 static SnukExpr *parse_type(SnukParser *parser, SnukStringView name) {
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
-    SnukItem **members = snuk_darray_create(SnukItem *, parser->allocator);
+    SnukItem **members = sn_darray_create(SnukItem *, parser->allocator);
     SnukType *type_type = build_type_type(parser);
 
     while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
         if (parser_check(parser, SNUK_TOKEN_VAR) || parser_check(parser, SNUK_TOKEN_CONST)
             || parser_check(parser, SNUK_TOKEN_FN) || parser_check(parser, SNUK_TOKEN_TYPE)) {
             SnukItem *item = snuk_item_parse(parser);
-            snuk_darray_push(&members, item);
+            sn_darray_push(&members, item);
         } else {
             parser_error(parser, SNUK_PARSE_ERR_UNEXPECTED_TOKEN, "unexpected token");
         }
@@ -665,7 +664,7 @@ static SnukExpr *parse_type_inst(SnukParser *parser, SnukType *type) {
 
     parser_expect(parser, SNUK_TOKEN_LBRACE, "expected '{'");
 
-    SnukExpr **init = snuk_darray_create(SnukExpr *, parser->allocator);
+    SnukExpr **init = sn_darray_create(SnukExpr *, parser->allocator);
     while (!parser_match(parser, SNUK_TOKEN_RBRACE) && parser->current.type != SNUK_TOKEN_EOF) {
         parser_expect(parser, SNUK_TOKEN_IDENTIFIER, "expected an member name");
         SnukExpr *identifier = parse_primary(parser);
@@ -673,7 +672,7 @@ static SnukExpr *parse_type_inst(SnukParser *parser, SnukType *type) {
         SnukExpr *value = snuk_expr_parse(parser);
         parser_expect_item_end(parser);
         SnukExpr *assign = build_assign_expr(parser, identifier, value);
-        snuk_darray_push(&init, assign);
+        sn_darray_push(&init, assign);
     }
 
     if (parser->previous.type != SNUK_TOKEN_RBRACE) {
@@ -854,7 +853,7 @@ void snuk_expr_log(SnukExpr *expr) {
             log_trace("fn expression:", NULL);
             if (expr->fn_expr.name.len)
                 log_trace("Name: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->fn_expr.name));
-            count = snuk_darray_get_length(expr->fn_expr.params);
+            count = sn_darray_get_length(expr->fn_expr.params);
             for (uint64_t i = 0; i < count; ++i) snuk_var_log(expr->fn_expr.params[i]);
             log_trace("body:", NULL);
             snuk_expr_log(expr->fn_expr.body);
@@ -864,18 +863,18 @@ void snuk_expr_log(SnukExpr *expr) {
             log_trace("type expression:", NULL);
             if (expr->type_expr.name.len)
                 log_trace("Name: " SNUK_STRING_VIEW_FORMAT, SNUK_STRING_VIEW_ARG(expr->type_expr.name));
-            count = snuk_darray_get_length(expr->type_expr.members);
+            count = sn_darray_get_length(expr->type_expr.members);
             for (uint64_t i = 0; i < count; ++i) snuk_item_log(expr->type_expr.members[i]);
             break;
         case SNUK_EXPR_BLOCK:
             log_trace("block expression:", NULL);
-            count = snuk_darray_get_length(expr->block_items);
+            count = sn_darray_get_length(expr->block_items);
             for (uint64_t i = 0; i < count; ++i) snuk_item_log(expr->block_items[i]);
             break;
         case SNUK_EXPR_CALL:
             // TODO:
             snuk_expr_log(expr->call.fn);
-            count = snuk_darray_get_length(expr->call.params);
+            count = sn_darray_get_length(expr->call.params);
             for (uint64_t i = 0; i < count; ++i) snuk_expr_log(expr->call.params[i]);
             break;
         case SNUK_EXPR_MEMBER:
@@ -892,7 +891,7 @@ void snuk_expr_log(SnukExpr *expr) {
             break;
         case SNUK_EXPR_LIST: {
             log_trace("List:", NULL);
-            uint64_t len = snuk_darray_get_length(expr->list.elements);
+            uint64_t len = sn_darray_get_length(expr->list.elements);
             for (uint64_t i = 0; i < len; ++i) {
                 snuk_expr_log(expr->list.elements[i]);
             }

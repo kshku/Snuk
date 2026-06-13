@@ -43,20 +43,20 @@ SnukType str_get_type = {
 
 void snuk_builtins_init(SnukInterpreter *intpret) {
     if (!to_int_type.fn.param_types)
-        to_int_type.fn.param_types = snuk_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
+        to_int_type.fn.param_types = sn_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
     if (!to_float_type.fn.param_types)
-        to_float_type.fn.param_types = snuk_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
+        to_float_type.fn.param_types = sn_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
     if (!to_bool_type.fn.param_types)
-        to_bool_type.fn.param_types = snuk_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
+        to_bool_type.fn.param_types = sn_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
     if (!to_str_type.fn.param_types)
-        to_str_type.fn.param_types = snuk_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
+        to_str_type.fn.param_types = sn_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
 
     if (!str_length_type.fn.param_types)
-        str_length_type.fn.param_types = snuk_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
+        str_length_type.fn.param_types = sn_darray_create_with_capacity(0, SnukType *, &intpret->allocator);
     if (!str_get_type.fn.param_types) {
-        str_get_type.fn.param_types = snuk_darray_create_with_capacity(2, SnukType *, &intpret->allocator);
-        snuk_darray_push(&str_get_type.fn.param_types, &int_type);
-        snuk_darray_push(&str_get_type.fn.param_types, &int_type);
+        str_get_type.fn.param_types = sn_darray_create_with_capacity(2, SnukType *, &intpret->allocator);
+        sn_darray_push(&str_get_type.fn.param_types, &int_type);
+        sn_darray_push(&str_get_type.fn.param_types, &int_type);
     }
 }
 

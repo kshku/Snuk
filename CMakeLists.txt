@@ -33,7 +33,7 @@ include(FetchContent)
 FetchContent_Declare(
     snlogger
     GIT_REPOSITORY https://github.com/kshku/SnLogger.git
-    GIT_TAG v0.1.0
+    GIT_TAG v0.2.0
 )
 FetchContent_MakeAvailable(snlogger)
 
@@ -47,10 +47,17 @@ FetchContent_MakeAvailable(snfile)
 FetchContent_Declare(
     snmemory
     GIT_REPOSITORY https://github.com/kshku/SnMemory.git
-    GIT_TAG v0.1.0
+    GIT_TAG v0.2.0
 )
 
-target_link_libraries(snuk_configs INTERFACE snlogger snfile snmemory)
+FetchContent_Declare(
+    sncontainer
+    GIT_REPOSITORY https://github.com/kshku/SnContainer.git
+    GIT_TAG v0.1.0
+)
+FetchContent_MakeAvailable(sncontainer)
+
+target_link_libraries(snuk_configs INTERFACE snlogger snfile snmemory sncontainer)
 
 add_subdirectory(docs)
 add_subdirectory(src)

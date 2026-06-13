@@ -31,7 +31,7 @@ typedef struct SnukInterpreter {
     SnukValue *trash;
     SnukSignal signal;
     void *mem;
-    SnukAllocator allocator;
+    SnMemoryAllocator allocator;
     SnLinearAllocator la;
     SnukError err;
     SnukSrcLoc cur_loc;

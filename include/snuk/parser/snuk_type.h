@@ -1,9 +1,10 @@
 #pragma once
 
 #include "parser_common.h"
-#include "snuk/darray.h"
 #include "snuk/defines.h"
 #include "snuk/string_view.h"
+
+#include <sncontainer/darray.h>
 
 /**
  * @brief Parsed type.
@@ -108,10 +109,10 @@ SNUK_INLINE SnukType *build_fn_type(SnukParser *parser, SnukType *type, SnukType
         type = parser_create_type(parser);
         *type = (SnukType){
             .type = TYPE_FN,
-            .fn = {.param_types = snuk_darray_create(SnukType *, parser->allocator)},
+            .fn = {.param_types = sn_darray_create(SnukType *, parser->allocator)},
         };
     }
-    if (param) snuk_darray_push(&type->fn.param_types, param);
+    if (param) sn_darray_push(&type->fn.param_types, param);
     if (ret) type->fn.return_type = ret;
     return type;
 }
@@ -121,11 +122,11 @@ SNUK_INLINE SnukType *build_interface_type(SnukParser *parser, SnukType *type, S
         type = parser_create_type(parser);
         *type = (SnukType){
             .type = TYPE_INTERFACE,
-            .members = snuk_darray_create(SnukVar *, parser->allocator),
+            .members = sn_darray_create(SnukVar *, parser->allocator),
         };
     }
 
-    if (member) snuk_darray_push(&type->members, member);
+    if (member) sn_darray_push(&type->members, member);
 
     return type;
 }

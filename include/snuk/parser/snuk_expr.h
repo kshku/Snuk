@@ -1,9 +1,10 @@
 #pragma once
 
 #include "parser_common.h"
-#include "snuk/darray.h"
 #include "snuk/defines.h"
 #include "snuk/string_view.h"
+
+#include <sncontainer/darray.h>
 
 /**
  * @brief Parser expression node kinds.
@@ -501,10 +502,10 @@ SNUK_INLINE SnukExpr *build_block_expr(SnukParser *parser, SnukExpr *expr, SnukI
         expr = parser_create_expr(parser);
         *expr = (SnukExpr){
             .type = SNUK_EXPR_BLOCK,
-            .block_items = snuk_darray_create(SnukItem *, parser->allocator),
+            .block_items = sn_darray_create(SnukItem *, parser->allocator),
         };
     }
-    if (item) snuk_darray_push(&expr->block_items, item);
+    if (item) sn_darray_push(&expr->block_items, item);
     return expr;
 }
 

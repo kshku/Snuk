@@ -1,6 +1,5 @@
 #pragma once
 
-#include "snuk/darray.h"
 #include "snuk/defines.h"
 #include "snuk/parser/snuk_type.h"
 #include "snuk/string_view.h"

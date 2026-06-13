@@ -87,7 +87,7 @@ void snuk_type_log(SnukType *type) {
         case TYPE_FN:
             log_trace("type type: %s", SNUK_STRINGIFY(TYPE_FN));
             log_trace("param types:", NULL);
-            count = snuk_darray_get_length(type->fn.param_types);
+            count = sn_darray_get_length(type->fn.param_types);
             for (uint64_t i = 0; i < count; ++i) snuk_type_log(type->fn.param_types[i]);
             log_trace("return type:", NULL);
             snuk_type_log(type->fn.return_type);
@@ -114,8 +114,8 @@ bool snuk_type_equal(SnukType *type1, SnukType *type2) {
         case TYPE_FN:
             if (!snuk_type_equal(type1->fn.return_type, type2->fn.return_type)) return false;
 
-            count1 = snuk_darray_get_length(type1->fn.param_types);
-            count2 = snuk_darray_get_length(type2->fn.param_types);
+            count1 = sn_darray_get_length(type1->fn.param_types);
+            count2 = sn_darray_get_length(type2->fn.param_types);
             if (count1 != count2) return false;
 
             for (uint64_t i = 0; i < count1; ++i)
@@ -124,8 +124,8 @@ bool snuk_type_equal(SnukType *type1, SnukType *type2) {
             return true;
 
         case TYPE_INTERFACE:
-            count1 = snuk_darray_get_length(type1->members);
-            count2 = snuk_darray_get_length(type2->members);
+            count1 = sn_darray_get_length(type1->members);
+            count2 = sn_darray_get_length(type2->members);
             if (count1 != count2) return false;
             for (uint64_t i = 0; i < count1; ++i) {
                 if (!snuk_string_view_equal(type1->members[i]->name, type2->members[i]->name))
