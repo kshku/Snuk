@@ -217,12 +217,12 @@ void snuk_item_log(SnukItem *item) {
         case SNUK_ITEM_EXTEND:
             log_trace("extend", NULL);
             snuk_expr_log(item->extend_item.type);
-            count = snuk_darray_get_length(item->extend_item.members);
+            count = sn_darray_get_length(item->extend_item.members);
             for (uint64_t i = 0; i < count; ++i) snuk_item_log(item->extend_item.members[i]);
             break;
         case SNUK_ITEM_PRINT:
             log_trace("print:", NULL);
-            count = snuk_darray_get_length(item->print_exprs);
+            count = sn_darray_get_length(item->print_exprs);
             for (uint64_t i = 0; i < count; ++i) snuk_expr_log(item->print_exprs[i]);
             break;
         default:

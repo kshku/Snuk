@@ -12,7 +12,7 @@ typedef struct Runtime {
     void *mem;
     SnLinearAllocator la;
     SnukInterpreter interpreter;
-    SnukAllocator parser_allocator;
+    SnMemoryAllocator parser_allocator;
 } Runtime;
 
 SNUK_INLINE void *runtime_alloc_fn(void *data, uint64_t size, uint64_t align) {

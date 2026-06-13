@@ -16,7 +16,6 @@ set(PUBLIC_HEADERS
     io.h
     snuk_string.h
     lexer.h
-    darray.h
 )
 
 set(HEADERS
@@ -27,7 +26,6 @@ set(SRCS
     memory.c
     io.c
     lexer.c
-    darray.c
 )
 
 set(INCLUDE_BASE "${PROJECT_SOURCE_DIR}/include/snuk")

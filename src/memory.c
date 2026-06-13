@@ -153,7 +153,7 @@ SNUK_INLINE void *snuk_allocator_global_realloc(void *data, void *ptr, uint64_t 
     return snuk_realloc(ptr, new_size, align);
 }
 
-SnukAllocator snuk_global_allocator = {
+SnMemoryAllocator snuk_global_allocator = {
     .data = NULL,
     .alloc = snuk_allocator_global_alloc,
     .realloc = snuk_allocator_global_realloc,

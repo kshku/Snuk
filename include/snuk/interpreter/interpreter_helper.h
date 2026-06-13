@@ -1,11 +1,11 @@
 #pragma once
 
 #include "interpreter.h"
-#include "snuk/darray.h"
 #include "snuk/defines.h"
 #include "snuk/snuk_error.h"
 #include "snuk_scope.h"
 
+#include <sncontainer/darray.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -164,11 +164,11 @@ SNUK_INLINE SnukEnv *interpreter_lookup(
 }
 
 SNUK_INLINE void interpreter_trash(SnukInterpreter *intpret, SnukValue value) {
-    snuk_darray_push(&intpret->trash, value);
+    sn_darray_push(&intpret->trash, value);
 }
 
 SNUK_INLINE void interpreter_clear_trash(SnukInterpreter *intpret) {
-    uint64_t count = snuk_darray_get_length(intpret->trash);
+    uint64_t count = sn_darray_get_length(intpret->trash);
     for (uint64_t i = 0; i < count; ++i) snuk_value_free(intpret->trash[i]);
-    snuk_darray_clear(&intpret->trash);
+    sn_darray_clear(&intpret->trash);
 }

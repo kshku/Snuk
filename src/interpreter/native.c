@@ -1,8 +1,9 @@
 #include "snuk/interpreter/native.h"
 
-#include "snuk/darray.h"
 #include "snuk/interpreter/builtins/snuk_builtins.h"
 #include "snuk/interpreter/interpreter_helper.h"
+
+#include <sncontainer/darray.h>
 
 SnukValue snuk_native_lookup(SnukInterpreter *intpret, const char *name) {
     return snuk_interpreter_get_env(intpret, snuk_string_view_create(name));
@@ -68,7 +69,7 @@ SnukValue snuk_native_call_function(SnukInterpreter *intpret, SnukValue fn, Snuk
     interpreter_push_scope(intpret);
 
     SnukScope *fn_scope = GET_SCOPE(fn_scope_rc);
-    uint64_t fn_param_count = snuk_darray_get_length(fn_scope->vars);
+    uint64_t fn_param_count = sn_darray_get_length(fn_scope->vars);
 
     if (fn_param_count < count) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
     for (uint64_t i = 0; i < count; ++i) {
@@ -161,7 +162,7 @@ SnukValue snuk_native_create_fn(SnukInterpreter *intpret, SnukParameter *params,
                                 SnukType *fn_type, native_function_t fn, bool weak_ref) {
     interpreter_push_scope(intpret);
 
-    uint64_t param_count = snuk_darray_get_length(fn_type->fn.param_types);
+    uint64_t param_count = sn_darray_get_length(fn_type->fn.param_types);
     if (count != param_count) return (SnukValue){.type = SNUK_VALUE_UNKOWN};
 
     for (uint64_t i = 0; i < count; ++i) {

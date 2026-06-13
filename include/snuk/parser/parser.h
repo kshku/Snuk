@@ -30,7 +30,7 @@ typedef struct SnukParser {
     SnukToken current; /**< Current token. */
     SnukToken next; /**< Next token. */
 
-    SnukAllocator *allocator;
+    SnMemoryAllocator *allocator;
 
     bool panic_mode; /**< Error and recovery state flags. */
     SnukError err;
@@ -50,7 +50,7 @@ typedef struct SnukParser {
  * @note The source text must remain valid for the lifetime of parsed nodes that
  * reference token text.
  */
-SNUK_API void snuk_parser_init(SnukParser *parser, const char *src, SnukAllocator *allocator);
+SNUK_API void snuk_parser_init(SnukParser *parser, const char *src, SnMemoryAllocator *allocator);
 
 /**
  * @brief Deinitialize a parser context.
